@@ -118,13 +118,21 @@ process.on('SIGINT', () => {
 
 // Unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Promise Rejection:', err);
+  if (typeof logger !== 'undefined' && logger.error) {
+    logger.error('Unhandled Promise Rejection:', err);
+  } else {
+    console.error('Unhandled Promise Rejection:', err);
+  }
   process.exit(1);
 });
 
 // Uncaught exceptions
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception:', err);
+  if (typeof logger !== 'undefined' && logger.error) {
+    logger.error('Uncaught Exception:', err);
+  } else {
+    console.error('Uncaught Exception:', err);
+  }
   process.exit(1);
 });
 
