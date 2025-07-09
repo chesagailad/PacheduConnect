@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { sequelize } = require('../utils/database');
+const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'All fields are required.' });
     }
     
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     const existing = await User.findOne({ where: { email } });
     if (existing) {
       return res.status(409).json({ message: 'Email already in use.' });
@@ -35,7 +35,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
     
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     const user = await User.findOne({ 
       where: { email },
       attributes: { include: ['passwordHash'] }
@@ -57,7 +57,7 @@ router.post('/login', async (req, res) => {
 // Protected route to get current user
 router.get('/me', auth, async (req, res) => {
   try {
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
