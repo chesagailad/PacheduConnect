@@ -2,8 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PaymentProcessor from '../../components/PaymentProcessor';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+interface FeeBreakdown {
+  amount: number;
+  fee: number;
+  totalAmount: number;
+  feeType: string;
+  feePercentage: number;
+  currency: string;
+}
 
 export default function SendMoneyPage() {
   const router = useRouter();
@@ -16,6 +26,11 @@ export default function SendMoneyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [recipientInfo, setRecipientInfo] = useState<{ name: string; email: string } | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdown | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -23,181 +38,354 @@ export default function SendMoneyPage() {
       router.push('/auth');
       return;
     }
+    // Fetch user balance
+    fetchUserBalance();
   }, [router]);
+
+  const fetchUserBalance = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/users/balance`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserBalance(data.balance);
+      }
+    } catch (err) {
+      console.log('Could not fetch balance');
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
     setError('');
     setSuccess('');
+    setFeeBreakdown(null);
+  };
 
+  const validateForm = () => {
+    if (!form.recipientEmail) {
+      setError('Recipient email is required');
+      return false;
+    }
+    
+    if (!form.amount || parseFloat(form.amount) <= 0) {
+      setError('Please enter a valid amount');
+      return false;
+    }
+
+    if (!form.currency) {
+      setError('Please select a currency');
+      return false;
+    }
+
+    return true;
+  };
+
+  const calculateFee = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/transactions`, {
+      const res = await fetch(`${API_URL}/api/transactions/calculate-fee`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          amount: parseFloat(form.amount),
+          currency: form.currency
+        })
       });
 
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || 'Transaction failed');
+      if (res.ok) {
+        const data = await res.json();
+        setFeeBreakdown(data);
       }
+    } catch (err) {
+      console.error('Failed to calculate fee:', err);
+    }
+  };
 
-      setSuccess('Money sent successfully!');
-      setForm({ recipientEmail: '', amount: '', currency: 'USD', description: '' });
-      
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+  const verifyRecipient = async () => {
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/users/search?email=${form.recipientEmail}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          setRecipientInfo(data[0]);
+          await calculateFee();
+          setShowPreview(true);
+        } else {
+          setError('Recipient not found. Please check the email address.');
+        }
+      } else {
+        setError('Recipient not found. Please check the email address.');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError('Failed to verify recipient');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBack = () => {
-    router.push('/dashboard');
+  const handlePaymentSuccess = (paymentData: any) => {
+    setSuccess('Payment processed successfully!');
+    setShowPayment(false);
+    setShowPreview(false);
+    setForm({ recipientEmail: '', amount: '', currency: 'USD', description: '' });
+    setRecipientInfo(null);
+    setFeeBreakdown(null);
+    
+    // Refresh user balance
+    fetchUserBalance();
+    
+    // Redirect to transactions page after a short delay
+    setTimeout(() => {
+      router.push('/transactions');
+    }, 2000);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <button
-                onClick={handleBack}
-                className="mr-4 p-2 text-gray-600 hover:text-gray-900"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <h1 className="text-2xl font-bold text-primary-600">Send Money</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+  const handlePaymentError = (error: string) => {
+    setError(`Payment failed: ${error}`);
+  };
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+  };
+
+  const proceedToPayment = () => {
+    setShowPayment(true);
+  };
+
+  const backToForm = () => {
+    setShowPreview(false);
+    setRecipientInfo(null);
+    setFeeBreakdown(null);
+  };
+
+  if (showPayment) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Transfer Funds</h2>
-            <p className="text-gray-600">Send money to another user by entering their email address.</p>
+            <button
+              onClick={handlePaymentCancel}
+              className="text-blue-600 hover:text-blue-800 mb-4"
+            >
+              ← Back to payment details
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">Complete Payment</h1>
           </div>
+          
+          <PaymentProcessor
+            amount={parseFloat(form.amount)}
+            currency={form.currency}
+            recipientEmail={form.recipientEmail}
+            description={form.description}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onCancel={handlePaymentCancel}
+          />
+        </div>
+      </div>
+    );
+  }
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Recipient Email</label>
-              <input
-                type="email"
-                name="recipientEmail"
-                value={form.recipientEmail}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Enter recipient's email address"
-                required
-              />
-            </div>
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
+          <p className="text-gray-600">Transfer money to friends and family securely</p>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {userBalance !== null && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              Available Balance: <span className="font-semibold">${userBalance.toFixed(2)}</span>
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            {success}
+          </div>
+        )}
+
+        {!showPreview ? (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-gray-700 mb-2 font-medium">Amount</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Email
+                </label>
                 <input
-                  type="number"
-                  name="amount"
-                  value={form.amount}
+                  type="email"
+                  name="recipientEmail"
+                  value={form.recipientEmail}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0.01"
-                  required
+                  placeholder="Enter recipient's email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2 font-medium">Currency</label>
-                <select
-                  name="currency"
-                  value={form.currency}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="ZAR">ZAR (R)</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount
+                </label>
+                <div className="flex">
+                  <input
+                    type="number"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <select
+                    name="currency"
+                    value={form.currency}
+                    onChange={handleChange}
+                    className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="ZAR">ZAR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-gray-700 mb-2 font-medium">Description (Optional)</label>
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Optional)
+              </label>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="What's this payment for?"
                 rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-600 text-sm">{success}</p>
-              </div>
-            )}
-
-            <div className="flex space-x-4">
+            <div className="mt-6">
               <button
-                type="button"
-                onClick={handleBack}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
+                onClick={verifyRecipient}
                 disabled={loading}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {loading ? 'Sending...' : 'Send Money'}
+                {loading ? 'Verifying...' : 'Continue'}
               </button>
             </div>
-          </form>
-
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">Important Information</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Transactions are processed instantly</li>
-              <li>• Make sure the recipient email is correct</li>
-              <li>• You cannot send money to yourself</li>
-              <li>• All transactions are final and cannot be reversed</li>
-            </ul>
           </div>
-        </div>
-      </main>
+        ) : (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Payment Preview</h2>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Recipient</p>
+                    <p className="font-semibold">{recipientInfo?.name}</p>
+                    <p className="text-sm text-gray-500">{recipientInfo?.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Amount</p>
+                    <p className="font-semibold">{form.currency} {parseFloat(form.amount).toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                {form.description && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600">Description</p>
+                    <p className="font-semibold">{form.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {feeBreakdown && (
+                <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">Fee Breakdown</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Amount:</span>
+                      <span>{form.currency} {feeBreakdown.amount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Fee ({feeBreakdown.feePercentage}%):</span>
+                      <span>{form.currency} {feeBreakdown.fee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-gray-200">
+                      <span className="font-semibold">Total:</span>
+                      <span className="font-semibold">{form.currency} {feeBreakdown.totalAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {userBalance !== null && feeBreakdown && (
+                <div className={`p-4 rounded-lg mb-4 ${
+                  userBalance >= feeBreakdown.totalAmount 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  <p className={`text-sm ${
+                    userBalance >= feeBreakdown.totalAmount ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {userBalance >= feeBreakdown.totalAmount 
+                      ? '✓ Sufficient balance available'
+                      : '⚠ Insufficient balance. Please add funds to your account.'
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+                             <button
+                 onClick={proceedToPayment}
+                 disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
+                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+               >
+                Proceed to Payment
+              </button>
+              <button
+                onClick={backToForm}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

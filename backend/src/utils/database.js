@@ -2,72 +2,63 @@ const { Sequelize } = require('sequelize');
 const { logger } = require('./logger');
 const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');
+const createNotificationModel = require('../models/Notification');
+const createPaymentModel = require('../models/Payment');
 
-let sequelize;
+let sequelize = null;
 
-const connectDB = async () => {
+async function connectDB() {
   try {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
-      logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      logging: false,
       pool: {
         max: 5,
         min: 0,
         acquire: 30000,
-        idle: 10000,
-      },
-      dialectOptions: {
-        ssl: process.env.NODE_ENV === 'production' ? {
-          require: true,
-          rejectUnauthorized: false,
-        } : false,
-      },
+        idle: 10000
+      }
     });
 
     // Test the connection
     await sequelize.authenticate();
-    logger.info('Database connection has been established successfully.');
+    console.log('Database connection has been established successfully.');
 
     // Register models
     const User = createUserModel(sequelize);
     const Transaction = createTransactionModel(sequelize);
+    const Notification = createNotificationModel(sequelize);
+    const Payment = createPaymentModel(sequelize);
 
     // Set up associations
     User.hasMany(Transaction, { as: 'sentTransactions', foreignKey: 'senderId' });
     User.hasMany(Transaction, { as: 'receivedTransactions', foreignKey: 'recipientId' });
-    User.hasMany(Transaction, { as: 'transactions', foreignKey: 'userId' });
+    User.hasMany(Notification, { as: 'notifications', foreignKey: 'userId' });
+    User.hasMany(Payment, { as: 'payments', foreignKey: 'userId' });
     
-    Transaction.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
-    Transaction.belongsTo(User, { as: 'recipient', foreignKey: 'recipientId' });
-    Transaction.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+    Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Payment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Payment.belongsTo(Transaction, { foreignKey: 'transactionId', as: 'transaction' });
 
     // Sync models with database
     await sequelize.sync({ alter: true });
-    logger.info('Database models synchronized successfully.');
+    console.log('Database models synchronized successfully.');
 
     return sequelize;
   } catch (error) {
-    logger.error('Unable to connect to the database:', error);
+    console.error('Unable to connect to the database:', error);
     throw error;
   }
-};
+}
 
-const getSequelize = () => {
+function getSequelize() {
   if (!sequelize) {
     throw new Error('Database not connected. Call connectDB() first.');
   }
   return sequelize;
-};
-
-const closeDB = async () => {
-  if (sequelize) {
-    await sequelize.close();
-    logger.info('Database connection closed.');
-  }
-};
+}
 
 module.exports = {
   connectDB,
-  getSequelize,
-  closeDB,
+  getSequelize
 }; 

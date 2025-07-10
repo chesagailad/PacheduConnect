@@ -1,7 +1,13 @@
-const User = require('./User');
-const Transaction = require('./Transaction');
+const createUserModel = require('./User');
+const createTransactionModel = require('./Transaction');
+const createNotificationModel = require('./Notification');
+const createPaymentModel = require('./Payment');
+const createBeneficiaryModel = require('./Beneficiary');
 
 module.exports = {
-  User,
-  Transaction,
+  createUserModel,
+  createTransactionModel,
+  createNotificationModel,
+  createPaymentModel,
+  createBeneficiaryModel,
 }; 

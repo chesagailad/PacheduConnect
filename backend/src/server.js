@@ -23,6 +23,7 @@ const paymentRoutes = require('./routes/payments');
 const kycRoutes = require('./routes/kyc');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhooks');
+const beneficiaryRoutes = require('./routes/beneficiaries');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -79,13 +80,23 @@ app.use(morgan('combined', {
   },
 }));
 
-// Health check endpoint
+// Health check endpoints
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    service: 'pachedu-backend',
   });
 });
 
@@ -98,6 +109,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/beneficiaries', beneficiaryRoutes);
 
 // 404 handler
 app.use(notFound);

@@ -2,8 +2,34 @@ const express = require('express');
 const { sequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');
+const createPaymentModel = require('../models/Payment');
 const auth = require('../middleware/auth');
+const paymentGatewayService = require('../services/paymentGateways');
+const { v4: uuidv4 } = require('uuid');
+
 const router = express.Router();
+
+// Get available payment gateways
+router.get('/gateways', auth, async (req, res) => {
+  try {
+    const gateways = paymentGatewayService.getSupportedGateways();
+    const gatewayConfigs = {};
+    
+    gateways.forEach(gateway => {
+      const config = paymentGatewayService.getGatewayConfig(gateway);
+      if (config) {
+        gatewayConfigs[gateway] = config;
+      }
+    });
+
+    return res.json({ 
+      gateways: gatewayConfigs,
+      message: 'Available payment gateways retrieved successfully'
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to fetch payment gateways', error: err.message });
+  }
+});
 
 // Get user's payment methods
 router.get('/methods', auth, async (req, res) => {
@@ -91,27 +117,38 @@ router.patch('/methods/:id/default', auth, async (req, res) => {
   }
 });
 
-// Process a payment
-router.post('/process', auth, async (req, res) => {
+// Process a payment with specified gateway
+router.post('/process/:gateway', auth, async (req, res) => {
   try {
+    const { gateway } = req.params;
     const { 
       amount, 
       currency = 'USD', 
       paymentMethodId, 
       description,
-      recipientEmail 
+      recipientEmail,
+      bankAccount,
+      bankCode,
+      returnUrl,
+      cancelUrl
     } = req.body;
     
-    if (!amount || !paymentMethodId || !recipientEmail) {
-      return res.status(400).json({ message: 'Amount, payment method, and recipient are required' });
+    if (!amount || !recipientEmail) {
+      return res.status(400).json({ message: 'Amount and recipient are required' });
     }
 
     if (amount <= 0) {
       return res.status(400).json({ message: 'Amount must be greater than 0' });
     }
 
+    // Validate gateway
+    if (!paymentGatewayService.getSupportedGateways().includes(gateway)) {
+      return res.status(400).json({ message: 'Unsupported payment gateway' });
+    }
+
     const User = createUserModel(sequelize());
     const Transaction = createTransactionModel(sequelize());
+    const Payment = createPaymentModel(sequelize());
 
     // Find recipient
     const recipient = await User.findOne({ where: { email: recipientEmail } });
@@ -123,46 +160,116 @@ router.post('/process', auth, async (req, res) => {
       return res.status(400).json({ message: 'Cannot send money to yourself' });
     }
 
-    // In a real app, this would integrate with a payment processor
-    // For demo purposes, we'll simulate a successful payment
-    const paymentResult = {
-      success: true,
-      transactionId: `pay_${Date.now()}`,
-      amount,
-      currency,
-      status: 'completed'
-    };
-
-    if (!paymentResult.success) {
-      return res.status(400).json({ message: 'Payment failed', error: paymentResult.error });
+    // Get user info
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create transaction record
-    const transaction = await Transaction.create({
+    // Generate unique reference
+    const reference = `PAY_${Date.now()}_${uuidv4().substring(0, 8)}`;
+
+    // Prepare payment data
+    const paymentData = {
+      amount: parseFloat(amount),
+      currency: currency.toUpperCase(),
+      reference,
+      customerEmail: user.email,
+      customerName: user.name,
+      description: description || `Payment to ${recipient.name}`,
+      returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/success`,
+      cancelUrl: cancelUrl || `${process.env.FRONTEND_URL}/payment/cancel`
+    };
+
+    // Add gateway-specific data
+    if (gateway === 'stripe') {
+      paymentData.paymentMethodId = paymentMethodId;
+      paymentData.metadata = {
+        userId: req.user.id,
+        recipientId: recipient.id,
+        email: user.email
+      };
+    } else if (gateway === 'stitch') {
+      if (!bankAccount || !bankCode) {
+        return res.status(400).json({ message: 'Bank account and bank code are required for Stitch payments' });
+      }
+      paymentData.bankAccount = bankAccount;
+      paymentData.bankCode = bankCode;
+    }
+
+    // Validate payment data
+    try {
+      paymentGatewayService.validatePaymentData(paymentData, gateway);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    // Process payment through gateway
+    const paymentResult = await paymentGatewayService.processPayment(gateway, paymentData);
+
+    if (!paymentResult.success) {
+      return res.status(400).json({ 
+        message: 'Payment failed', 
+        error: paymentResult.error,
+        gateway: gateway
+      });
+    }
+
+    // Create payment record
+    const payment = await Payment.create({
       userId: req.user.id,
-      type: 'send',
-      amount,
-      currency,
-      recipientId: recipient.id,
-      status: 'completed',
-      description,
-      paymentMethodId
+      gateway,
+      gatewayTransactionId: paymentResult.transactionId,
+      amount: paymentResult.amount,
+      currency: paymentResult.currency,
+      status: paymentResult.status,
+      paymentMethod: paymentMethodId || 'direct',
+      customerId: paymentResult.customerId,
+      description: paymentData.description,
+      metadata: paymentResult.metadata
     });
 
-    // Create corresponding receive transaction for recipient
-    await Transaction.create({
-      userId: recipient.id,
-      type: 'receive',
-      amount,
-      currency,
-      senderId: req.user.id,
-      status: 'completed',
-      description
-    });
+    // Create transaction record if payment is completed
+    let transaction = null;
+    if (paymentResult.status === 'completed' || paymentResult.status === 'succeeded') {
+      transaction = await Transaction.create({
+        userId: req.user.id,
+        type: 'send',
+        amount: paymentResult.amount,
+        currency: paymentResult.currency,
+        recipientId: recipient.id,
+        status: 'completed',
+        description: paymentData.description
+      });
+
+      // Create corresponding receive transaction for recipient
+      await Transaction.create({
+        userId: recipient.id,
+        type: 'receive',
+        amount: paymentResult.amount,
+        currency: paymentResult.currency,
+        senderId: req.user.id,
+        status: 'completed',
+        description: paymentData.description
+      });
+
+      // Update payment with transaction ID
+      await payment.update({ transactionId: transaction.id, processedAt: new Date() });
+    }
 
     return res.status(201).json({
       message: 'Payment processed successfully',
-      transaction: {
+      payment: {
+        id: payment.id,
+        gateway: payment.gateway,
+        amount: parseFloat(payment.amount),
+        currency: payment.currency,
+        status: payment.status,
+        gatewayTransactionId: payment.gatewayTransactionId,
+        redirectUrl: paymentResult.redirectUrl,
+        formData: paymentResult.formData
+      },
+      transaction: transaction ? {
         id: transaction.id,
         type: transaction.type,
         amount: parseFloat(transaction.amount),
@@ -170,11 +277,63 @@ router.post('/process', auth, async (req, res) => {
         recipient: recipient.name,
         status: transaction.status,
         createdAt: transaction.createdAt
-      },
-      payment: paymentResult
+      } : null
     });
   } catch (err) {
+    console.error('Payment processing error:', err);
     return res.status(500).json({ message: 'Payment processing failed', error: err.message });
+  }
+});
+
+// Get payment status
+router.get('/status/:paymentId', auth, async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const Payment = createPaymentModel(sequelize());
+    const Transaction = createTransactionModel(sequelize());
+
+    const payment = await Payment.findOne({
+      where: { 
+        id: paymentId,
+        userId: req.user.id
+      },
+      include: [
+        {
+          model: Transaction,
+          as: 'transaction',
+          attributes: ['id', 'type', 'amount', 'currency', 'status', 'description', 'createdAt']
+        }
+      ]
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    return res.json({
+      payment: {
+        id: payment.id,
+        gateway: payment.gateway,
+        amount: parseFloat(payment.amount),
+        currency: payment.currency,
+        status: payment.status,
+        gatewayTransactionId: payment.gatewayTransactionId,
+        description: payment.description,
+        createdAt: payment.createdAt,
+        processedAt: payment.processedAt
+      },
+      transaction: payment.transaction ? {
+        id: payment.transaction.id,
+        type: payment.transaction.type,
+        amount: parseFloat(payment.transaction.amount),
+        currency: payment.transaction.currency,
+        status: payment.transaction.status,
+        description: payment.transaction.description,
+        createdAt: payment.transaction.createdAt
+      } : null
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to fetch payment status', error: err.message });
   }
 });
 
@@ -186,19 +345,20 @@ router.get('/history', auth, async (req, res) => {
       offset = 0,
       startDate,
       endDate,
-      status
+      status,
+      gateway
     } = req.query;
 
+    const Payment = createPaymentModel(sequelize());
     const Transaction = createTransactionModel(sequelize());
-    const User = createUserModel(sequelize());
     
-    // Build where clause for payments (send transactions)
+    // Build where clause
     const whereClause = { 
-      userId: req.user.id,
-      type: 'send'
+      userId: req.user.id
     };
     
     if (status) whereClause.status = status;
+    if (gateway) whereClause.gateway = gateway;
     
     if (startDate || endDate) {
       whereClause.createdAt = {};
@@ -206,13 +366,13 @@ router.get('/history', auth, async (req, res) => {
       if (endDate) whereClause.createdAt[sequelize().Sequelize.Op.lte] = new Date(endDate);
     }
 
-    const payments = await Transaction.findAndCountAll({
+    const payments = await Payment.findAndCountAll({
       where: whereClause,
       include: [
         {
-          model: User,
-          as: 'recipient',
-          attributes: ['id', 'name', 'email']
+          model: Transaction,
+          as: 'transaction',
+          attributes: ['id', 'type', 'amount', 'currency', 'status', 'description', 'createdAt']
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -222,12 +382,23 @@ router.get('/history', auth, async (req, res) => {
 
     const formattedPayments = payments.rows.map(payment => ({
       id: payment.id,
+      gateway: payment.gateway,
       amount: parseFloat(payment.amount),
       currency: payment.currency,
-      recipient: payment.recipient?.name || payment.recipientId,
       status: payment.status,
+      gatewayTransactionId: payment.gatewayTransactionId,
       description: payment.description,
-      createdAt: payment.createdAt
+      createdAt: payment.createdAt,
+      processedAt: payment.processedAt,
+      transaction: payment.transaction ? {
+        id: payment.transaction.id,
+        type: payment.transaction.type,
+        amount: parseFloat(payment.transaction.amount),
+        currency: payment.transaction.currency,
+        status: payment.transaction.status,
+        description: payment.transaction.description,
+        createdAt: payment.transaction.createdAt
+      } : null
     }));
 
     return res.json({
@@ -243,8 +414,8 @@ router.get('/history', auth, async (req, res) => {
 // Get payment statistics
 router.get('/stats', auth, async (req, res) => {
   try {
-    const { period = 'month' } = req.query;
-    const Transaction = createTransactionModel(sequelize());
+    const { period = 'month', gateway } = req.query;
+    const Payment = createPaymentModel(sequelize());
     
     let startDate;
     const now = new Date();
@@ -263,50 +434,53 @@ router.get('/stats', auth, async (req, res) => {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // Get total payments amount
-    const totalPayments = await Transaction.sum('amount', {
-      where: {
-        userId: req.user.id,
-        type: 'send',
-        status: 'completed',
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
+    const whereClause = {
+      userId: req.user.id,
+      status: 'completed',
+      createdAt: {
+        [sequelize().Sequelize.Op.gte]: startDate
       }
-    });
+    };
+
+    if (gateway) {
+      whereClause.gateway = gateway;
+    }
+
+    // Get total payments amount
+    const totalPayments = await Payment.sum('amount', { where: whereClause });
 
     // Get payment count
-    const paymentCount = await Transaction.count({
-      where: {
-        userId: req.user.id,
-        type: 'send',
-        status: 'completed',
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
-      }
-    });
+    const paymentCount = await Payment.count({ where: whereClause });
 
     // Get average payment amount
-    const avgPayment = await Transaction.findOne({
-      where: {
-        userId: req.user.id,
-        type: 'send',
-        status: 'completed',
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
-      },
+    const avgPayment = await Payment.findOne({
+      where: whereClause,
       attributes: [
         [sequelize().Sequelize.fn('AVG', sequelize().Sequelize.col('amount')), 'average']
       ]
+    });
+
+    // Get gateway breakdown
+    const gatewayBreakdown = await Payment.findAll({
+      where: whereClause,
+      attributes: [
+        'gateway',
+        [sequelize().Sequelize.fn('COUNT', sequelize().Sequelize.col('id')), 'count'],
+        [sequelize().Sequelize.fn('SUM', sequelize().Sequelize.col('amount')), 'total']
+      ],
+      group: ['gateway']
     });
 
     return res.json({
       period,
       totalPayments: totalPayments || 0,
       paymentCount,
-      averagePayment: parseFloat(avgPayment?.dataValues?.average) || 0
+      averagePayment: parseFloat(avgPayment?.dataValues?.average) || 0,
+      gatewayBreakdown: gatewayBreakdown.map(item => ({
+        gateway: item.gateway,
+        count: parseInt(item.dataValues.count),
+        total: parseFloat(item.dataValues.total) || 0
+      }))
     });
   } catch (err) {
     return res.status(500).json({ message: 'Failed to fetch payment statistics', error: err.message });

@@ -19,6 +19,19 @@ const createUserModel = (sequelize) => {
         isEmail: true,
       },
     },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        isValidPhoneNumber(value) {
+          if (value && value !== '') {
+            if (!/^\+?[1-9]\d{1,14}$/.test(value)) {
+              throw new Error('Invalid phone number format');
+            }
+          }
+        },
+      },
+    },
     passwordHash: {
       type: DataTypes.STRING,
       allowNull: false,

@@ -1,15 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const { sequelize } = require('../utils/database');
+const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');
+const createNotificationModel = require('../models/Notification');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ['passwordHash'] }
     });
@@ -28,7 +29,7 @@ router.get('/profile', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const { name, email, currentPassword, newPassword } = req.body;
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     
     const user = await User.findByPk(req.user.id);
     if (!user) {
@@ -40,7 +41,7 @@ router.put('/profile', auth, async (req, res) => {
     if (email) {
       // Check if email is already taken by another user
       const existingUser = await User.findOne({ 
-        where: { email, id: { [sequelize().Sequelize.Op.ne]: req.user.id } }
+        where: { email, id: { [getSequelize().Sequelize.Op.ne]: req.user.id } }
       });
       if (existingUser) {
         return res.status(409).json({ message: 'Email already in use' });
@@ -78,7 +79,7 @@ router.put('/profile', auth, async (req, res) => {
 // Get user statistics
 router.get('/stats', auth, async (req, res) => {
   try {
-    const Transaction = createTransactionModel(sequelize());
+    const Transaction = createTransactionModel(getSequelize());
     
     // Get total transactions count
     const totalTransactions = await Transaction.count({
@@ -111,7 +112,7 @@ router.get('/stats', auth, async (req, res) => {
       where: {
         userId: req.user.id,
         createdAt: {
-          [sequelize().Sequelize.Op.gte]: startOfMonth
+          [getSequelize().Sequelize.Op.gte]: startOfMonth
         }
       }
     });
@@ -133,8 +134,8 @@ router.get('/stats', auth, async (req, res) => {
 // Get user's recent activity
 router.get('/activity', auth, async (req, res) => {
   try {
-    const Transaction = createTransactionModel(sequelize());
-    const User = createUserModel(sequelize());
+    const Transaction = createTransactionModel(getSequelize());
+    const User = createUserModel(getSequelize());
     
     const activities = await Transaction.findAll({
       where: { userId: req.user.id },
@@ -180,14 +181,14 @@ router.get('/search', auth, async (req, res) => {
       return res.status(400).json({ message: 'Search query must be at least 2 characters' });
     }
 
-    const User = createUserModel(sequelize());
+    const User = createUserModel(getSequelize());
     const users = await User.findAll({
       where: {
-        [sequelize().Sequelize.Op.or]: [
-          { name: { [sequelize().Sequelize.Op.iLike]: `%${q}%` } },
-          { email: { [sequelize().Sequelize.Op.iLike]: `%${q}%` } }
+        [getSequelize().Sequelize.Op.or]: [
+          { name: { [getSequelize().Sequelize.Op.iLike]: `%${q}%` } },
+          { email: { [getSequelize().Sequelize.Op.iLike]: `%${q}%` } }
         ],
-        id: { [sequelize().Sequelize.Op.ne]: req.user.id } // Exclude current user
+        id: { [getSequelize().Sequelize.Op.ne]: req.user.id } // Exclude current user
       },
       attributes: ['id', 'name', 'email'],
       limit: 10
@@ -196,6 +197,104 @@ router.get('/search', auth, async (req, res) => {
     return res.json({ users });
   } catch (err) {
     return res.status(500).json({ message: 'Failed to search users', error: err.message });
+  }
+});
+
+// Search user by email (for send money verification)
+router.get('/search/email', auth, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const User = createUserModel(getSequelize());
+    const user = await User.findOne({
+      where: { 
+        email: email,
+        id: { [getSequelize().Sequelize.Op.ne]: req.user.id } // Exclude current user
+      },
+      attributes: ['id', 'name', 'email']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.json({ user });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to search user', error: err.message });
+  }
+});
+
+// Get user balance
+router.get('/balance', auth, async (req, res) => {
+  try {
+    const Transaction = createTransactionModel(getSequelize());
+    
+    // Calculate balance: received - sent
+    const receivedAmount = await Transaction.sum('amount', {
+      where: { 
+        userId: req.user.id, 
+        type: 'receive', 
+        status: 'completed' 
+      }
+    });
+
+    const sentAmount = await Transaction.sum('amount', {
+      where: { 
+        userId: req.user.id, 
+        type: 'send', 
+        status: 'completed' 
+      }
+    });
+
+    const balance = (receivedAmount || 0) - (sentAmount || 0);
+
+    return res.json({ balance });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to fetch balance', error: err.message });
+  }
+});
+
+// List notifications for the logged-in user
+router.get('/notifications', auth, async (req, res) => {
+  try {
+    const Notification = createNotificationModel(getSequelize());
+    const { unread, limit = 20, offset = 0 } = req.query;
+    const where = { userId: req.user.id };
+    if (unread === 'true') where.read = false;
+    const notifications = await Notification.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+    res.json({
+      notifications: notifications.rows,
+      total: notifications.count,
+      hasMore: notifications.count > parseInt(offset) + notifications.rows.length
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch notifications', error: err.message });
+  }
+});
+
+// Mark notifications as read
+router.post('/notifications/mark-read', auth, async (req, res) => {
+  try {
+    const Notification = createNotificationModel(getSequelize());
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'No notification IDs provided' });
+    }
+    await Notification.update(
+      { read: true },
+      { where: { userId: req.user.id, id: ids } }
+    );
+    res.json({ message: 'Notifications marked as read' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to mark notifications as read', error: err.message });
   }
 });
 

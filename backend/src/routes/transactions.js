@@ -1,56 +1,104 @@
 const express = require('express');
-const { sequelize } = require('../utils/database');
-const createUserModel = require('../models/User');
-const createTransactionModel = require('../models/Transaction');
 const auth = require('../middleware/auth');
+const { getSequelize } = require('../utils/database');
+const createTransactionModel = require('../models/Transaction');
+const createUserModel = require('../models/User');
+const createNotificationModel = require('../models/Notification');
+const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
+const { convertCurrency, getExchangeRate, getAllRates } = require('../utils/exchangeRate');
+
 const router = express.Router();
 
-// Get user's transactions with filtering
+// Get all exchange rates
+router.get('/exchange-rates', async (req, res) => {
+  try {
+    const rates = await getAllRates();
+    res.json(rates);
+  } catch (error) {
+    console.error('Error fetching exchange rates:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Convert currency
+router.post('/convert-currency', async (req, res) => {
+  try {
+    const { amount, fromCurrency, toCurrency } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
+    if (!fromCurrency || !toCurrency) {
+      return res.status(400).json({ error: 'Both fromCurrency and toCurrency are required' });
+    }
+    
+    const conversion = await convertCurrency(parseFloat(amount), fromCurrency, toCurrency);
+    
+    res.json({
+      conversion,
+      message: 'Currency converted successfully'
+    });
+  } catch (error) {
+    console.error('Error converting currency:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get specific exchange rate
+router.get('/exchange-rate/:from/:to', async (req, res) => {
+  try {
+    const { from, to } = req.params;
+    
+    const rate = await getExchangeRate(from, to);
+    
+    res.json({
+      rate,
+      message: 'Exchange rate retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get user transactions with filters
 router.get('/', auth, async (req, res) => {
   try {
-    const { 
-      type, 
-      status, 
-      limit = 20, 
-      offset = 0,
+    const Transaction = createTransactionModel(getSequelize());
+    const User = createUserModel(getSequelize());
+    
+    const {
+      type,
+      status,
       startDate,
       endDate,
       minAmount,
-      maxAmount
+      maxAmount,
+      limit = 20,
+      offset = 0
     } = req.query;
-
-    const Transaction = createTransactionModel(sequelize());
-    const User = createUserModel(sequelize());
     
-    // Build where clause
-    const whereClause = { userId: req.user.id };
+    const where = { userId: req.user.id };
     
-    if (type) whereClause.type = type;
-    if (status) whereClause.status = status;
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (startDate) where.createdAt = { [getSequelize().Op.gte]: new Date(startDate) };
+    if (endDate) where.createdAt = { ...where.createdAt, [getSequelize().Op.lte]: new Date(endDate) };
+    if (minAmount) where.amount = { [getSequelize().Op.gte]: parseFloat(minAmount) };
+    if (maxAmount) where.amount = { ...where.amount, [getSequelize().Op.lte]: parseFloat(maxAmount) };
     
-    if (startDate || endDate) {
-      whereClause.createdAt = {};
-      if (startDate) whereClause.createdAt[sequelize().Sequelize.Op.gte] = new Date(startDate);
-      if (endDate) whereClause.createdAt[sequelize().Sequelize.Op.lte] = new Date(endDate);
-    }
-    
-    if (minAmount || maxAmount) {
-      whereClause.amount = {};
-      if (minAmount) whereClause.amount[sequelize().Sequelize.Op.gte] = parseFloat(minAmount);
-      if (maxAmount) whereClause.amount[sequelize().Sequelize.Op.lte] = parseFloat(maxAmount);
-    }
-
     const transactions = await Transaction.findAndCountAll({
-      where: whereClause,
+      where,
       include: [
         {
           model: User,
-          as: 'recipient',
+          as: 'sender',
           attributes: ['id', 'name', 'email']
         },
         {
           model: User,
-          as: 'sender',
+          as: 'recipient',
           attributes: ['id', 'name', 'email']
         }
       ],
@@ -58,244 +106,157 @@ router.get('/', auth, async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
-
-    // Format transactions for frontend
-    const formattedTransactions = transactions.rows.map(transaction => ({
-      id: transaction.id,
-      type: transaction.type,
-      amount: parseFloat(transaction.amount),
-      currency: transaction.currency,
-      recipient: transaction.recipient?.name || transaction.recipientId,
-      sender: transaction.sender?.name || transaction.senderId,
-      status: transaction.status,
-      description: transaction.description,
-      createdAt: transaction.createdAt
-    }));
-
-    return res.json({ 
-      transactions: formattedTransactions,
+    
+    res.json({
+      transactions: transactions.rows,
       total: transactions.count,
-      hasMore: transactions.count > parseInt(offset) + formattedTransactions.length
+      hasMore: transactions.count > parseInt(offset) + parseInt(limit)
     });
-  } catch (err) {
-    return res.status(500).json({ message: 'Failed to fetch transactions', error: err.message });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get transaction details by ID
-router.get('/:id', auth, async (req, res) => {
+// Calculate fee for a transaction
+router.post('/calculate-fee', auth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const Transaction = createTransactionModel(sequelize());
-    const User = createUserModel(sequelize());
+    const { amount, currency = 'USD' } = req.body;
     
-    const transaction = await Transaction.findOne({
-      where: { id, userId: req.user.id },
-      include: [
-        {
-          model: User,
-          as: 'recipient',
-          attributes: ['id', 'name', 'email']
-        },
-        {
-          model: User,
-          as: 'sender',
-          attributes: ['id', 'name', 'email']
-        }
-      ]
-    });
-
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
     }
-
-    return res.json({
-      id: transaction.id,
-      type: transaction.type,
-      amount: parseFloat(transaction.amount),
-      currency: transaction.currency,
-      recipient: transaction.recipient?.name || transaction.recipientId,
-      sender: transaction.sender?.name || transaction.senderId,
-      status: transaction.status,
-      description: transaction.description,
-      createdAt: transaction.createdAt,
-      updatedAt: transaction.updatedAt
+    
+    const feeInfo = calculateFee(parseFloat(amount), currency);
+    
+    res.json({
+      feeBreakdown: feeInfo,
+      message: 'Fee calculated successfully'
     });
-  } catch (err) {
-    return res.status(500).json({ message: 'Failed to fetch transaction', error: err.message });
+  } catch (error) {
+    console.error('Error calculating fee:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get transaction statistics
-router.get('/stats/summary', auth, async (req, res) => {
-  try {
-    const { period = 'month' } = req.query;
-    const Transaction = createTransactionModel(sequelize());
-    
-    let startDate;
-    const now = new Date();
-    
-    switch (period) {
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    // Get transaction counts by status
-    const statusCounts = await Transaction.findAll({
-      where: {
-        userId: req.user.id,
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
-      },
-      attributes: [
-        'status',
-        [sequelize().Sequelize.fn('COUNT', sequelize().Sequelize.col('id')), 'count']
-      ],
-      group: ['status']
-    });
-
-    // Get total amounts by type
-    const typeAmounts = await Transaction.findAll({
-      where: {
-        userId: req.user.id,
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
-      },
-      attributes: [
-        'type',
-        [sequelize().Sequelize.fn('SUM', sequelize().Sequelize.col('amount')), 'total']
-      ],
-      group: ['type']
-    });
-
-    // Get recent activity
-    const recentTransactions = await Transaction.count({
-      where: {
-        userId: req.user.id,
-        createdAt: {
-          [sequelize().Sequelize.Op.gte]: startDate
-        }
-      }
-    });
-
-    return res.json({
-      period,
-      statusCounts: statusCounts.reduce((acc, item) => {
-        acc[item.status] = parseInt(item.dataValues.count);
-        return acc;
-      }, {}),
-      typeAmounts: typeAmounts.reduce((acc, item) => {
-        acc[item.type] = parseFloat(item.dataValues.total) || 0;
-        return acc;
-      }, {}),
-      recentTransactions
-    });
-  } catch (err) {
-    return res.status(500).json({ message: 'Failed to fetch statistics', error: err.message });
-  }
-});
-
-// Create a new transaction (send money)
+// Send money
 router.post('/', auth, async (req, res) => {
   try {
     const { recipientEmail, amount, currency = 'USD', description } = req.body;
     
-    if (!recipientEmail || !amount) {
-      return res.status(400).json({ message: 'Recipient email and amount are required.' });
+    if (!recipientEmail || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid input data' });
     }
-
-    if (amount <= 0) {
-      return res.status(400).json({ message: 'Amount must be greater than 0.' });
-    }
-
-    const User = createUserModel(sequelize());
-    const Transaction = createTransactionModel(sequelize());
-
+    
+    const sequelize = getSequelize();
+    const User = createUserModel(sequelize);
+    const Transaction = createTransactionModel(sequelize);
+    const Notification = createNotificationModel(sequelize);
+    
     // Find recipient
     const recipient = await User.findOne({ where: { email: recipientEmail } });
     if (!recipient) {
-      return res.status(404).json({ message: 'Recipient not found.' });
+      return res.status(404).json({ error: 'Recipient not found' });
     }
-
+    
     if (recipient.id === req.user.id) {
-      return res.status(400).json({ message: 'Cannot send money to yourself.' });
+      return res.status(400).json({ error: 'Cannot send money to yourself' });
     }
-
-    // Create transaction
+    
+    // Calculate fee
+    const feeInfo = calculateFee(parseFloat(amount), currency);
+    const totalAmount = feeInfo.totalAmount;
+    
+    // Check sender's balance including fees
+    const sentAmount = await Transaction.sum('amount', {
+      where: {
+        userId: req.user.id,
+        type: 'send',
+        status: 'completed'
+      }
+    });
+    
+    const receivedAmount = await Transaction.sum('amount', {
+      where: {
+        userId: req.user.id,
+        type: 'receive',
+        status: 'completed'
+      }
+    });
+    
+    const balance = (receivedAmount || 0) - (sentAmount || 0);
+    
+    if (balance < totalAmount) {
+      return res.status(400).json({ 
+        error: 'Insufficient balance',
+        balance: balance.toFixed(2),
+        required: totalAmount.toFixed(2),
+        shortfall: (totalAmount - balance).toFixed(2)
+      });
+    }
+    
+    // Create transaction with fee information
     const transaction = await Transaction.create({
       userId: req.user.id,
       type: 'send',
-      amount,
+      amount: feeInfo.amount, // Original amount (without fee)
       currency,
       recipientId: recipient.id,
-      status: 'completed', // For demo purposes, set as completed immediately
-      description
-    });
-
-    // Create corresponding receive transaction for recipient
-    await Transaction.create({
-      userId: recipient.id,
-      type: 'receive',
-      amount,
-      currency,
       senderId: req.user.id,
       status: 'completed',
-      description
+      description: description || `Transfer to ${recipient.name}`,
+      fee: feeInfo.fee, // Store fee amount
+      totalAmount: feeInfo.totalAmount // Store total amount including fee
     });
-
-    return res.status(201).json({ 
+    
+    // Create notification for sender
+    await Notification.create({
+      userId: req.user.id,
+      type: 'transaction',
+      title: 'Money Sent',
+      message: `You sent ${currency} ${feeInfo.amount} to ${recipient.name}. Fee: ${currency} ${feeInfo.fee}`,
+      data: { 
+        transactionId: transaction.id, 
+        type: 'send',
+        fee: feeInfo.fee,
+        totalAmount: feeInfo.totalAmount
+      }
+    });
+    
+    // Create notification for recipient
+    await Notification.create({
+      userId: recipient.id,
+      type: 'transaction',
+      title: 'Money Received',
+      message: `You received ${currency} ${feeInfo.amount} from ${req.user.name}.`,
+      data: { 
+        transactionId: transaction.id, 
+        type: 'receive',
+        amount: feeInfo.amount
+      }
+    });
+    
+    res.status(201).json({
       message: 'Transaction completed successfully',
       transaction: {
         id: transaction.id,
-        type: transaction.type,
-        amount: parseFloat(transaction.amount),
-        currency: transaction.currency,
-        recipient: recipient.name,
+        amount: feeInfo.amount,
+        fee: feeInfo.fee,
+        totalAmount: feeInfo.totalAmount,
+        currency,
+        recipient: {
+          id: recipient.id,
+          name: recipient.name,
+          email: recipient.email
+        },
         status: transaction.status,
         createdAt: transaction.createdAt
-      }
+      },
+      feeBreakdown: feeInfo
     });
-  } catch (err) {
-    return res.status(500).json({ message: 'Transaction failed', error: err.message });
-  }
-});
-
-// Cancel a pending transaction
-router.patch('/:id/cancel', auth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const Transaction = createTransactionModel(sequelize());
-    
-    const transaction = await Transaction.findOne({
-      where: { id, userId: req.user.id, status: 'pending' }
-    });
-
-    if (!transaction) {
-      return res.status(404).json({ message: 'Pending transaction not found' });
-    }
-
-    await transaction.update({ status: 'cancelled' });
-
-    return res.json({ 
-      message: 'Transaction cancelled successfully',
-      transaction: {
-        id: transaction.id,
-        status: transaction.status
-      }
-    });
-  } catch (err) {
-    return res.status(500).json({ message: 'Failed to cancel transaction', error: err.message });
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
