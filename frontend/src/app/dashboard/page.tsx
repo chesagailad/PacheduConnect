@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '../../components/NotificationBell';
 import CurrencyConverter from '../../components/CurrencyConverter';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -112,7 +113,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <LoadingSpinner size="lg" />
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>

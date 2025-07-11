@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && PORT=5001 npm run dev",
+    "dev:frontend": "cd frontend && PORT=3000 npm run dev",
     "dev:mobile": "cd mobile && npm run start",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
@@ -28,6 +28,7 @@
     "install:workspaces": "npm install --workspaces",
     "db:migrate": "cd backend && npm run db:migrate",
     "db:seed": "cd backend && npm run db:seed",
+    "db:reset": "cd backend && node scripts/reset-database-simple.js",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"

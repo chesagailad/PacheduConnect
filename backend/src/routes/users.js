@@ -142,12 +142,17 @@ router.get('/activity', auth, async (req, res) => {
       include: [
         {
           model: User,
-          as: 'recipient',
+          as: 'user',
           attributes: ['id', 'name', 'email']
         },
         {
           model: User,
           as: 'sender',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: User,
+          as: 'recipient',
           attributes: ['id', 'name', 'email']
         }
       ],
@@ -169,6 +174,7 @@ router.get('/activity', auth, async (req, res) => {
 
     return res.json({ activities: formattedActivities });
   } catch (err) {
+    console.error('Error fetching user activity:', err);
     return res.status(500).json({ message: 'Failed to fetch activity', error: err.message });
   }
 });

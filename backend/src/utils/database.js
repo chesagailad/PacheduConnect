@@ -4,6 +4,8 @@ const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');
 const createNotificationModel = require('../models/Notification');
 const createPaymentModel = require('../models/Payment');
+const createBeneficiaryModel = require('../models/Beneficiary');
+const createKYCModel = require('../models/KYC');
 
 let sequelize = null;
 
@@ -29,16 +31,26 @@ async function connectDB() {
     const Transaction = createTransactionModel(sequelize);
     const Notification = createNotificationModel(sequelize);
     const Payment = createPaymentModel(sequelize);
+    const Beneficiary = createBeneficiaryModel(sequelize);
+    const KYC = createKYCModel(sequelize);
 
     // Set up associations
     User.hasMany(Transaction, { as: 'sentTransactions', foreignKey: 'senderId' });
     User.hasMany(Transaction, { as: 'receivedTransactions', foreignKey: 'recipientId' });
+    User.hasMany(Transaction, { as: 'userTransactions', foreignKey: 'userId' });
     User.hasMany(Notification, { as: 'notifications', foreignKey: 'userId' });
     User.hasMany(Payment, { as: 'payments', foreignKey: 'userId' });
+    User.hasMany(Beneficiary, { as: 'beneficiaries', foreignKey: 'userId' });
+    User.hasOne(KYC, { as: 'kyc', foreignKey: 'userId' });
     
+    Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Transaction.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+    Transaction.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Payment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Payment.belongsTo(Transaction, { foreignKey: 'transactionId', as: 'transaction' });
+    Beneficiary.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    KYC.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     // Sync models with database
     await sequelize.sync({ alter: true });

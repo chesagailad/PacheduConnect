@@ -5,36 +5,35 @@ class SMSService {
   constructor() {
     this.clientId = process.env.SMSPORTAL_CLIENT_ID;
     this.clientSecret = process.env.SMSPORTAL_CLIENT_SECRET;
+    this.apiKey = process.env.SMSPORTAL_API_KEY;
     this.baseURL = 'https://rest.smsportal.com/v1';
-    this.tokenURL = 'https://rest.smsportal.com/v1/auth';
+    this.tokenURL = 'https://rest.smsportal.com/Authentication';
     this.accessToken = null;
     this.tokenExpiry = null;
+    this.authMethod = this.apiKey ? 'api_key' : 'oauth';
   }
 
   async getAccessToken() {
     try {
-      // Check if we have a valid token
+      if (this.authMethod === 'api_key') {
+        return null;
+      }
       if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
         return this.accessToken;
       }
-
+      // Patch: Use form data and Basic Auth as in the working test script
       const formData = new URLSearchParams();
       formData.append('grant_type', 'client_credentials');
-
-      // HTTP Basic Auth header
       const basicAuth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
-
       const response = await axios.post(this.tokenURL, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${basicAuth}`
         }
       });
-
-      this.accessToken = response.data.access_token;
-      // Set token expiry (subtract 60 seconds for safety)
-      this.tokenExpiry = Date.now() + (response.data.expires_in * 1000) - 60000;
-
+      this.accessToken = response.data.token;
+      const expiresInMs = (response.data.expiresInMinutes ? response.data.expiresInMinutes * 60 * 1000 : 10 * 60 * 60 * 1000) - 60000;
+      this.tokenExpiry = Date.now() + expiresInMs;
       logger.info('SMSPortal access token obtained successfully');
       return this.accessToken;
     } catch (error) {
@@ -49,42 +48,37 @@ class SMSService {
   async sendSMS(phoneNumber, message) {
     try {
       const token = await this.getAccessToken();
-      
+      // Patch: Use the exact payload and headers as in the working test script
       const payload = {
         messages: [
           {
             content: message,
-            destination: phoneNumber,
-            scheduled: null
+            destination: phoneNumber
           }
         ]
       };
-
-      const response = await axios.post(`${this.baseURL}/bulkmessages`, payload, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+      const response = await axios.post('https://rest.smsportal.com/BulkMessages', payload, { headers });
       logger.info(`SMS sent successfully to ${phoneNumber}`, {
-        messageId: response.data.messages[0].id,
-        status: response.data.messages[0].status
+        response: response.data
       });
-
       return {
         success: true,
-        messageId: response.data.messages[0].id,
-        status: response.data.messages[0].status
+        response: response.data
       };
     } catch (error) {
       logger.error('SMS sending failed:', error.message);
-      
       if (error.response) {
         logger.error('SMSPortal API error:', error.response.data);
       }
-
-      throw new Error('Failed to send SMS');
+      // Add detailed error logging
+      if (error.response && error.response.data) {
+        throw new Error('Failed to send SMS: ' + JSON.stringify(error.response.data));
+      }
+      throw new Error('Failed to send SMS: ' + error.message);
     }
   }
 
@@ -93,7 +87,6 @@ class SMSService {
     return this.sendSMS(phoneNumber, message);
   }
 
-  // For development/testing purposes
   async sendTestOTP(phoneNumber, otp) {
     if (process.env.NODE_ENV === 'development') {
       logger.info(`[DEV] SMS OTP would be sent to ${phoneNumber}: ${otp}`);
@@ -106,23 +99,10 @@ class SMSService {
     return this.sendOTP(phoneNumber, otp);
   }
 
-  // Test authentication
   async testAuth() {
     try {
       const token = await this.getAccessToken();
-      
-      const response = await axios.get(`${this.baseURL}/account`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      logger.info('SMSPortal authentication successful');
-      return {
-        success: true,
-        account: response.data
-      };
+      return { success: true, token };
     } catch (error) {
       logger.error('SMSPortal authentication failed:', error.message);
       if (error.response) {

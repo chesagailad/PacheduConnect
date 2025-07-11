@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentProcessor from '../../components/PaymentProcessor';
+import Button from '../../components/Button';
+import Navigation from '../../components/Navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -31,6 +33,7 @@ export default function SendMoneyPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdown | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -38,9 +41,25 @@ export default function SendMoneyPage() {
       router.push('/auth');
       return;
     }
-    // Fetch user balance
+    // Fetch user data and balance
+    fetchUserData();
     fetchUserBalance();
   }, [router]);
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   const fetchUserBalance = async () => {
     try {
@@ -206,8 +225,13 @@ export default function SendMoneyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
+      <Navigation 
+        title="Send Money" 
+        showBackButton={true} 
+        user={user}
+      />
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
           <p className="text-gray-600">Transfer money to friends and family securely</p>
@@ -237,33 +261,28 @@ export default function SendMoneyPage() {
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipient Email
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Email</label>
                 <input
                   type="email"
+                  placeholder="Enter recipient's email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="recipientEmail"
                   value={form.recipientEmail}
                   onChange={handleChange}
-                  placeholder="Enter recipient's email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
                 <div className="flex">
                   <input
                     type="number"
-                    name="amount"
-                    value={form.amount}
-                    onChange={handleChange}
                     placeholder="0.00"
                     step="0.01"
                     min="0"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleChange}
                   />
                   <select
                     name="currency"
@@ -279,29 +298,25 @@ export default function SendMoneyPage() {
                 </div>
               </div>
             </div>
-
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description (Optional)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
               <textarea
                 name="description"
-                value={form.description}
-                onChange={handleChange}
                 placeholder="What's this payment for?"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.description}
+                onChange={handleChange}
               />
             </div>
-
             <div className="mt-6">
-              <button
+              <Button
                 onClick={verifyRecipient}
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full"
               >
-                {loading ? 'Verifying...' : 'Continue'}
-              </button>
+                Continue
+              </Button>
             </div>
           </div>
         ) : (
@@ -369,19 +384,20 @@ export default function SendMoneyPage() {
             </div>
 
             <div className="flex space-x-3">
-                             <button
-                 onClick={proceedToPayment}
-                 disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
-                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-               >
+              <Button
+                onClick={proceedToPayment}
+                disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
+                className="flex-1"
+              >
                 Proceed to Payment
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={backToForm}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                variant="secondary"
+                className="px-4"
               >
                 Back
-              </button>
+              </Button>
             </div>
           </div>
         )}
