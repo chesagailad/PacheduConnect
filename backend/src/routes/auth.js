@@ -8,6 +8,8 @@ const auth = require('../middleware/auth');
 const smsService = require('../services/smsService');
 const router = express.Router();
 
+const axios = require('axios');
+
 // In-memory storage for OTP (in production, use Redis)
 const otpStore = new Map();
 
@@ -15,8 +17,14 @@ const otpStore = new Map();
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, phoneNumber } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required.' });
+    if (!name || !email || !password || !phoneNumber) {
+      return res.status(400).json({ message: 'Name, email, password, and phone number are required.' });
+    }
+
+    // Validate phone number format (must start with + and have country code)
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(phoneNumber.trim())) {
+      return res.status(400).json({ message: 'Please enter a valid phone number with country code (e.g., +1234567890)' });
     }
     
     const User = createUserModel(getSequelize());
@@ -27,18 +35,32 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     
-    // Prepare user data, only include phoneNumber if it's not empty
+    // Prepare user data with mandatory phone number
     const userData = {
       name,
       email,
       passwordHash,
+      phoneNumber: phoneNumber.trim()
     };
-    
-    if (phoneNumber && phoneNumber.trim() !== '') {
-      userData.phoneNumber = phoneNumber.trim();
-    }
 
     const user = await User.create(userData);
+
+    // Create default KYC record for new user
+    const createKYCModel = require('../models/KYC');
+    const KYC = createKYCModel(getSequelize());
+    await KYC.create({
+      userId: user.id,
+      level: 'bronze',
+      status: 'approved', // Bronze level is auto-approved
+    });
+
+    // Send welcome SMS
+    try {
+      await smsService.sendSMS(user.phoneNumber, `Welcome to PacheduConnect, ${user.name}! Your account has been created.`);
+    } catch (smsError) {
+      console.error('Failed to send welcome SMS:', smsError);
+      // Don't fail registration if SMS fails
+    }
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -118,12 +140,13 @@ router.post('/send-otp', async (req, res) => {
     const User = createUserModel(getSequelize());
     const user = await User.findOne({ where: { email } });
     
-    if (!user || !user.phoneNumber) {
-      // Don't reveal if user exists or has phone number
-      return res.status(200).json({ 
-        message: 'If a user with this email exists and has a phone number, an OTP will be sent.',
-        maskedPhone: '***-***-****'
-      });
+    if (!user) {
+      // Explicitly return error if user does not exist
+      return res.status(404).json({ message: 'Account does not exist.' });
+    }
+    if (!user.phoneNumber) {
+      // Explicitly return error if user has no phone number
+      return res.status(400).json({ message: 'Account does not have a phone number.' });
     }
 
     // Generate 6-digit OTP
@@ -137,16 +160,22 @@ router.post('/send-otp', async (req, res) => {
       attempts: 0
     });
 
-    // Send SMS via SMSPortal
+    // Send SMS via SMSPortal (real)
     try {
-      await smsService.sendTestOTP(user.phoneNumber, otp);
-      
-      // Mask phone number for security
-      const maskedPhone = user.phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-      
+      await smsService.sendOTP(user.phoneNumber, otp);
+      // Mask phone number for security: show country code, 2nd and 3rd digits, then mask, then last 2
+      const phone = user.phoneNumber;
+      let maskedPhone = phone;
+      if (phone.length > 5) {
+        // Show: +XX***XX (country code + 2 digits, mask middle, last 2 digits)
+        const countryCode = phone.substring(0, 3); // +27
+        const lastTwo = phone.slice(-2);
+        const middleMask = '*'.repeat(phone.length - 5);
+        maskedPhone = countryCode + middleMask + lastTwo;
+      }
       res.json({
         message: 'OTP sent successfully',
-        maskedPhone: maskedPhone.replace(/\d(?=\d{4})/g, '*')
+        maskedPhone
       });
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
@@ -155,6 +184,87 @@ router.post('/send-otp', async (req, res) => {
   } catch (error) {
     console.error('Send OTP error:', error);
     res.status(500).json({ message: 'Failed to send OTP.' });
+  }
+});
+
+/**
+ * @route   POST /api/auth/send-sms-otp
+ * @desc    Send an OTP via SMS using SMSPortal
+ * @access  Public (no auth required)
+ *
+ * Expects JSON body: { phoneNumber: string, otp: string }
+ */
+router.post('/send-sms-otp', async (req, res) => {
+  const { phoneNumber, otp } = req.body;
+
+  // Validate input
+  if (!phoneNumber || !otp) {
+    return res.status(400).json({ success: false, error: 'phoneNumber and otp are required' });
+  }
+
+  // Prepare SMSPortal credentials from environment
+  const client_id = process.env.SMSPORTAL_CLIENT_ID;
+  const client_secret = process.env.SMSPORTAL_CLIENT_SECRET;
+
+  if (!client_id || !client_secret) {
+    return res.status(500).json({ success: false, error: 'SMSPortal credentials not configured' });
+  }
+
+  try {
+    // 1. Authenticate with SMSPortal to get access token
+    const authResponse = await axios.post(
+      'https://rest.smsportal.com/Authentication',
+      {
+        client_id,
+        client_secret
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    const accessToken = authResponse.data.access_token;
+    if (!accessToken) {
+      return res.status(500).json({ success: false, error: 'Failed to obtain SMSPortal access token' });
+    }
+
+    // 2. Send the OTP via SMS using BulkMessages endpoint
+    const smsPayload = {
+      messages: [
+        {
+          content: `Your OTP is ${otp}`,
+          destination: phoneNumber
+        }
+      ]
+    };
+
+    const smsResponse = await axios.post(
+      'https://rest.smsportal.com/BulkMessages',
+      smsPayload,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Check if SMS was sent successfully (status 200 and response contains messages)
+    if (smsResponse.status === 200 && smsResponse.data && smsResponse.data.messages && smsResponse.data.messages[0].status === 'Accepted') {
+      return res.json({ success: true });
+    } else {
+      return res.status(500).json({ success: false, error: 'Failed to send SMS', details: smsResponse.data });
+    }
+  } catch (error) {
+    // Log and return error details
+    let errorMsg = error.message;
+    if (error.response && error.response.data) {
+      errorMsg = error.response.data;
+    }
+    return res.status(500).json({ success: false, error: errorMsg });
   }
 });
 
