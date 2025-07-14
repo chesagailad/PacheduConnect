@@ -185,6 +185,7 @@ export default function AuthPage() {
                 type="email"
                 value={form.email}
                 onChange={(value) => handleChange('email', value)}
+                placeholder="Enter your email address"
                 required
                 autoComplete="email"
               />
@@ -196,6 +197,7 @@ export default function AuthPage() {
                 type="password"
                 value={form.password}
                 onChange={(value) => handleChange('password', value)}
+                placeholder="Enter your password"
                 required
                 autoComplete="current-password"
               />
@@ -242,6 +244,7 @@ export default function AuthPage() {
                 type="text"
                 value={form.name}
                 onChange={(value) => handleChange('name', value)}
+                placeholder="Enter your full name"
                 required
                 autoComplete="name"
               />
@@ -253,6 +256,7 @@ export default function AuthPage() {
                 type="email"
                 value={form.email}
                 onChange={(value) => handleChange('email', value)}
+                placeholder="Enter your email address"
                 required
                 autoComplete="email"
               />
@@ -264,12 +268,12 @@ export default function AuthPage() {
                 type="tel"
                 value={form.phoneNumber}
                 onChange={(value) => handleChange('phoneNumber', value)}
-                placeholder="+1234567890"
+                placeholder="+27 83 123 4567"
                 required
                 autoComplete="tel"
               />
               <p className="mt-2 text-sm text-gray-500">
-                Enter your phone number with country code (e.g., +1 for US, +44 for UK, +27 for South Africa)
+                Enter your phone number with country code (e.g., +27 for South Africa, +1 for US, +44 for UK)
               </p>
             </motion.div>
             
@@ -279,6 +283,7 @@ export default function AuthPage() {
                 type="password"
                 value={form.password}
                 onChange={(value) => handleChange('password', value)}
+                placeholder="Create a strong password"
                 required
                 autoComplete="new-password"
               />
@@ -290,6 +295,7 @@ export default function AuthPage() {
                 type="password"
                 value={form.confirmPassword}
                 onChange={(value) => handleChange('confirmPassword', value)}
+                placeholder="Confirm your password"
                 required
                 autoComplete="new-password"
               />
@@ -327,6 +333,7 @@ export default function AuthPage() {
                 type="email"
                 value={form.email}
                 onChange={(value) => handleChange('email', value)}
+                placeholder="Enter your email address"
                 required
                 autoComplete="email"
               />
@@ -376,6 +383,7 @@ export default function AuthPage() {
                 type="password"
                 value={form.newPassword}
                 onChange={(value) => handleChange('newPassword', value)}
+                placeholder="Create a new password"
                 required
                 autoComplete="new-password"
               />
