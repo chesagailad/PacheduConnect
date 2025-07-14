@@ -18,7 +18,8 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all",
-    "db:reset": "npm run db:migrate:undo && npm run db:migrate && npm run db:seed"
+    "db:reset": "npm run db:migrate:undo && npm run db:migrate && npm run db:seed",
+    "kyc:ensure-bronze": "node scripts/ensure-bronze-kyc.js"
   },
   "dependencies": {
     "axios": "^1.10.0",

@@ -12,15 +12,26 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && PORT=5001 npm run dev",
+    "dev:frontend": "cd frontend && PORT=3000 npm run dev",
     "dev:mobile": "cd mobile && npm run start",
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install",
+    "test:registration": "playwright test --grep @registration",
+    "test:login": "playwright test --grep @login",
+    "test:send": "playwright test --grep @send",
+    "test:transactions": "playwright test --grep @transactions",
+    "test:support": "playwright test --grep @support",
+    "test:mobile": "playwright test --project=\"Mobile Chrome\" --project=\"Mobile Safari\"",
+    "test:desktop": "playwright test --project=\"chromium\" --project=\"firefox\" --project=\"webkit\"",
+    "test:ci": "playwright test --reporter=html,junit --output-dir=test-results",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "cd backend && npm run lint",
     "lint:frontend": "cd frontend && npm run lint",
@@ -28,14 +39,17 @@
     "install:workspaces": "npm install --workspaces",
     "db:migrate": "cd backend && npm run db:migrate",
     "db:seed": "cd backend && npm run db:seed",
+    "db:reset": "cd backend && node scripts/reset-database-simple.js",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "concurrently": "^8.2.0",
     "husky": "^8.0.0",
-    "lint-staged": "^15.0.0"
+    "lint-staged": "^15.0.0",
+    "playwright": "^1.54.1"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -53,4 +67,4 @@
   ],
   "author": "Pachedu Team",
   "license": "MIT"
-} 
+}

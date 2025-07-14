@@ -22,6 +22,7 @@ const recipientRoutes = require('./routes/recipients');
 const paymentRoutes = require('./routes/payments');
 const kycRoutes = require('./routes/kyc');
 const adminRoutes = require('./routes/admin');
+const superAdminRoutes = require('./routes/superAdmin');
 const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
 
@@ -108,6 +109,7 @@ app.use('/api/recipients', recipientRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
 

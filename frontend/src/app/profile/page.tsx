@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
+import KYCStatus from '../../components/KYCStatus';
+import KYCProgress from '../../components/KYCProgress';
+import KYCUploadEnhanced from '../../components/KYCUploadEnhanced';
+import { useKYC } from '../../hooks/useKYC';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -52,6 +57,7 @@ export default function ProfilePage() {
   });
   const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
+  const { kycData, loading: kycLoading, error: kycError, refreshKYC } = useKYC();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -331,6 +337,16 @@ export default function ProfilePage() {
                 Account Information
               </button>
               <button
+                onClick={() => setActiveTab('kyc')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'kyc'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                KYC
+              </button>
+              <button
                 onClick={() => setActiveTab('security')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'security'
@@ -539,6 +555,102 @@ export default function ProfilePage() {
                     >
                       Change Password
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* KYC Tab */}
+            {activeTab === 'kyc' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">KYC Verification</h2>
+                  <p className="text-gray-600">Complete your verification to unlock higher send limits and additional features.</p>
+                </div>
+
+                {kycLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading KYC information...</p>
+                  </div>
+                ) : kycError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <ShieldCheckIcon className="h-6 w-6 text-red-600 mr-2" />
+                      <h3 className="text-lg font-semibold text-red-900">Error Loading KYC</h3>
+                    </div>
+                    <p className="text-red-700 mt-2">{kycError}</p>
+                    <button
+                      onClick={refreshKYC}
+                      className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* KYC Status */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <KYCStatus />
+                    </div>
+
+                    {/* KYC Progress */}
+                    {kycData && (
+                      <div className="bg-white rounded-lg shadow p-6">
+                        <KYCProgress kycData={kycData} />
+                      </div>
+                    )}
+
+                    {/* Upgrade Section */}
+                    {kycData && kycData.status === 'approved' && kycData.level !== 'gold' && (
+                      <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center mb-4">
+                          <ShieldCheckIcon className="h-6 w-6 text-blue-600 mr-2" />
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Upgrade to {kycData.level === 'bronze' ? 'Silver' : 'Gold'}
+                          </h3>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 className="font-medium text-blue-900 mb-2">Benefits</h4>
+                            <ul className="text-sm text-blue-800 space-y-1">
+                              <li>• Increased monthly send limit</li>
+                              <li>• Enhanced security features</li>
+                              <li>• Priority customer support</li>
+                            </ul>
+                          </div>
+
+                          {kycData.level === 'bronze' ? (
+                            <KYCUploadEnhanced 
+                              level="silver"
+                              onSuccess={refreshKYC}
+                            />
+                          ) : (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                              <p className="text-yellow-800">
+                                Gold level upgrade is currently being processed. Please contact support for assistance.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Already at Gold Level */}
+                    {kycData?.level === 'gold' && kycData?.status === 'approved' && (
+                      <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center mb-4">
+                          <ShieldCheckIcon className="h-6 w-6 text-yellow-600 mr-2" />
+                          <h3 className="text-lg font-semibold text-gray-900">Gold Level Achieved</h3>
+                        </div>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <p className="text-yellow-800">
+                            Congratulations! You have achieved the highest KYC level. You have access to all features and maximum send limits.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
