@@ -1,1 +1,3 @@
- 
+# This is a placeholder for a large file to test file size limits
+# In a real implementation, this would be an actual large JPEG image file
+# For testing purposes, we'll create a simple text file that represents the large file 

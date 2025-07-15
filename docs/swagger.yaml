@@ -1,0 +1,1722 @@
+openapi: 3.0.3
+info:
+  title: PacheduConnect API
+  description: Cross-border remittance platform API for Zimbabwean expatriates in South Africa
+  version: 1.0.0
+  contact:
+    name: PacheduConnect Support
+    email: api-support@pacheduconnect.com
+    url: https://docs.pacheduconnect.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://staging-api.pacheduconnect.com/api
+    description: Staging server
+  - url: https://api.pacheduconnect.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  name: "John Doe"
+                  email: "john@example.com"
+                  password: "SecurePassword123!"
+                  phoneNumber: "+27831234567"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/send-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Send OTP for password reset
+      description: Send a 6-digit OTP to user's phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendOTPRequest'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOTPResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP and reset password
+      description: Verify OTP and update user password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOTPRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOTPResponse'
+        '400':
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieve current user's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update current user's profile information
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProfileResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/balance:
+    get:
+      tags:
+        - Users
+      summary: Get user balance
+      description: Retrieve user's account balance in different currencies
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction history
+      description: Retrieve user's transaction history with filtering and pagination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Transaction type filter
+          schema:
+            type: string
+            enum: [send, receive]
+        - name: status
+          in: query
+          description: Transaction status filter
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+        - name: startDate
+          in: query
+          description: Start date for filtering (ISO format)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End date for filtering (ISO format)
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Number of records to return
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of records to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/send:
+    post:
+      tags:
+        - Transactions
+      summary: Send money
+      description: Initiate a money transfer to a recipient
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMoneyRequest'
+      responses:
+        '201':
+          description: Transaction initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMoneyResponse'
+        '400':
+          description: Invalid input or insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/{id}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction details
+      description: Retrieve detailed information about a specific transaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transaction details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDetailResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/exchange-rates:
+    get:
+      tags:
+        - Transactions
+      summary: Get exchange rates
+      description: Retrieve current exchange rates for all supported currencies
+      responses:
+        '200':
+          description: Exchange rates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRatesResponse'
+
+  /transactions/convert-currency:
+    post:
+      tags:
+        - Transactions
+      summary: Convert currency
+      description: Convert an amount from one currency to another
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CurrencyConversionRequest'
+      responses:
+        '200':
+          description: Currency converted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyConversionResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /beneficiaries:
+    get:
+      tags:
+        - Beneficiaries
+      summary: Get beneficiaries
+      description: Retrieve user's saved beneficiaries
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Beneficiaries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiaryListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Beneficiaries
+      summary: Add beneficiary
+      description: Add a new beneficiary to user's account
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBeneficiaryRequest'
+      responses:
+        '201':
+          description: Beneficiary added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddBeneficiaryResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /beneficiaries/{id}:
+    put:
+      tags:
+        - Beneficiaries
+      summary: Update beneficiary
+      description: Update beneficiary information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Beneficiary ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBeneficiaryRequest'
+      responses:
+        '200':
+          description: Beneficiary updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateBeneficiaryResponse'
+        '404':
+          description: Beneficiary not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Beneficiaries
+      summary: Delete beneficiary
+      description: Remove a beneficiary from user's account
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Beneficiary ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Beneficiary deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteBeneficiaryResponse'
+        '404':
+          description: Beneficiary not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /kyc/status:
+    get:
+      tags:
+        - KYC
+      summary: Get KYC status
+      description: Retrieve user's KYC verification status and limits
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: KYC status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCStatusResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /kyc/upload:
+    post:
+      tags:
+        - KYC
+      summary: Upload KYC document
+      description: Upload a KYC document for verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                documentType:
+                  type: string
+                  enum: [id_document, proof_of_address, proof_of_income]
+                  description: Type of document being uploaded
+                file:
+                  type: string
+                  format: binary
+                  description: Document file (PDF, JPG, PNG, max 10MB)
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadDocumentResponse'
+        '400':
+          description: Invalid file or document type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /kyc/limits:
+    get:
+      tags:
+        - KYC
+      summary: Get KYC limits
+      description: Retrieve transaction limits for different KYC levels
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: KYC limits retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCLimitsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/initiate:
+    post:
+      tags:
+        - Payments
+      summary: Initiate payment
+      description: Initiate a payment transaction with a payment gateway
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+      responses:
+        '201':
+          description: Payment initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiatePaymentResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/{id}/status:
+    get:
+      tags:
+        - Payments
+      summary: Get payment status
+      description: Check the status of a payment transaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get all users
+      description: Retrieve all users with filtering and pagination (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by user status
+          schema:
+            type: string
+            enum: [active, suspended, all]
+        - name: kycLevel
+          in: query
+          description: Filter by KYC level
+          schema:
+            type: string
+            enum: [bronze, silver, gold]
+        - name: limit
+          in: query
+          description: Number of records to return
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of records to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserListResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/transactions:
+    get:
+      tags:
+        - Admin
+      summary: Get all transactions
+      description: Retrieve all transactions with filtering and pagination (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by transaction status
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+        - name: type
+          in: query
+          description: Filter by transaction type
+          schema:
+            type: string
+            enum: [send, receive]
+        - name: startDate
+          in: query
+          description: Start date for filtering
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End date for filtering
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Number of records to return
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of records to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTransactionListResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{id}/kyc:
+    put:
+      tags:
+        - Admin
+      summary: Update user KYC status
+      description: Update a user's KYC verification status (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateKYCRequest'
+      responses:
+        '200':
+          description: KYC status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateKYCResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webhooks/ozow:
+    post:
+      tags:
+        - Webhooks
+      summary: Ozow payment webhook
+      description: Handle Ozow payment webhook notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OzowWebhookRequest'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /webhooks/stripe:
+    post:
+      tags:
+        - Webhooks
+      summary: Stripe payment webhook
+      description: Handle Stripe payment webhook notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeWebhookRequest'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Authentication Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - phoneNumber
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          description: Password with minimum 8 characters, including uppercase, lowercase, number, and special character
+        phoneNumber:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: Phone number in international format with country code
+
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User registered successfully"
+        token:
+          type: string
+          description: JWT access token
+        user:
+          $ref: '#/components/schemas/User'
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          description: User's password
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Login successful"
+        token:
+          type: string
+          description: JWT access token
+        user:
+          $ref: '#/components/schemas/User'
+
+    SendOTPRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+
+    SendOTPResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "OTP sent successfully"
+        maskedPhone:
+          type: string
+          example: "+27***67"
+          description: Masked phone number for security
+
+    VerifyOTPRequest:
+      type: object
+      required:
+        - email
+        - otp
+        - newPassword
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          description: 6-digit OTP code
+        newPassword:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          description: New password
+
+    VerifyOTPResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Password reset successfully"
+        token:
+          type: string
+          description: JWT access token
+
+    # User Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User's unique identifier
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phoneNumber:
+          type: string
+          description: User's phone number
+        role:
+          type: string
+          enum: [user, admin, super_admin]
+          default: user
+          description: User's role in the system
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    UserProfileResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: User's full name
+        phoneNumber:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: Phone number in international format
+
+    UpdateProfileResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Profile updated successfully"
+        user:
+          $ref: '#/components/schemas/User'
+
+    BalanceResponse:
+      type: object
+      properties:
+        balance:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Balance in different currencies
+          example:
+            ZAR: 15000.00
+            USD: 1000.00
+            ZWL: 500000.00
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Last balance update timestamp
+
+    # Transaction Schemas
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Transaction unique identifier
+        type:
+          type: string
+          enum: [send, receive]
+          description: Transaction type
+        amount:
+          type: number
+          format: float
+          description: Transaction amount
+        currency:
+          type: string
+          description: Transaction currency
+        status:
+          type: string
+          enum: [pending, completed, failed]
+          description: Transaction status
+        description:
+          type: string
+          description: Transaction description
+        fee:
+          type: number
+          format: float
+          description: Transaction fee
+        exchangeRate:
+          type: number
+          format: float
+          description: Exchange rate used
+        recipientAmount:
+          type: number
+          format: float
+          description: Amount received by recipient
+        recipientCurrency:
+          type: string
+          description: Currency received by recipient
+        recipient:
+          $ref: '#/components/schemas/User'
+        sender:
+          $ref: '#/components/schemas/User'
+        paymentMethod:
+          type: string
+          description: Payment method used
+        trackingNumber:
+          type: string
+          description: Transaction tracking number
+        createdAt:
+          type: string
+          format: date-time
+          description: Transaction creation timestamp
+        completedAt:
+          type: string
+          format: date-time
+          description: Transaction completion timestamp
+
+    TransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    TransactionDetailResponse:
+      type: object
+      properties:
+        transaction:
+          $ref: '#/components/schemas/Transaction'
+
+    SendMoneyRequest:
+      type: object
+      required:
+        - recipientId
+        - amount
+        - currency
+      properties:
+        recipientId:
+          type: string
+          format: uuid
+          description: Recipient's user ID
+        amount:
+          type: number
+          format: float
+          minimum: 0.01
+          description: Amount to send
+        currency:
+          type: string
+          description: Currency to send
+        description:
+          type: string
+          description: Transaction description
+        paymentMethod:
+          type: string
+          enum: [bank_transfer, mobile_wallet, cash_pickup]
+          description: Payment method
+
+    SendMoneyResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Transaction initiated successfully"
+        transaction:
+          $ref: '#/components/schemas/Transaction'
+
+    ExchangeRatesResponse:
+      type: object
+      properties:
+        rates:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: number
+              format: float
+          description: Exchange rates between currencies
+          example:
+            ZAR:
+              USD: 0.055
+              ZWL: 1000.00
+              EUR: 0.050
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Last exchange rate update timestamp
+
+    CurrencyConversionRequest:
+      type: object
+      required:
+        - amount
+        - fromCurrency
+        - toCurrency
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0.01
+          description: Amount to convert
+        fromCurrency:
+          type: string
+          description: Source currency
+        toCurrency:
+          type: string
+          description: Target currency
+
+    CurrencyConversionResponse:
+      type: object
+      properties:
+        conversion:
+          type: object
+          properties:
+            originalAmount:
+              type: number
+              format: float
+            originalCurrency:
+              type: string
+            convertedAmount:
+              type: number
+              format: float
+            convertedCurrency:
+              type: string
+            exchangeRate:
+              type: number
+              format: float
+            fee:
+              type: number
+              format: float
+            totalAmount:
+              type: number
+              format: float
+
+    # Beneficiary Schemas
+    Beneficiary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Beneficiary unique identifier
+        name:
+          type: string
+          description: Beneficiary's full name
+        email:
+          type: string
+          format: email
+          description: Beneficiary's email address
+        phoneNumber:
+          type: string
+          description: Beneficiary's phone number
+        bankName:
+          type: string
+          description: Bank name
+        accountNumber:
+          type: string
+          description: Bank account number
+        accountType:
+          type: string
+          enum: [savings, checking, current]
+          description: Bank account type
+        swiftCode:
+          type: string
+          description: Bank SWIFT code
+        routingNumber:
+          type: string
+          description: Bank routing number
+        country:
+          type: string
+          description: Beneficiary's country
+        address:
+          type: string
+          description: Beneficiary's address
+        isActive:
+          type: boolean
+          default: true
+          description: Whether beneficiary is active
+        notes:
+          type: string
+          description: Additional notes
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    BeneficiaryListResponse:
+      type: object
+      properties:
+        beneficiaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Beneficiary'
+
+    AddBeneficiaryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Beneficiary's full name
+        email:
+          type: string
+          format: email
+          description: Beneficiary's email address
+        phoneNumber:
+          type: string
+          description: Beneficiary's phone number
+        bankName:
+          type: string
+          description: Bank name
+        accountNumber:
+          type: string
+          description: Bank account number
+        accountType:
+          type: string
+          enum: [savings, checking, current]
+          description: Bank account type
+        swiftCode:
+          type: string
+          description: Bank SWIFT code
+        routingNumber:
+          type: string
+          description: Bank routing number
+        country:
+          type: string
+          description: Beneficiary's country
+        address:
+          type: string
+          description: Beneficiary's address
+
+    AddBeneficiaryResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Beneficiary added successfully"
+        beneficiary:
+          $ref: '#/components/schemas/Beneficiary'
+
+    UpdateBeneficiaryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Beneficiary's full name
+        email:
+          type: string
+          format: email
+          description: Beneficiary's email address
+        phoneNumber:
+          type: string
+          description: Beneficiary's phone number
+        bankName:
+          type: string
+          description: Bank name
+        accountNumber:
+          type: string
+          description: Bank account number
+        accountType:
+          type: string
+          enum: [savings, checking, current]
+          description: Bank account type
+        swiftCode:
+          type: string
+          description: Bank SWIFT code
+        routingNumber:
+          type: string
+          description: Bank routing number
+        country:
+          type: string
+          description: Beneficiary's country
+        address:
+          type: string
+          description: Beneficiary's address
+
+    UpdateBeneficiaryResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Beneficiary updated successfully"
+        beneficiary:
+          $ref: '#/components/schemas/Beneficiary'
+
+    DeleteBeneficiaryResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Beneficiary deleted successfully"
+
+    # KYC Schemas
+    KYCStatusResponse:
+      type: object
+      properties:
+        kyc:
+          type: object
+          properties:
+            level:
+              type: string
+              enum: [bronze, silver, gold]
+              description: KYC verification level
+            status:
+              type: string
+              enum: [pending, approved, rejected]
+              description: KYC verification status
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [id_document, proof_of_address, proof_of_income]
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected]
+                  uploadedAt:
+                    type: string
+                    format: date-time
+                  approvedAt:
+                    type: string
+                    format: date-time
+            limits:
+              type: object
+              properties:
+                daily:
+                  type: number
+                  format: float
+                monthly:
+                  type: number
+                  format: float
+                single:
+                  type: number
+                  format: float
+
+    UploadDocumentResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Document uploaded successfully"
+        document:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            type:
+              type: string
+              enum: [id_document, proof_of_address, proof_of_income]
+            status:
+              type: string
+              enum: [pending, approved, rejected]
+            uploadedAt:
+              type: string
+              format: date-time
+
+    KYCLimitsResponse:
+      type: object
+      properties:
+        limits:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              daily:
+                type: number
+                format: float
+              monthly:
+                type: number
+                format: float
+              single:
+                type: number
+                format: float
+
+    # Payment Schemas
+    InitiatePaymentRequest:
+      type: object
+      required:
+        - amount
+        - currency
+        - paymentMethod
+        - recipientId
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0.01
+          description: Payment amount
+        currency:
+          type: string
+          description: Payment currency
+        paymentMethod:
+          type: string
+          enum: [ozow, stripe, payfast]
+          description: Payment gateway
+        recipientId:
+          type: string
+          format: uuid
+          description: Recipient's user ID
+        description:
+          type: string
+          description: Payment description
+
+    InitiatePaymentResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Payment initiated successfully"
+        payment:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            amount:
+              type: number
+              format: float
+            currency:
+              type: string
+            status:
+              type: string
+              enum: [pending, completed, failed]
+            paymentUrl:
+              type: string
+              format: uri
+              description: Payment gateway URL
+            reference:
+              type: string
+              description: Payment reference number
+            expiresAt:
+              type: string
+              format: date-time
+              description: Payment expiration timestamp
+
+    PaymentStatusResponse:
+      type: object
+      properties:
+        payment:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [pending, completed, failed]
+            amount:
+              type: number
+              format: float
+            currency:
+              type: string
+            completedAt:
+              type: string
+              format: date-time
+            transactionId:
+              type: string
+              format: uuid
+
+    # Admin Schemas
+    AdminUserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/User'
+              - type: object
+                properties:
+                  kycLevel:
+                    type: string
+                    enum: [bronze, silver, gold]
+                  kycStatus:
+                    type: string
+                    enum: [pending, approved, rejected]
+                  status:
+                    type: string
+                    enum: [active, suspended]
+                  lastLogin:
+                    type: string
+                    format: date-time
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminTransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    UpdateKYCRequest:
+      type: object
+      required:
+        - level
+        - status
+      properties:
+        level:
+          type: string
+          enum: [bronze, silver, gold]
+          description: KYC verification level
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          description: KYC verification status
+        notes:
+          type: string
+          description: Admin notes for the KYC update
+
+    UpdateKYCResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "KYC status updated successfully"
+        kyc:
+          type: object
+          properties:
+            level:
+              type: string
+              enum: [bronze, silver, gold]
+            status:
+              type: string
+              enum: [pending, approved, rejected]
+            updatedAt:
+              type: string
+              format: date-time
+
+    # Webhook Schemas
+    OzowWebhookRequest:
+      type: object
+      properties:
+        SiteCode:
+          type: string
+          description: Ozow site code
+        CountryCode:
+          type: string
+          description: Country code
+        CurrencyCode:
+          type: string
+          description: Currency code
+        Amount:
+          type: number
+          format: float
+          description: Payment amount
+        TransactionReference:
+          type: string
+          description: Transaction reference
+        BankReference:
+          type: string
+          description: Bank reference
+        Optional1:
+          type: string
+          description: Optional field 1 (user ID)
+        Optional2:
+          type: string
+          description: Optional field 2 (recipient ID)
+        Optional3:
+          type: string
+          description: Optional field 3 (transaction ID)
+        Optional4:
+          type: string
+          description: Optional field 4
+        Optional5:
+          type: string
+          description: Optional field 5
+        IsTest:
+          type: boolean
+          description: Whether this is a test transaction
+        Customer:
+          type: string
+          description: Customer name
+        HashCheck:
+          type: string
+          description: Hash signature for verification
+
+    StripeWebhookRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Event ID
+        object:
+          type: string
+          example: "event"
+        api_version:
+          type: string
+          description: API version
+        created:
+          type: integer
+          description: Event creation timestamp
+        data:
+          type: object
+          description: Event data
+        livemode:
+          type: boolean
+          description: Whether this is a live mode event
+        pending_webhooks:
+          type: integer
+          description: Number of pending webhooks
+        request:
+          type: object
+          description: Request information
+        type:
+          type: string
+          description: Event type
+
+    WebhookResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of records
+        limit:
+          type: integer
+          description: Number of records per page
+        offset:
+          type: integer
+          description: Number of records skipped
+        hasMore:
+          type: boolean
+          description: Whether there are more records
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details 
