@@ -1,11 +1,11 @@
 const { DataTypes } = require('sequelize');
 
-const createUserModel = (sequelize) => {
+module.exports = (sequelize) => {
   const User = sequelize.define('User', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
     },
     name: {
       type: DataTypes.STRING,
@@ -19,31 +19,26 @@ const createUserModel = (sequelize) => {
         isEmail: true,
       },
     },
-    phoneNumber: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        isValidPhoneNumber(value) {
-          if (value && value !== '') {
-            if (!/^\+?[1-9]\d{1,14}$/.test(value)) {
-              throw new Error('Invalid phone number format');
-            }
-          }
-        },
-      },
-    },
-    passwordHash: {
+    password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-  }, {
-    timestamps: true,
-    defaultScope: {
-      attributes: { exclude: ['passwordHash'] },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
+    isVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    kycStatus: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      defaultValue: 'pending',
+    },
+  }, {
+    tableName: 'users',
+    timestamps: true,
   });
 
   return User;
-};
-
-module.exports = createUserModel; 
+}; 

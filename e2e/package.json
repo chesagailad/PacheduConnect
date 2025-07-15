@@ -1,0 +1,17 @@
+{
+  "name": "pachedu-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Pachedu Remittance Platform",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "install": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

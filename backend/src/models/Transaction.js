@@ -1,64 +1,64 @@
 const { DataTypes } = require('sequelize');
 
-function createTransactionModel(sequelize) {
+module.exports = (sequelize) => {
   const Transaction = sequelize.define('Transaction', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users',
-        key: 'id'
-      }
-    },
-    type: {
-      type: DataTypes.ENUM('send', 'receive'),
-      allowNull: false
-    },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
-    },
-    currency: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'USD'
+        model: 'users',
+        key: 'id',
+      },
     },
     recipientId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
-        key: 'id'
-      }
+        model: 'users',
+        key: 'id',
+      },
     },
     senderId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
-        key: 'id'
-      }
+        model: 'users',
+        key: 'id',
+      },
+    },
+    amountSAR: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    amountZWL: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
+    exchangeRate: {
+      type: DataTypes.DECIMAL(8, 4),
+      allowNull: false,
+    },
+    payoutMethod: {
+      type: DataTypes.ENUM('ecocash', 'bank_transfer', 'cash_pickup', 'home_delivery'),
+      allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed'),
-      allowNull: false,
-      defaultValue: 'pending'
+      type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed', 'cancelled'),
+      defaultValue: 'pending',
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: true
-    }
+      allowNull: true,
+    },
   }, {
-    tableName: 'Transactions',
-    timestamps: true
+    tableName: 'transactions',
+    timestamps: true,
   });
 
   return Transaction;
-}
-
-module.exports = createTransactionModel; 
+}; 
