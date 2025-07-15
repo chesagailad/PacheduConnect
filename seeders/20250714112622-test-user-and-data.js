@@ -200,6 +200,62 @@ module.exports = {
         updatedAt: now,
       }
     ]);
+
+    const superUserId = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+    const postgresUserId = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+    const superUserPasswordHash = await bcrypt.hash('PacheduConnect!', 10);
+    const postgresUserPasswordHash = await bcrypt.hash('postgres1234', 10);
+
+    await queryInterface.bulkInsert('Users', [
+      {
+        id: superUserId,
+        name: 'Super User',
+        email: 'pachedu',
+        passwordHash: superUserPasswordHash,
+        phoneNumber: '+10000000001',
+        role: 'super_admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: postgresUserId,
+        name: 'Postgres User',
+        email: 'postgres',
+        passwordHash: postgresUserPasswordHash,
+        phoneNumber: '+10000000002',
+        role: 'user',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ], {});
+
+    // Insert Admin and Super Admin as requested
+    const adminPacheduId = 'f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1';
+    const superAdminPacheduId = 'f2f2f2f2-f2f2-f2f2-f2f2-f2f2f2f2f2f2';
+    const adminPacheduPasswordHash = await bcrypt.hash('AdminQwerty!', 10);
+    const superAdminPacheduPasswordHash = await bcrypt.hash('SuperAdminQwerty!', 10);
+    await queryInterface.bulkInsert('Users', [
+      {
+        id: adminPacheduId,
+        name: 'Admin PacheduConnect',
+        email: 'admin@pacheduconnect.com',
+        phoneNumber: '+27123456789',
+        passwordHash: adminPacheduPasswordHash,
+        role: 'admin',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: superAdminPacheduId,
+        name: 'SuperAdmin PacheduConnect',
+        email: 'superadmin@pacheduconnect.com',
+        phoneNumber: '+27234567890',
+        passwordHash: superAdminPacheduPasswordHash,
+        role: 'super_admin',
+        createdAt: now,
+        updatedAt: now,
+      }
+    ]);
   },
 
   async down(queryInterface, Sequelize) {
@@ -217,6 +273,13 @@ module.exports = {
     });
     await queryInterface.bulkDelete('Users', {
       id: '11111111-1111-1111-1111-111111111111'
+    });
+    // Remove Admin and Super Admin by email
+    await queryInterface.bulkDelete('Users', {
+      email: [
+        'admin@pacheduconnect.com',
+        'superadmin@pacheduconnect.com'
+      ]
     });
   }
 };
