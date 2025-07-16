@@ -135,6 +135,7 @@ function AuthPageContent() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
+                placeholder="Enter your email address"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
@@ -146,6 +147,7 @@ function AuthPageContent() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
+                placeholder="Enter your password"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
@@ -188,6 +190,7 @@ function AuthPageContent() {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
+                placeholder="Enter your full name"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
@@ -199,18 +202,20 @@ function AuthPageContent() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
+                placeholder="Enter your email address"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number (optional)</label>
+              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
               <input
                 type="tel"
                 name="phoneNumber"
                 value={form.phoneNumber}
                 onChange={handleChange}
-                placeholder="+1234567890"
+                placeholder="+27123456789"
+                required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -221,6 +226,7 @@ function AuthPageContent() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
+                placeholder="Enter your password"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
@@ -232,6 +238,7 @@ function AuthPageContent() {
                 name="confirmPassword"
                 value={form.confirmPassword}
                 onChange={handleChange}
+                placeholder="Confirm your password"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
