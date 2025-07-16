@@ -38,6 +38,7 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(1); // Start with 1 for the initial bot message
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +53,13 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (isOpen) {
+      setUnreadCount(0);
     }
   }, [isOpen]);
 
@@ -92,6 +100,9 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
     setIsLoading(true);
     setIsTyping(true);
 
+    // Capture current chat open state
+    const chatIsOpen = isOpen;
+
     // Simulate typing delay
     setTimeout(() => {
       const botResponse: Message = {
@@ -102,6 +113,12 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
       };
 
       setMessages(prev => [...prev, botResponse]);
+      
+      // Increment unread count if chat was closed when message was sent
+      if (!chatIsOpen) {
+        setUnreadCount(prev => prev + 1);
+      }
+      
       setIsLoading(false);
       setIsTyping(false);
     }, 1500);
@@ -125,6 +142,7 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
+        // Don't reset unread count when closing via escape - user may not have seen all messages
       }
     };
 
@@ -311,16 +329,18 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
       </motion.button>
 
       {/* Notification badge for new messages when closed */}
-      {!isOpen && (
+      {!isOpen && unreadCount > 0 && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"
-          aria-label="1 unread message"
+          aria-label={`${unreadCount} unread message${unreadCount === 1 ? '' : 's'}`}
           role="status"
           aria-live="polite"
         >
-          <span className="text-xs text-white font-bold" aria-hidden="true">1</span>
+          <span className="text-xs text-white font-bold" aria-hidden="true">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
         </motion.div>
       )}
     </div>
