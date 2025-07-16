@@ -184,6 +184,22 @@ async function getExchangeRates() {
  * @returns {object} Commission details
  */
 function calculateCommission(amount, currency) {
+  // Input validation
+  if (typeof amount !== 'number' || amount < 0 || !isFinite(amount)) {
+    throw new Error('Invalid amount: must be a non-negative finite number');
+  }
+  
+  if (!currency || typeof currency !== 'string') {
+    throw new Error('Invalid currency: must be a non-empty string');
+  }
+  
+  // Normalize currency code to uppercase
+  currency = currency.toUpperCase();
+  
+  if (!SUPPORTED_CURRENCIES.includes(currency)) {
+    throw new Error(`Unsupported currency '${currency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
+  }
+  
   if (currency === 'ZAR') {
     const commissionAmount = amount * ZAR_COMMISSION_RATE;
     return {
@@ -210,26 +226,44 @@ function calculateCommission(amount, currency) {
  * @returns {object} Conversion result with commission details
  */
 async function convertCurrency(amount, fromCurrency, toCurrency) {
-  if (amount <= 0) {
-    throw new Error('Amount must be greater than 0');
+  // Enhanced input validation
+  if (!fromCurrency || typeof fromCurrency !== 'string') {
+    throw new Error('Invalid fromCurrency: must be a non-empty string');
   }
   
+  if (!toCurrency || typeof toCurrency !== 'string') {
+    throw new Error('Invalid toCurrency: must be a non-empty string');
+  }
+  
+  if (typeof amount !== 'number' || amount <= 0 || !isFinite(amount)) {
+    throw new Error('Invalid amount: must be a positive finite number');
+  }
+  
+  // Normalize currency codes to uppercase
+  fromCurrency = fromCurrency.toUpperCase();
+  toCurrency = toCurrency.toUpperCase();
+  
   // Validate supported currencies
-  if (!SUPPORTED_CURRENCIES.includes(fromCurrency) || !SUPPORTED_CURRENCIES.includes(toCurrency)) {
-    throw new Error(`Unsupported currency. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
+  if (!SUPPORTED_CURRENCIES.includes(fromCurrency)) {
+    throw new Error(`Unsupported fromCurrency '${fromCurrency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
+  }
+  
+  if (!SUPPORTED_CURRENCIES.includes(toCurrency)) {
+    throw new Error(`Unsupported toCurrency '${toCurrency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
   }
   
   if (fromCurrency === toCurrency) {
     const commission = calculateCommission(amount, fromCurrency);
     return {
-      originalAmount: amount,
-      convertedAmount: amount,
+      originalAmount: parseFloat(amount.toFixed(2)),
+      convertedAmount: parseFloat(amount.toFixed(2)),
       fromCurrency,
       toCurrency,
-      rate: 1,
+      rate: 1.000000,
       commission,
+      margin: 0.000, // No margin for same currency
       timestamp: new Date().toISOString(),
-      source: 'Direct conversion'
+      source: 'Same currency conversion'
     };
   }
   
@@ -265,19 +299,36 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
  * @returns {object} Rate information
  */
 async function getExchangeRate(fromCurrency, toCurrency) {
+  // Enhanced input validation
+  if (!fromCurrency || typeof fromCurrency !== 'string') {
+    throw new Error('Invalid fromCurrency: must be a non-empty string');
+  }
+  
+  if (!toCurrency || typeof toCurrency !== 'string') {
+    throw new Error('Invalid toCurrency: must be a non-empty string');
+  }
+  
+  // Normalize currency codes to uppercase
+  fromCurrency = fromCurrency.toUpperCase();
+  toCurrency = toCurrency.toUpperCase();
+  
   // Validate supported currencies
-  if (!SUPPORTED_CURRENCIES.includes(fromCurrency) || !SUPPORTED_CURRENCIES.includes(toCurrency)) {
-    throw new Error(`Unsupported currency. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
+  if (!SUPPORTED_CURRENCIES.includes(fromCurrency)) {
+    throw new Error(`Unsupported fromCurrency '${fromCurrency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
+  }
+  
+  if (!SUPPORTED_CURRENCIES.includes(toCurrency)) {
+    throw new Error(`Unsupported toCurrency '${toCurrency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
   }
   
   if (fromCurrency === toCurrency) {
     return {
-      rate: 1,
+      rate: 1.000000,
       fromCurrency,
       toCurrency,
-      margin: 0,
+      margin: 0.000,
       timestamp: new Date().toISOString(),
-      source: 'Direct rate'
+      source: 'Same currency rate'
     };
   }
   
@@ -323,6 +374,11 @@ async function getAllRates() {
  * @returns {boolean} True if supported
  */
 function isCurrencySupported(currency) {
+  // Input validation
+  if (!currency || typeof currency !== 'string') {
+    return false;
+  }
+  
   return SUPPORTED_CURRENCIES.includes(currency.toUpperCase());
 }
 

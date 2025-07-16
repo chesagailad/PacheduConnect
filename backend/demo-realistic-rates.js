@@ -49,8 +49,49 @@ function calculateCommission(amount, currency) {
 }
 
 function convertWithRealisticRates(amount, fromCurrency, toCurrency) {
+  // Input validation for currency parameters
+  const supportedCurrencies = Object.keys(realisticRates);
+  
+  if (!fromCurrency || typeof fromCurrency !== 'string') {
+    throw new Error('Invalid fromCurrency: must be a non-empty string');
+  }
+  
+  if (!toCurrency || typeof toCurrency !== 'string') {
+    throw new Error('Invalid toCurrency: must be a non-empty string');
+  }
+  
+  if (!supportedCurrencies.includes(fromCurrency)) {
+    throw new Error(`Unsupported fromCurrency '${fromCurrency}'. Supported currencies: ${supportedCurrencies.join(', ')}`);
+  }
+  
+  if (!supportedCurrencies.includes(toCurrency)) {
+    throw new Error(`Unsupported toCurrency '${toCurrency}'. Supported currencies: ${supportedCurrencies.join(', ')}`);
+  }
+  
+  // Additional validation for amount
+  if (typeof amount !== 'number' || amount <= 0 || !isFinite(amount)) {
+    throw new Error('Invalid amount: must be a positive number');
+  }
+  
+  // Handle same currency conversion
+  if (fromCurrency === toCurrency) {
+    const commission = calculateCommission(amount, fromCurrency);
+    return {
+      originalAmount: parseFloat(amount.toFixed(2)),
+      convertedAmount: parseFloat(amount.toFixed(2)),
+      fromCurrency,
+      toCurrency,
+      rate: 1.000000,
+      commission,
+      margin: 0.000, // No margin for same currency
+      timestamp: new Date().toISOString(),
+      source: 'Same currency conversion'
+    };
+  }
+  
+  // Check if specific rate is available
   if (!realisticRates[fromCurrency] || !realisticRates[fromCurrency][toCurrency]) {
-    throw new Error(`Rate not available for ${fromCurrency} to ${toCurrency}`);
+    throw new Error(`Exchange rate not available for ${fromCurrency} to ${toCurrency}`);
   }
   
   const rate = realisticRates[fromCurrency][toCurrency];
