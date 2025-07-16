@@ -1,0 +1,31 @@
+{
+  "name": "pachedu-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Pachedu WhatsApp chatbot for remittance services",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "body-parser": "^1.20.2",
+    "crypto": "^1.0.1",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "author": "Pachedu Team",
+  "license": "MIT",
+  "keywords": [
+    "whatsapp",
+    "chatbot",
+    "remittance",
+    "zimbabwe",
+    "south-africa"
+  ]
+}
