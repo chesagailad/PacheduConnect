@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import logger from '@/utils/logger';
+import { API_CONFIG } from '@/config/api';
 
 const API_URL = API_CONFIG.BASE_URL;
 
