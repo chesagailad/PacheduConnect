@@ -88,21 +88,53 @@ export default function SendMoneyPage() {
   const calculateFee = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/transactions/calculate-fee`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: parseFloat(form.amount),
-          currency: form.currency
+      
+      // Get exchange rate and transfer fee information
+      const [feeRes, conversionRes] = await Promise.all([
+        fetch(`${API_URL}/api/transactions/calculate-commission`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: parseFloat(form.amount),
+            currency: form.currency
+          })
+        }),
+        fetch(`${API_URL}/api/transactions/convert-currency`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: parseFloat(form.amount),
+            fromCurrency: form.currency,
+            toCurrency: form.currency === 'ZAR' ? 'USD' : 'ZAR'
+          })
         })
-      });
+      ]);
 
-      if (res.ok) {
-        const data = await res.json();
-        setFeeBreakdown(data);
+      if (feeRes.ok && conversionRes.ok) {
+        const feeData = await feeRes.json();
+        const conversionData = await conversionRes.json();
+        
+        // Combine the data for display
+        const combinedData = {
+          transferFee: feeData.transferFee,
+          conversion: conversionData.conversion,
+          feeBreakdown: {
+            amount: parseFloat(form.amount),
+            fee: feeData.transferFee.transferFeeAmount,
+            totalAmount: feeData.transferFee.totalCost,
+            feeType: 'transfer_fee',
+            feePercentage: feeData.transferFee.transferFeeRate * 100,
+            currency: form.currency
+          }
+        };
+        
+        setFeeBreakdown(combinedData);
       }
     } catch (err) {
       console.error('Failed to calculate fee:', err);
@@ -332,34 +364,58 @@ export default function SendMoneyPage() {
 
               {feeBreakdown && (
                 <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Fee Breakdown</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">Transaction Breakdown</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Amount:</span>
-                      <span>{form.currency} {feeBreakdown.amount.toFixed(2)}</span>
+                      <span className="text-gray-600">Send Amount:</span>
+                      <span>{form.currency} {parseFloat(form.amount).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Fee ({feeBreakdown.feePercentage}%):</span>
-                      <span>{form.currency} {feeBreakdown.fee.toFixed(2)}</span>
-                    </div>
+                    
+                    {feeBreakdown.transferFee && feeBreakdown.transferFee.transferFeeAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transfer Fee:</span>
+                        <span>{form.currency} {feeBreakdown.transferFee.transferFeeAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    {feeBreakdown.conversion && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Exchange Rate:</span>
+                        <span>
+                          $1 = {form.currency === 'ZAR' ? 'R' : '$'}{feeBreakdown.conversion.exchangeRate.toFixed(6)}
+                        </span>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between pt-2 border-t border-gray-200">
-                      <span className="font-semibold">Total:</span>
-                      <span className="font-semibold">{form.currency} {feeBreakdown.totalAmount.toFixed(2)}</span>
+                      <span className="font-semibold">Total Cost:</span>
+                      <span className="font-semibold">
+                        {form.currency} {feeBreakdown.transferFee ? feeBreakdown.transferFee.totalCost.toFixed(2) : parseFloat(form.amount).toFixed(2)}
+                      </span>
                     </div>
+                    
+                    {feeBreakdown.conversion && (
+                      <div className="flex justify-between text-green-700 font-medium">
+                        <span>Recipient Gets:</span>
+                        <span>
+                          {feeBreakdown.conversion.toCurrency === 'USD' ? '$' : 'R'}{feeBreakdown.conversion.recipientGets.toFixed(6)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {userBalance !== null && feeBreakdown && (
                 <div className={`p-4 rounded-lg mb-4 ${
-                  userBalance >= feeBreakdown.totalAmount 
+                  userBalance >= (feeBreakdown.transferFee ? feeBreakdown.transferFee.totalCost : parseFloat(form.amount))
                     ? 'bg-green-50 border border-green-200' 
                     : 'bg-red-50 border border-red-200'
                 }`}>
                   <p className={`text-sm ${
-                    userBalance >= feeBreakdown.totalAmount ? 'text-green-800' : 'text-red-800'
+                    userBalance >= (feeBreakdown.transferFee ? feeBreakdown.transferFee.totalCost : parseFloat(form.amount)) ? 'text-green-800' : 'text-red-800'
                   }`}>
-                    {userBalance >= feeBreakdown.totalAmount 
+                    {userBalance >= (feeBreakdown.transferFee ? feeBreakdown.transferFee.totalCost : parseFloat(form.amount))
                       ? '✓ Sufficient balance available'
                       : '⚠ Insufficient balance. Please add funds to your account.'
                     }
@@ -369,11 +425,11 @@ export default function SendMoneyPage() {
             </div>
 
             <div className="flex space-x-3">
-                             <button
-                 onClick={proceedToPayment}
-                 disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
-                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-               >
+              <button
+                onClick={proceedToPayment}
+                disabled={!!(userBalance !== null && feeBreakdown && userBalance < (feeBreakdown.transferFee ? feeBreakdown.transferFee.totalCost : parseFloat(form.amount)))}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
                 Proceed to Payment
               </button>
               <button

@@ -200,21 +200,41 @@ export default function CurrencyConverter() {
           <div className="bg-green-50 rounded-lg p-4">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-green-800 font-medium">Original Amount:</span>
+                <span className="text-green-800 font-medium">Send Amount:</span>
                 <span className="text-green-900 font-semibold">
-                  {formatCurrency(conversion.originalAmount, conversion.fromCurrency)}
+                  {formatCurrency(conversion.sendAmount || conversion.originalAmount, conversion.fromCurrency)}
                 </span>
               </div>
+              
+              {conversion.transferFee && conversion.transferFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-green-800 font-medium">Transfer Fee:</span>
+                  <span className="text-green-900 font-semibold">
+                    {formatCurrency(conversion.transferFee, conversion.fromCurrency)}
+                  </span>
+                </div>
+              )}
+              
               <div className="flex justify-between">
-                <span className="text-green-800 font-medium">Converted Amount:</span>
+                <span className="text-green-800 font-medium">Exchange Rate:</span>
+                <span className="text-green-900 font-semibold">
+                  1 {conversion.fromCurrency} = {(conversion.exchangeRate || conversion.rate).toFixed(6)} {conversion.toCurrency}
+                </span>
+              </div>
+              
+              {conversion.totalCost && (
+                <div className="flex justify-between border-t border-green-200 pt-2">
+                  <span className="text-green-800 font-medium">Total Cost:</span>
+                  <span className="text-green-900 font-semibold">
+                    {formatCurrency(conversion.totalCost, conversion.fromCurrency)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
+                <span className="text-green-800 font-medium">Recipient Gets:</span>
                 <span className="text-green-900 font-semibold text-lg">
-                  {formatCurrency(conversion.convertedAmount, conversion.toCurrency)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-green-800 font-medium">Rate Used:</span>
-                <span className="text-green-900 font-semibold">
-                  {conversion.rate.toFixed(6)}
+                  {formatCurrency(conversion.recipientGets || conversion.convertedAmount, conversion.toCurrency)}
                 </span>
               </div>
             </div>

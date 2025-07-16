@@ -1,10 +1,18 @@
 /**
  * Fee calculation utility for PacheduConnect
- * Supports percentage, flat, and tiered fee structures
+ * Supports percentage, flat, and tiered fee structures with special ZAR handling
  */
 
 const FEE_CONFIG = {
-  // Default fee structure
+  // ZAR-specific fee structure (3.5% transfer fee)
+  ZAR: {
+    type: 'percentage',
+    value: 3.5, // 3.5% transfer fee for ZAR
+    minFee: 0.50, // Minimum R0.50 fee
+    maxFee: 500.00 // Maximum R500 fee
+  },
+  
+  // Default fee structure for other currencies
   default: {
     type: 'percentage',
     value: 2.5, // 2.5% fee
@@ -47,7 +55,7 @@ const FEE_CONFIG = {
 /**
  * Calculate transaction fee based on amount and currency
  * @param {number} amount - Transaction amount
- * @param {string} currency - Currency code (USD, EUR, etc.)
+ * @param {string} currency - Currency code (USD, EUR, ZAR, etc.)
  * @returns {object} Fee breakdown
  */
 function calculateFee(amount, currency = 'USD') {
@@ -55,32 +63,45 @@ function calculateFee(amount, currency = 'USD') {
     throw new Error('Amount must be greater than 0');
   }
   
+  // Normalize currency
+  currency = currency.toUpperCase();
+  
   // Get fee configuration for currency
   const feeConfig = FEE_CONFIG[currency] || FEE_CONFIG.default;
   
   let fee = 0;
   let feeType = feeConfig.type;
+  let feePercentage = feeConfig.value;
   
-  // Check if large amount fee applies
-  if (amount >= FEE_CONFIG.large.threshold) {
-    const largeConfig = FEE_CONFIG.large;
-    fee = (amount * largeConfig.value) / 100;
-    fee = Math.max(fee, largeConfig.minFee);
-    fee = Math.min(fee, largeConfig.maxFee);
-    feeType = 'large_percentage';
-  } else {
-    // Apply standard fee calculation
-    if (feeConfig.type === 'percentage') {
-      fee = (amount * feeConfig.value) / 100;
-    } else if (feeConfig.type === 'flat') {
-      fee = feeConfig.value;
-    } else if (feeConfig.type === 'tiered') {
-      fee = calculateTieredFee(amount, feeConfig.tiers);
-    }
-    
-    // Apply min/max constraints
+  // For ZAR, always use the transfer fee structure
+  if (currency === 'ZAR') {
+    fee = (amount * feeConfig.value) / 100;
     fee = Math.max(fee, feeConfig.minFee);
     fee = Math.min(fee, feeConfig.maxFee);
+    feeType = 'transfer_fee';
+  } else {
+    // Check if large amount fee applies for other currencies
+    if (amount >= FEE_CONFIG.large.threshold) {
+      const largeConfig = FEE_CONFIG.large;
+      fee = (amount * largeConfig.value) / 100;
+      fee = Math.max(fee, largeConfig.minFee);
+      fee = Math.min(fee, largeConfig.maxFee);
+      feeType = 'large_percentage';
+      feePercentage = largeConfig.value;
+    } else {
+      // Apply standard fee calculation
+      if (feeConfig.type === 'percentage') {
+        fee = (amount * feeConfig.value) / 100;
+      } else if (feeConfig.type === 'flat') {
+        fee = feeConfig.value;
+      } else if (feeConfig.type === 'tiered') {
+        fee = calculateTieredFee(amount, feeConfig.tiers);
+      }
+      
+      // Apply min/max constraints
+      fee = Math.max(fee, feeConfig.minFee);
+      fee = Math.min(fee, feeConfig.maxFee);
+    }
   }
   
   const totalAmount = amount + fee;
@@ -90,7 +111,7 @@ function calculateFee(amount, currency = 'USD') {
     fee: parseFloat(fee.toFixed(2)),
     totalAmount: parseFloat(totalAmount.toFixed(2)),
     feeType,
-    feePercentage: feeConfig.value,
+    feePercentage,
     currency
   };
 }
@@ -130,9 +151,9 @@ function getFeeBreakdown(amount, currency = 'USD') {
   return {
     ...feeInfo,
     breakdown: {
-      transferAmount: feeInfo.amount,
-      feeAmount: feeInfo.fee,
-      totalAmount: feeInfo.totalAmount,
+      sendAmount: feeInfo.amount,
+      transferFee: feeInfo.fee,
+      totalCost: feeInfo.totalAmount,
       feeRate: `${feeInfo.feePercentage}%`,
       effectiveRate: `${((feeInfo.fee / feeInfo.amount) * 100).toFixed(2)}%`
     }

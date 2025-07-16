@@ -5,7 +5,7 @@ const createTransactionModel = require('../models/Transaction');
 const createUserModel = require('../models/User');
 const createNotificationModel = require('../models/Notification');
 const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
-const { convertCurrency, getExchangeRate, getAllRates, calculateCommission, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
+const { convertCurrency, getExchangeRate, getAllRates, calculateCommission, calculateTransferFee, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
 
 const router = express.Router();
 
@@ -67,9 +67,9 @@ router.post('/convert-currency', async (req, res) => {
     res.json({
       conversion,
       message: 'Currency converted successfully with XE real-time rates',
-      note: conversion.commission.commissionAmount > 0 ? 
-        `Commission of ${conversion.commission.commissionRate * 100}% applied to ZAR amount` : 
-        'No commission applied'
+      note: conversion.transferFee > 0 ? 
+        `Transfer fee of 3.5% applied to ZAR amount` : 
+        'No transfer fee applied'
     });
   } catch (error) {
     console.error('Error converting currency:', error);
@@ -90,16 +90,18 @@ router.post('/calculate-commission', async (req, res) => {
       return res.status(400).json({ error: 'Currency is required' });
     }
     
+    const transferFee = calculateTransferFee(parseFloat(amount), currency.toUpperCase());
     const commission = calculateCommission(parseFloat(amount), currency.toUpperCase());
     
     res.json({
-      commission,
-      message: commission.commissionAmount > 0 ? 
-        'Commission calculated for ZAR transaction' : 
-        'No commission applicable for this currency'
+      transferFee,
+      commission, // Legacy compatibility
+      message: transferFee.transferFeeAmount > 0 ? 
+        `3.5% transfer fee calculated for ZAR transaction` : 
+        'No transfer fee applicable for this currency'
     });
   } catch (error) {
-    console.error('Error calculating commission:', error);
+    console.error('Error calculating transfer fee:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });

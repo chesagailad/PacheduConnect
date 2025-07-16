@@ -1,6 +1,6 @@
 /**
  * Exchange rate utility for PacheduConnect
- * Fetches real-time rates from XE Currency Data API with margin and commission
+ * Fetches real-time rates from XE Currency Data API with fixed margin for ZAR
  */
 
 const axios = require('axios');
@@ -14,8 +14,8 @@ const XE_ACCOUNT_ID = process.env.XE_ACCOUNT_ID;
 const XE_API_KEY = process.env.XE_API_KEY;
 
 // Platform configuration
-const EXCHANGE_RATE_MARGIN = 0.015; // 1.5% margin
-const ZAR_COMMISSION_RATE = 0.035; // 3.5% commission on ZAR amounts
+const EXCHANGE_RATE_MARGIN = 0.015; // Fixed R0.015 margin for ZAR
+const ZAR_TRANSFER_FEE_RATE = 0.035; // 3.5% transfer fee on ZAR send amounts
 
 // Cache for exchange rates to avoid excessive API calls
 let rateCache = {
@@ -43,6 +43,30 @@ function getXEAuthHeader() {
 }
 
 /**
+ * Apply Pachedu margin to exchange rate
+ * @param {number} baseRate - Base rate from XE
+ * @param {string} fromCurrency - Source currency
+ * @param {string} toCurrency - Target currency
+ * @returns {number} Rate with Pachedu margin applied
+ */
+function applyPacheduMargin(baseRate, fromCurrency, toCurrency) {
+  // For USD to ZAR: add fixed R0.015 to the rate
+  if (fromCurrency === 'USD' && toCurrency === 'ZAR') {
+    return baseRate + EXCHANGE_RATE_MARGIN;
+  }
+  
+  // For ZAR to USD: adjust the rate accordingly
+  if (fromCurrency === 'ZAR' && toCurrency === 'USD') {
+    // Since USD to ZAR has +0.015, ZAR to USD should be 1/(baseRate + 0.015)
+    const usdToZarRate = (1 / baseRate) + EXCHANGE_RATE_MARGIN;
+    return 1 / usdToZarRate;
+  }
+  
+  // For other currency pairs, use a small percentage margin
+  return baseRate * 1.005; // 0.5% margin for other pairs
+}
+
+/**
  * Fetch real-time exchange rates from XE Currency Data API
  * @param {string} baseCurrency - Base currency for conversion
  * @returns {object} Exchange rates object
@@ -56,7 +80,6 @@ async function fetchExchangeRatesFromXE(baseCurrency = 'USD') {
         from: baseCurrency,
         to: targetCurrencies,
         amount: 1,
-        margin: EXCHANGE_RATE_MARGIN * 100, // XE expects margin as percentage
         decimal_places: 6
       },
       headers: {
@@ -69,16 +92,18 @@ async function fetchExchangeRatesFromXE(baseCurrency = 'USD') {
     if (response.data && response.data.to) {
       const rates = { [baseCurrency]: 1 };
       
-      // Process XE API response
+      // Process XE API response and apply Pachedu margins
       response.data.to.forEach(conversion => {
-        rates[conversion.quotecurrency] = conversion.mid;
+        const baseRate = conversion.mid;
+        const adjustedRate = applyPacheduMargin(baseRate, baseCurrency, conversion.quotecurrency);
+        rates[conversion.quotecurrency] = adjustedRate;
       });
 
       return {
         base: baseCurrency,
         rates,
         timestamp: response.data.timestamp || new Date().toISOString(),
-        source: 'XE Currency Data API'
+        source: 'XE Currency Data API with Pachedu margin'
       };
     }
     
@@ -99,31 +124,31 @@ async function fetchExchangeRatesFromXE(baseCurrency = 'USD') {
 function getFallbackRates(baseCurrency = 'USD') {
   console.warn('Using fallback exchange rates due to XE API unavailability');
   
-  // Static fallback rates with margin already applied (approximate values)
+  // Static fallback rates with Pachedu margins already applied
   const fallbackRates = {
     USD: {
       USD: 1,
-      ZAR: 18.50, // ~18.30 + 1.5% margin
-      MWK: 1735.0, // ~1710 + 1.5% margin
-      MZN: 64.2 // ~63.25 + 1.5% margin
+      ZAR: 17.845, // 17.83 + 0.015 (fixed margin)
+      MWK: 1735.0,
+      MZN: 64.2
     },
     ZAR: {
       ZAR: 1,
-      USD: 0.0541, // ~0.0533 + 1.5% margin
-      MWK: 93.8, // ~92.4 + 1.5% margin
-      MZN: 3.47 // ~3.42 + 1.5% margin
+      USD: 0.0560, // 1/17.845
+      MWK: 97.2,
+      MZN: 3.6
     },
     MWK: {
       MWK: 1,
-      USD: 0.000577, // ~0.000568 + 1.5% margin
-      ZAR: 0.01066, // ~0.0105 + 1.5% margin
-      MZN: 0.037 // ~0.0365 + 1.5% margin
+      USD: 0.000576,
+      ZAR: 0.01028,
+      MZN: 0.037
     },
     MZN: {
       MZN: 1,
-      USD: 0.0156, // ~0.0154 + 1.5% margin
-      ZAR: 0.288, // ~0.284 + 1.5% margin
-      MWK: 27.0 // ~26.6 + 1.5% margin
+      USD: 0.0156,
+      ZAR: 0.278,
+      MWK: 27.0
     }
   };
 
@@ -131,7 +156,7 @@ function getFallbackRates(baseCurrency = 'USD') {
     base: baseCurrency,
     rates: fallbackRates[baseCurrency] || fallbackRates.USD,
     timestamp: new Date().toISOString(),
-    source: 'Fallback rates'
+    source: 'Fallback rates with Pachedu margin'
   };
 }
 
@@ -178,12 +203,12 @@ async function getExchangeRates() {
 }
 
 /**
- * Calculate commission fee for ZAR transactions
+ * Calculate transfer fee for ZAR transactions
  * @param {number} amount - Amount being sent
  * @param {string} currency - Currency of the amount
- * @returns {object} Commission details
+ * @returns {object} Transfer fee details
  */
-function calculateCommission(amount, currency) {
+function calculateTransferFee(amount, currency) {
   // Input validation
   if (typeof amount !== 'number' || amount < 0 || !isFinite(amount)) {
     throw new Error('Invalid amount: must be a non-negative finite number');
@@ -201,29 +226,49 @@ function calculateCommission(amount, currency) {
   }
   
   if (currency === 'ZAR') {
-    const commissionAmount = amount * ZAR_COMMISSION_RATE;
+    const transferFeeAmount = amount * ZAR_TRANSFER_FEE_RATE;
     return {
-      commissionRate: ZAR_COMMISSION_RATE,
-      commissionAmount: parseFloat(commissionAmount.toFixed(2)),
-      totalAmount: parseFloat((amount + commissionAmount).toFixed(2)),
+      transferFeeRate: ZAR_TRANSFER_FEE_RATE,
+      transferFeeAmount: parseFloat(transferFeeAmount.toFixed(2)),
+      totalCost: parseFloat((amount + transferFeeAmount).toFixed(2)),
+      sendAmount: parseFloat(amount.toFixed(2)),
       currency: 'ZAR'
     };
   }
   
   return {
-    commissionRate: 0,
-    commissionAmount: 0,
-    totalAmount: parseFloat(amount.toFixed(2)),
+    transferFeeRate: 0,
+    transferFeeAmount: 0,
+    totalCost: parseFloat(amount.toFixed(2)),
+    sendAmount: parseFloat(amount.toFixed(2)),
     currency
   };
 }
 
 /**
- * Convert amount from one currency to another with commission
+ * Calculate commission fee for ZAR transactions (legacy - kept for compatibility)
+ * @param {number} amount - Amount being sent
+ * @param {string} currency - Currency of the amount
+ * @returns {object} Commission details
+ */
+function calculateCommission(amount, currency) {
+  // Use the new transfer fee calculation
+  const transferFee = calculateTransferFee(amount, currency);
+  
+  return {
+    commissionRate: transferFee.transferFeeRate,
+    commissionAmount: transferFee.transferFeeAmount,
+    totalAmount: transferFee.totalCost,
+    currency: transferFee.currency
+  };
+}
+
+/**
+ * Convert amount from one currency to another with transfer fee calculation
  * @param {number} amount - Amount to convert
  * @param {string} fromCurrency - Source currency
  * @param {string} toCurrency - Target currency
- * @returns {object} Conversion result with commission details
+ * @returns {object} Conversion result with transfer fee details
  */
 async function convertCurrency(amount, fromCurrency, toCurrency) {
   // Enhanced input validation
@@ -253,15 +298,15 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
   }
   
   if (fromCurrency === toCurrency) {
-    const commission = calculateCommission(amount, fromCurrency);
+    const transferFee = calculateTransferFee(amount, fromCurrency);
     return {
-      originalAmount: parseFloat(amount.toFixed(2)),
-      convertedAmount: parseFloat(amount.toFixed(2)),
+      sendAmount: parseFloat(amount.toFixed(2)),
+      transferFee: transferFee.transferFeeAmount,
+      totalCost: transferFee.totalCost,
+      recipientGets: parseFloat(amount.toFixed(2)),
+      exchangeRate: 1.000000,
       fromCurrency,
       toCurrency,
-      rate: 1.000000,
-      commission,
-      margin: 0.000, // No margin for same currency
       timestamp: new Date().toISOString(),
       source: 'Same currency conversion'
     };
@@ -273,22 +318,29 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
     throw new Error(`Exchange rate not available for ${fromCurrency} to ${toCurrency}`);
   }
   
-  const rate = allRates[fromCurrency][toCurrency];
-  const convertedAmount = amount * rate;
+  const exchangeRate = allRates[fromCurrency][toCurrency];
   
-  // Calculate commission (only applies to ZAR amounts being sent)
-  const commission = calculateCommission(amount, fromCurrency);
+  // Calculate transfer fee (applies to send amount in source currency)
+  const transferFee = calculateTransferFee(amount, fromCurrency);
+  
+  // For ZAR to USD conversion: recipient gets ZAR amount divided by exchange rate
+  let recipientGets;
+  if (fromCurrency === 'ZAR' && toCurrency === 'USD') {
+    recipientGets = amount / exchangeRate;
+  } else {
+    recipientGets = amount * exchangeRate;
+  }
   
   return {
-    originalAmount: parseFloat(amount.toFixed(2)),
-    convertedAmount: parseFloat(convertedAmount.toFixed(2)),
+    sendAmount: parseFloat(amount.toFixed(2)),
+    transferFee: transferFee.transferFeeAmount,
+    totalCost: transferFee.totalCost,
+    recipientGets: parseFloat(recipientGets.toFixed(6)),
+    exchangeRate: parseFloat(exchangeRate.toFixed(6)),
     fromCurrency,
     toCurrency,
-    rate: parseFloat(rate.toFixed(6)),
-    commission,
-    margin: EXCHANGE_RATE_MARGIN,
     timestamp: new Date().toISOString(),
-    source: 'XE Currency Data API'
+    source: 'XE Currency Data API with Pachedu margin'
   };
 }
 
@@ -346,7 +398,7 @@ async function getExchangeRate(fromCurrency, toCurrency) {
     toCurrency,
     margin: EXCHANGE_RATE_MARGIN,
     timestamp: new Date().toISOString(),
-    source: 'XE Currency Data API'
+    source: 'XE Currency Data API with Pachedu margin'
   };
 }
 
@@ -361,9 +413,9 @@ async function getAllRates() {
     supportedCurrencies: SUPPORTED_CURRENCIES,
     rates: allRates,
     margin: EXCHANGE_RATE_MARGIN,
-    zarCommissionRate: ZAR_COMMISSION_RATE,
+    zarTransferFeeRate: ZAR_TRANSFER_FEE_RATE,
     timestamp: new Date().toISOString(),
-    source: 'XE Currency Data API',
+    source: 'XE Currency Data API with Pachedu margin',
     cacheDuration: rateCache.cacheDuration
   };
 }
@@ -389,11 +441,11 @@ function isCurrencySupported(currency) {
 function getFeeStructure() {
   return {
     exchangeRateMargin: EXCHANGE_RATE_MARGIN,
-    zarCommissionRate: ZAR_COMMISSION_RATE,
+    zarTransferFeeRate: ZAR_TRANSFER_FEE_RATE,
     supportedCurrencies: SUPPORTED_CURRENCIES,
     description: {
-      margin: 'Exchange rate margin added to all conversions',
-      zarCommission: 'Commission fee applied to ZAR amounts being sent'
+      margin: 'Fixed R0.015 added to USD to ZAR exchange rate',
+      zarTransferFee: '3.5% transfer fee applied to ZAR send amounts'
     }
   };
 }
@@ -405,8 +457,9 @@ module.exports = {
   isCurrencySupported,
   getExchangeRates,
   calculateCommission,
+  calculateTransferFee,
   getFeeStructure,
   SUPPORTED_CURRENCIES,
   EXCHANGE_RATE_MARGIN,
-  ZAR_COMMISSION_RATE
+  ZAR_TRANSFER_FEE_RATE
 }; 
