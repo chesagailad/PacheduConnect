@@ -1,11 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export default function AuthPage() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'send-otp' | 'verify-otp'>('login');
+  
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'register') {
+      setMode('register');
+    } else if (modeParam === 'login') {
+      setMode('login');
+    }
+  }, [searchParams]);
   const [form, setForm] = useState({ 
     name: '', 
     email: '', 

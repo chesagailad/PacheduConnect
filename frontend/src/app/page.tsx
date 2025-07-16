@@ -24,10 +24,16 @@ export default function Home() {
             </nav>
             <div className="flex space-x-4">
               <Link
-                href="/auth"
-                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium"
+                href="/auth?mode=login"
+                className="border-2 border-primary-600 text-primary-600 px-4 py-2 rounded-lg hover:bg-primary-50 font-medium transition-colors"
               >
-                Login / Register
+                Login
+              </Link>
+              <Link
+                href="/auth?mode=register"
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium transition-colors"
+              >
+                Register
               </Link>
             </div>
           </div>
