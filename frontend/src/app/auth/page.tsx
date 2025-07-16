@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
-export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'send-otp' | 'verify-otp'>('login');
+function AuthPageContent() {
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get('mode') as 'login' | 'register' || 'login';
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'send-otp' | 'verify-otp'>(initialMode);
   const [form, setForm] = useState({ 
     name: '', 
     email: '', 
@@ -18,6 +21,14 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Update mode when URL parameter changes
+  useEffect(() => {
+    const urlMode = searchParams.get('mode') as 'login' | 'register';
+    if (urlMode && (urlMode === 'login' || urlMode === 'register')) {
+      setMode(urlMode);
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -364,5 +375,13 @@ export default function AuthPage() {
         {renderForm()}
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <AuthPageContent />
+    </Suspense>
   );
 } 
