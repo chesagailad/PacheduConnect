@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+import { buildApiUrl } from '../config/api';
 
 interface Message {
   id: string;
@@ -91,8 +90,7 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${API_URL}/api/notifications/sms/${type}`, {
+      const response = await fetch(buildApiUrl(`/api/notifications/sms/${type}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,14 +103,14 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`SMS ${type} sent successfully:`, result.messageId);
+        // SMS sent successfully - remove console.log for production
         return true;
       } else {
-        console.error(`Failed to send SMS ${type}:`, response.statusText);
+        // Failed to send SMS - remove console.error for production
         return false;
       }
     } catch (error) {
-      console.error(`Error sending SMS ${type}:`, error);
+      // Error sending SMS - remove console.error for production
       return false;
     }
   };
