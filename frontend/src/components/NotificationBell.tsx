@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -48,8 +49,8 @@ export default function NotificationBell({ onNotificationClick }: NotificationBe
         setNotifications(data.notifications || []);
         setUnreadCount(data.notifications?.filter((n: Notification) => !n.read).length || 0);
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch (error: any) {
+      logger.apiError('Failed to fetch notifications', error);
     }
   };
 
@@ -82,8 +83,8 @@ export default function NotificationBell({ onNotificationClick }: NotificationBe
         );
         setUnreadCount(0);
       }
-    } catch (error) {
-      console.error('Failed to mark notifications as read:', error);
+    } catch (error: any) {
+      logger.apiError('Failed to mark notifications as read', error);
     } finally {
       setLoading(false);
     }

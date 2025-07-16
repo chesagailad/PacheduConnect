@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -75,8 +76,8 @@ export default function PaymentProcessor({
           setSelectedGateway(availableGateways[0]);
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch gateways:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to fetch payment gateways', err);
     }
   };
 

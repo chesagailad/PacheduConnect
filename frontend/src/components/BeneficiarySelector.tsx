@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronDownIcon, PlusIcon } from '@heroicons/react/24/outline';
+import logger from '@/utils/logger';
 
 interface Beneficiary {
   id: string;
@@ -43,8 +44,8 @@ export default function BeneficiarySelector({
         const data = await response.json();
         setBeneficiaries(data.data || []);
       }
-    } catch (error) {
-      console.error('Error fetching beneficiaries:', error);
+    } catch (error: any) {
+      logger.apiError('Error fetching beneficiaries', error);
     } finally {
       setLoading(false);
     }

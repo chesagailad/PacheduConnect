@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -52,10 +53,12 @@ export default function PaymentSuccessPage() {
 
       setPaymentDetails(paymentStatus);
       setLoading(false);
-    } catch (err) {
-      console.error('Failed to verify payment:', err);
-      setError('Failed to verify payment status');
-      setLoading(false);
+    } catch (err: any) {
+      logger.apiError('Failed to verify payment', err, { 
+        transactionId, 
+        paymentId, 
+        sessionId 
+      });
     }
   };
 

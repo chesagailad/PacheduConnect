@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '../../components/NotificationBell';
 import CurrencyConverter from '../../components/CurrencyConverter';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -84,7 +85,7 @@ export default function DashboardPage() {
         setTransactions(data.transactions || []);
       }
     } catch (err: any) {
-      console.error('Failed to fetch transactions:', err);
+      logger.apiError('Failed to fetch transactions', err);
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export default function DashboardPage() {
 
   const handleNotificationClick = (notification: any) => {
     // Handle notification click - could navigate to relevant page
-    console.log('Notification clicked:', notification);
+    logger.debug('Notification clicked', { notificationId: notification.id, type: notification.type });
   };
 
   if (loading) {

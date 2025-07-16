@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -117,7 +118,7 @@ export default function TransactionsPage() {
         setStats(data);
       }
     } catch (err: any) {
-      console.error('Failed to fetch stats:', err);
+      logger.apiError('Failed to fetch transaction stats', err);
     }
   };
 

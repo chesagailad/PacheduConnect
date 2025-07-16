@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import logger from '@/utils/logger';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -55,8 +56,8 @@ export default function CurrencyConverter() {
         const data: CurrencyRates = await res.json();
         setCurrencies(data.supportedCurrencies || ['USD', 'EUR', 'GBP', 'ZAR', 'CAD', 'AUD', 'JPY', 'CHF']);
       }
-    } catch (err) {
-      console.error('Failed to fetch currencies:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to fetch currencies', err);
       setCurrencies(['USD', 'EUR', 'GBP', 'ZAR', 'CAD', 'AUD', 'JPY', 'CHF']);
     }
   };
@@ -90,7 +91,7 @@ export default function CurrencyConverter() {
         const errorData = await res.json();
         setError(errorData.error || 'Conversion failed');
       }
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to convert currency');
     } finally {
       setLoading(false);
@@ -114,8 +115,8 @@ export default function CurrencyConverter() {
         const data = await res.json();
         setExchangeRate(data.rate);
       }
-    } catch (err) {
-      console.error('Failed to fetch exchange rate:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to fetch exchange rate', err, { fromCurrency, toCurrency, amount });
     }
   };
 

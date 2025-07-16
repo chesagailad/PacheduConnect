@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import logger from '@/utils/logger';
 
 interface Beneficiary {
   id: string;
@@ -42,8 +43,8 @@ export default function BeneficiariesPage() {
         const data = await response.json();
         setBeneficiaries(data.data || []);
       }
-    } catch (error) {
-      console.error('Error fetching beneficiaries:', error);
+    } catch (error: any) {
+      logger.apiError('Error fetching beneficiaries', error);
     } finally {
       setLoading(false);
     }
@@ -72,8 +73,8 @@ export default function BeneficiariesPage() {
         setFormData({ name: '', email: '', phoneNumber: '', bankName: '', accountNumber: '', country: '' });
         fetchBeneficiaries();
       }
-    } catch (error) {
-      console.error('Error saving beneficiary:', error);
+    } catch (error: any) {
+      logger.apiError('Error saving beneficiary', error);
     }
   };
 
@@ -89,8 +90,8 @@ export default function BeneficiariesPage() {
       if (response.ok) {
         fetchBeneficiaries();
       }
-    } catch (error) {
-      console.error('Error deleting beneficiary:', error);
+    } catch (error: any) {
+      logger.apiError('Error deleting beneficiary', error, { beneficiaryId: id });
     }
   };
 
