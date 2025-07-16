@@ -17,7 +17,7 @@ interface ChatBotWidgetProps {
   onToggle: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([
