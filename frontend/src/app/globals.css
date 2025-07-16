@@ -20,4 +20,25 @@
   .card {
     @apply bg-white rounded-lg shadow-soft p-6;
   }
+
+  /* ChatBot custom styles */
+  .chatbot-container {
+    @apply fixed bottom-4 right-4 z-50;
+  }
+  
+  .chatbot-message-user {
+    @apply bg-primary-600 text-white max-w-xs px-3 py-2 rounded-lg;
+  }
+  
+  .chatbot-message-bot {
+    @apply bg-gray-100 text-gray-800 max-w-xs px-3 py-2 rounded-lg;
+  }
+  
+  .chatbot-typing-indicator {
+    @apply flex space-x-1;
+  }
+  
+  .chatbot-typing-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
+  }
 } 
