@@ -10,8 +10,19 @@ interface Message {
   content: string;
   sender: 'user' | 'bot';
   timestamp: Date;
-  type?: 'text' | 'quick-reply';
+  type?: 'text' | 'quick-reply' | 'simulation' | 'escalation';
   quickReplies?: string[];
+  metadata?: {
+    amount?: number;
+    currency?: string;
+    country?: string;
+    recipient?: string;
+    method?: string;
+    fees?: number;
+    rate?: number;
+    total?: number;
+    escalationReason?: string;
+  };
 }
 
 interface ChatBotProps {
@@ -23,22 +34,30 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Hello! I\'m your PacheduConnect assistant. How can I help you today?',
+      content: 'Sawubona! 👋 I\'m your PacheduConnect assistant. I can help you send money to Zimbabwe, Malawi, and Mozambique. What would you like to do today?',
       sender: 'bot',
       timestamp: new Date(),
       type: 'quick-reply',
       quickReplies: [
-        'How to send money?',
-        'Check exchange rates',
-        'Transaction status',
-        'Account help'
+        'Send money kumaraini 🏠',
+        'Calculate fees & rates 💰',
+        'Check transaction status 📊',
+        'Help with documents 📋'
       ]
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(1); // Start with 1 for the initial bot message
+  const [unreadCount, setUnreadCount] = useState(1);
+  const [conversationContext, setConversationContext] = useState<{
+    lastAmount?: number;
+    lastCurrency?: string;
+    lastCountry?: string;
+    lastMethod?: string;
+    userLanguage?: string;
+    escalationCount?: number;
+  }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,26 +82,288 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
     }
   }, [isOpen]);
 
-  const generateBotResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase();
+  // Exchange rates (mock data - in real app, fetch from API)
+  const exchangeRates = {
+    'ZAR-USD': 0.054,
+    'ZAR-ZWL': 17.32,
+    'ZAR-MWK': 60.85,
+    'ZAR-MZN': 3.45,
+    'USD-ZWL': 320.50,
+    'USD-MWK': 1125.00,
+    'USD-MZN': 63.80
+  };
+
+  // Fee structures (mock data)
+  const feeStructures = {
+    'zimbabwe': { base: 25, percentage: 2.5, min: 25, max: 500 },
+    'malawi': { base: 30, percentage: 3.0, min: 30, max: 600 },
+    'mozambique': { base: 35, percentage: 3.2, min: 35, max: 700 }
+  };
+
+  // Slang and multi-language support
+  const slangTranslations = {
+    'kumaraini': 'to home/relatives',
+    'mukoma': 'brother',
+    'hanzvadzi': 'sister/relative',
+    'mari': 'money',
+    'dollar': 'USD',
+    'rand': 'ZAR',
+    'ecocash': 'EcoCash mobile money',
+    'airtel': 'Airtel Money',
+    'mpamba': 'TNM Mpamba',
+    'mkango': 'Malawi Kwacha',
+    'metical': 'Mozambican Metical'
+  };
+
+  const calculateFees = (amount: number, country: string, currency: string = 'ZAR') => {
+    const feeStructure = feeStructures[country.toLowerCase() as keyof typeof feeStructures];
+    if (!feeStructure) return { fee: 0, total: amount };
     
-    if (message.includes('send money') || message.includes('transfer')) {
-      return 'To send money: 1) Go to Send Money page 2) Enter recipient details 3) Choose amount and currency 4) Complete payment. You can start by clicking "Send Money" in your dashboard!';
-    } else if (message.includes('exchange rate') || message.includes('rate')) {
-      return 'Current exchange rates are updated hourly. You can check real-time rates using our Currency Converter on the dashboard or send money page. Rates may vary slightly during actual transactions.';
-    } else if (message.includes('transaction') || message.includes('status')) {
-      return 'To check your transaction status: Go to Dashboard → Transaction History, or visit the Transactions page. You can filter by date, status, or amount.';
-    } else if (message.includes('account') || message.includes('profile')) {
-      return 'For account help: Visit your Profile page to update personal info, change password, or view account statistics. Need to verify your identity? Check the KYC section.';
-    } else if (message.includes('fee') || message.includes('cost')) {
-      return 'Our fees are competitive and transparent. Fees vary by amount and destination. You\'ll see the exact fee breakdown before confirming any transaction.';
-    } else if (message.includes('help') || message.includes('support')) {
-      return 'I\'m here to help! I can assist with money transfers, account questions, exchange rates, and general navigation. What would you like to know?';
-    } else if (message.includes('hello') || message.includes('hi')) {
-      return 'Hello! Welcome to PacheduConnect. I\'m here to help you with money transfers to Zimbabwe. What can I assist you with?';
-    } else {
-      return 'I understand you\'re asking about "' + userMessage + '". For detailed help, you can contact our support team or try asking about: sending money, exchange rates, transactions, or account settings.';
+    const percentageFee = (amount * feeStructure.percentage) / 100;
+    const fee = Math.max(Math.min(feeStructure.base + percentageFee, feeStructure.max), feeStructure.min);
+    
+    return {
+      fee: Math.round(fee * 100) / 100,
+      total: Math.round((amount + fee) * 100) / 100
+    };
+  };
+
+  const getExchangeRate = (fromCurrency: string, toCurrency: string) => {
+    const key = `${fromCurrency}-${toCurrency}`;
+    return exchangeRates[key as keyof typeof exchangeRates] || 1;
+  };
+
+  const detectLanguage = (message: string): string => {
+    if (message.match(/\b(sawubona|ngiyakwemukela|ngiyabonga)\b/i)) return 'zulu';
+    if (message.match(/\b(mhoro|mangwanani|maswera)\b/i)) return 'shona';
+    if (message.match(/\b(bom dia|obrigado|tchau)\b/i)) return 'portuguese';
+    if (message.match(/\b(moni|zikomo|bwanji)\b/i)) return 'chewa';
+    return 'english';
+  };
+
+  const shouldEscalate = (message: string, context: any): boolean => {
+    const escalationTriggers = [
+      'speak to human', 'talk to agent', 'customer service', 'manager',
+      'complaint', 'fraud', 'lost money', 'stolen', 'police',
+      'lawsuit', 'court', 'sue', 'refund immediately',
+      'money missing', 'unauthorized transaction', 'hack'
+    ];
+    
+    const hasEscalationTrigger = escalationTriggers.some(trigger => 
+      message.toLowerCase().includes(trigger)
+    );
+    
+    const repeatedComplaint = (context.escalationCount || 0) >= 2;
+    
+    return hasEscalationTrigger || repeatedComplaint;
+  };
+
+  const generateBotResponse = (userMessage: string): Message => {
+    const message = userMessage.toLowerCase();
+    const detectedLang = detectLanguage(message);
+    
+    // Update conversation context
+    const amountMatch = message.match(/(?:r|zar|usd|\$)?\s*(\d+(?:\.\d{2})?)/i);
+    const amount = amountMatch ? parseFloat(amountMatch[1]) : conversationContext.lastAmount;
+    
+    const countryMatch = message.match(/\b(zimbabwe|malawi|mozambique|zim|moz)\b/i);
+    const country = countryMatch ? countryMatch[1].toLowerCase() : conversationContext.lastCountry;
+    
+    // Handle slang translations
+    let translatedMessage = message;
+    Object.entries(slangTranslations).forEach(([slang, translation]) => {
+      if (message.includes(slang)) {
+        translatedMessage = translatedMessage.replace(slang, translation);
+      }
+    });
+
+    // Check for escalation
+    if (shouldEscalate(message, conversationContext)) {
+      setConversationContext(prev => ({ 
+        ...prev, 
+        escalationCount: (prev.escalationCount || 0) + 1 
+      }));
+      
+      return {
+        id: Date.now().toString(),
+        content: '🆘 I understand you need immediate assistance. Let me connect you with our human support team right away. They\'ll be with you within 2 minutes. Is this about a transaction issue, account problem, or something else urgent?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'escalation',
+        metadata: { escalationReason: 'User requested human agent' },
+        quickReplies: ['Transaction issue', 'Account problem', 'Security concern', 'Other urgent matter']
+      };
     }
+
+    // Context-aware responses for follow-ups
+    if (message.includes('what if') && amount && conversationContext.lastAmount) {
+      const newAmount = amount;
+      const targetCountry = country || conversationContext.lastCountry || 'zimbabwe';
+      const { fee, total } = calculateFees(newAmount, targetCountry);
+      const rate = getExchangeRate('ZAR', targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN');
+      const recipientAmount = newAmount * rate;
+      
+      setConversationContext(prev => ({ ...prev, lastAmount: newAmount, lastCountry: targetCountry }));
+      
+      return {
+        id: Date.now().toString(),
+        content: `💰 Here's the updated calculation for R${newAmount} to ${targetCountry}:\n\n• Send Amount: R${newAmount}\n• Transfer Fee: R${fee}\n• Total Cost: R${total}\n• Recipient Gets: ${targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN'} ${recipientAmount.toFixed(2)}\n• Exchange Rate: 1 ZAR = ${rate.toFixed(4)}\n\nWould you like to proceed with this amount or try a different one?`,
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'simulation',
+        metadata: { amount: newAmount, fees: fee, rate, total, country: targetCountry },
+        quickReplies: ['Send this amount', 'Try different amount', 'Compare countries', 'How to send']
+      };
+    }
+
+    // Fee calculation and simulation
+    if ((message.includes('calculate') || message.includes('how much') || message.includes('cost') || amountMatch) && amount) {
+      const targetCountry = country || 'zimbabwe';
+      const { fee, total } = calculateFees(amount, targetCountry);
+      const rate = getExchangeRate('ZAR', targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN');
+      const recipientAmount = amount * rate;
+      
+      setConversationContext(prev => ({ ...prev, lastAmount: amount, lastCountry: targetCountry }));
+      
+      return {
+        id: Date.now().toString(),
+        content: `💰 Cost breakdown for sending R${amount} to ${targetCountry}:\n\n✅ Send Amount: R${amount}\n✅ Transfer Fee: R${fee} (${feeStructures[targetCountry as keyof typeof feeStructures]?.percentage}% + base fee)\n✅ Total Cost: R${total}\n✅ Recipient Gets: ${targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN'} ${recipientAmount.toFixed(2)}\n✅ Exchange Rate: 1 ZAR = ${rate.toFixed(4)}\n\nThis is a simulation. Ready to send?`,
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'simulation',
+        metadata: { amount, fees: fee, rate, total, country: targetCountry },
+        quickReplies: ['Send now', 'Try different amount', 'Compare other countries', 'Save for later']
+      };
+    }
+
+    // Multi-language greetings
+    if (message.includes('sawubona') || message.includes('hello') || message.includes('hi') || message.includes('mhoro')) {
+      const greeting = detectedLang === 'zulu' ? 'Sawubona!' : 
+                      detectedLang === 'shona' ? 'Mhoro!' :
+                      detectedLang === 'portuguese' ? 'Olá!' :
+                      detectedLang === 'chewa' ? 'Moni!' : 'Hello!';
+      
+      return {
+        id: Date.now().toString(),
+        content: `${greeting} 👋 Welcome to PacheduConnect! I'm here to help you send money to your family kumaraini (back home). I can help with:\n\n🏠 Zimbabwe (EcoCash, bank transfer)\n🇲🇼 Malawi (Airtel Money, bank transfer) \n🇲🇿 Mozambique (mCel Money, bank transfer)\n\nWhat would you like to do today?`,
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Send money kumaraini', 'Calculate costs', 'Check rates', 'Help with verification']
+      };
+    }
+
+    // Send money process
+    if (message.includes('send') || message.includes('transfer') || message.includes('kumaraini')) {
+      return {
+        id: Date.now().toString(),
+        content: '🏠 Sending money kumaraini (home) is easy! Here\'s how:\n\n1️⃣ **Choose destination**: Zimbabwe, Malawi, or Mozambique\n2️⃣ **Enter amount**: How much ZAR to send\n3️⃣ **Recipient details**: Name, phone number, pickup method\n4️⃣ **Pay & send**: Card, EFT, or bank transfer\n5️⃣ **Done**: Family gets money in 2-5 minutes!\n\nWhich country are you sending to?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Zimbabwe 🇿🇼', 'Malawi 🇲🇼', 'Mozambique 🇲🇿', 'Compare all countries']
+      };
+    }
+
+    // Country-specific information
+    if (message.includes('zimbabwe') || message.includes('zim')) {
+      return {
+        id: Date.now().toString(),
+        content: '🇿🇼 **Sending to Zimbabwe:**\n\n💰 **Receive options:**\n• EcoCash (instant)\n• Airtel Money (instant)\n• Bank transfer (2-5 mins)\n• Cash pickup (30+ locations)\n\n📱 **Popular method**: EcoCash\n💵 **Fee**: 2.5% + R25 base fee\n⏱️ **Speed**: Usually under 3 minutes\n📋 **Required**: Recipient phone number\n\nWant to calculate costs for a specific amount?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Calculate R500', 'Calculate R1000', 'Calculate R2000', 'Custom amount']
+      };
+    }
+
+    if (message.includes('malawi')) {
+      return {
+        id: Date.now().toString(),
+        content: '🇲🇼 **Sending to Malawi:**\n\n💰 **Receive options:**\n• Airtel Money (instant)\n• TNM Mpamba (instant) \n• Bank transfer (2-5 mins)\n• Cash pickup (25+ locations)\n\n📱 **Popular method**: Airtel Money\n💵 **Fee**: 3.0% + R30 base fee\n⏱️ **Speed**: Usually under 5 minutes\n📋 **Required**: Recipient phone number\n\nReady to send?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Calculate costs', 'Send now', 'Compare with Zimbabwe', 'More info']
+      };
+    }
+
+    if (message.includes('mozambique') || message.includes('moz')) {
+      return {
+        id: Date.now().toString(),
+        content: '🇲🇿 **Sending to Mozambique:**\n\n💰 **Receive options:**\n• mCel Money (instant)\n• Vodacom M-Pesa (instant)\n• Bank transfer (2-5 mins)\n• Cash pickup (20+ locations)\n\n📱 **Popular method**: mCel Money\n💵 **Fee**: 3.2% + R35 base fee\n⏱️ **Speed**: Usually under 5 minutes\n📋 **Required**: Recipient phone number\n\nLet\'s calculate your costs!',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Calculate costs', 'Send now', 'Compare countries', 'Required documents']
+      };
+    }
+
+    // Exchange rates
+    if (message.includes('rate') || message.includes('exchange')) {
+      return {
+        id: Date.now().toString(),
+        content: '📊 **Current Exchange Rates** (updated hourly):\n\n🇿🇼 **Zimbabwe**: 1 ZAR = 17.32 ZWL\n🇲🇼 **Malawi**: 1 ZAR = 60.85 MWK\n🇲🇿 **Mozambique**: 1 ZAR = 3.45 MZN\n\n💡 **Pro tip**: Rates are locked when you start your transaction, so no surprises!\n\nWant to see how much your recipient will get?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Calculate R500', 'Calculate R1000', 'Calculate R2000', 'Live rate checker']
+      };
+    }
+
+    // Transaction status
+    if (message.includes('status') || message.includes('track') || message.includes('reference')) {
+      return {
+        id: Date.now().toString(),
+        content: '📊 **Check Transaction Status:**\n\nI can help you track your transfer! Do you have:\n\n🔍 **Reference number** (starts with PC)\n📱 **Phone number** used for transfer\n📧 **Email confirmation**\n\n⚠️ **Note**: For real-time status, I\'ll need to connect you with our system. Would you like me to do that?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['I have reference number', 'Check by phone', 'Check by email', 'Connect to system']
+      };
+    }
+
+    // KYC and documentation
+    if (message.includes('document') || message.includes('verify') || message.includes('kyc') || message.includes('id')) {
+      return {
+        id: Date.now().toString(),
+        content: '📋 **Verification Requirements:**\n\n✅ **What you need:**\n• South African ID or Passport\n• Proof of address (utility bill, bank statement)\n• Source of funds (payslip, bank statement)\n\n⏱️ **Process**: Usually approved in 2-4 hours\n💰 **Limits**: R50,000/month after verification\n🔒 **Security**: All documents encrypted\n\nNeed help with a specific document?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['ID requirements', 'Proof of address', 'Source of funds', 'Upload documents']
+      };
+    }
+
+    // Troubleshooting common issues
+    if (message.includes('problem') || message.includes('error') || message.includes('failed') || message.includes('stuck')) {
+      setConversationContext(prev => ({ 
+        ...prev, 
+        escalationCount: (prev.escalationCount || 0) + 1 
+      }));
+      
+      return {
+        id: Date.now().toString(),
+        content: '🔧 **Let me help troubleshoot!**\n\nCommon issues and solutions:\n\n❌ **Payment failed**: Check card details, try different card\n❌ **Recipient can\'t collect**: Verify phone number is correct\n❌ **Transfer pending**: Usually resolves in 10 minutes\n❌ **Account locked**: Need to verify documents\n\nWhat specific issue are you facing?',
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Payment issues', 'Recipient problems', 'Account locked', 'Speak to human']
+      };
+    }
+
+    // Default response with context awareness
+    const contextInfo = conversationContext.lastAmount ? 
+      ` I remember you were interested in sending R${conversationContext.lastAmount}${conversationContext.lastCountry ? ` to ${conversationContext.lastCountry}` : ''}.` : '';
+    
+    return {
+      id: Date.now().toString(),
+      content: `I understand you're asking about "${userMessage}".${contextInfo}\n\n🤖 **I can help you with:**\n• Sending money to Zimbabwe, Malawi, Mozambique\n• Calculating fees and exchange rates\n• Checking transaction status\n• Document verification\n• Troubleshooting issues\n\nWhat would you like to know more about?`,
+      sender: 'bot',
+      timestamp: new Date(),
+      type: 'quick-reply',
+      quickReplies: ['Send money', 'Calculate costs', 'Check rates', 'Get help']
+    };
   };
 
   const handleSendMessage = async (content: string) => {
@@ -105,12 +386,7 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
 
     // Simulate typing delay
     setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: generateBotResponse(content),
-        sender: 'bot',
-        timestamp: new Date()
-      };
+      const botResponse = generateBotResponse(content);
 
       setMessages(prev => [...prev, botResponse]);
       
@@ -207,12 +483,46 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
                     className={`max-w-xs px-3 py-2 rounded-lg ${
                       message.sender === 'user'
                         ? 'bg-primary-600 text-white'
+                        : message.type === 'escalation'
+                        ? 'bg-red-50 text-red-800 border border-red-200'
+                        : message.type === 'simulation'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                     role={message.sender === 'bot' ? 'status' : undefined}
                     aria-label={`${message.sender === 'user' ? 'Your message' : 'Assistant message'}: ${message.content}`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    {message.type === 'escalation' && (
+                      <div className="flex items-center mb-2">
+                        <svg className="w-4 h-4 text-red-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs font-semibold text-red-600">ESCALATION</span>
+                      </div>
+                    )}
+                    
+                    {message.type === 'simulation' && (
+                      <div className="flex items-center mb-2">
+                        <svg className="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs font-semibold text-green-600">SIMULATION</span>
+                      </div>
+                    )}
+                    
+                    <p className="text-sm whitespace-pre-line">{message.content}</p>
+                    
+                    {message.metadata && message.type === 'simulation' && (
+                      <div className="mt-3 p-2 bg-white/50 rounded border text-xs">
+                        <div className="font-semibold mb-1">💼 Transaction Summary:</div>
+                        {message.metadata.amount && <div>Amount: R{message.metadata.amount}</div>}
+                        {message.metadata.fees && <div>Fees: R{message.metadata.fees}</div>}
+                        {message.metadata.total && <div>Total: R{message.metadata.total}</div>}
+                        {message.metadata.rate && <div>Rate: {message.metadata.rate}</div>}
+                        {message.metadata.country && <div>Destination: {message.metadata.country}</div>}
+                      </div>
+                    )}
+                    
                     {message.quickReplies && (
                       <div className="mt-2 space-y-1" role="group" aria-label="Quick reply options">
                         {message.quickReplies.map((reply, index) => (
@@ -220,7 +530,15 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
                             key={index}
                             onClick={() => handleQuickReply(reply)}
                             aria-label={`Quick reply: ${reply}`}
-                            className="block w-full text-left text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-white/30"
+                            className={`block w-full text-left text-xs px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 ${
+                              message.sender === 'user'
+                                ? 'bg-white/10 hover:bg-white/20 focus:ring-white/30'
+                                : message.type === 'escalation'
+                                ? 'bg-red-100 hover:bg-red-200 text-red-700 focus:ring-red-300'
+                                : message.type === 'simulation'
+                                ? 'bg-green-100 hover:bg-green-200 text-green-700 focus:ring-green-300'
+                                : 'bg-white hover:bg-gray-50 text-gray-700 border focus:ring-primary-300'
+                            }`}
                             tabIndex={0}
                           >
                             {reply}
