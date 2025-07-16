@@ -34,7 +34,7 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Sawubona! 👋 I\'m your PacheduConnect assistant. I can help you send money to Zimbabwe, Malawi, and Mozambique. What would you like to do today?',
+      content: 'Sawubona! 👋 I\'m your PacheduConnect assistant. I can help you send money to Zimbabwe, Malawi, and Mozambique with real-time SMS alerts. What would you like to do today?',
       sender: 'bot',
       timestamp: new Date(),
       type: 'quick-reply',
@@ -57,6 +57,8 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
     lastMethod?: string;
     userLanguage?: string;
     escalationCount?: number;
+    userPhone?: string;
+    smsOptIn?: boolean;
   }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +83,63 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
       setUnreadCount(0);
     }
   }, [isOpen]);
+
+  // SMS Notification Functions
+  const sendSMSNotification = async (type: string, phoneNumber: string, data: any) => {
+    if (!phoneNumber || !conversationContext.smsOptIn) {
+      return false;
+    }
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/notifications/sms/${type}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber,
+          ...data
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`SMS ${type} sent successfully:`, result.messageId);
+        return true;
+      } else {
+        console.error(`Failed to send SMS ${type}:`, response.statusText);
+        return false;
+      }
+    } catch (error) {
+      console.error(`Error sending SMS ${type}:`, error);
+      return false;
+    }
+  };
+
+  const sendTransactionAlert = async (transactionData: any) => {
+    if (conversationContext.userPhone) {
+      return await sendSMSNotification('transaction-alert', conversationContext.userPhone, { transactionData });
+    }
+  };
+
+  const sendRateAlert = async (rateData: any) => {
+    if (conversationContext.userPhone) {
+      return await sendSMSNotification('rate-alert', conversationContext.userPhone, { rateData });
+    }
+  };
+
+  const sendEscalationAlert = async (escalationData: any) => {
+    if (conversationContext.userPhone) {
+      return await sendSMSNotification('escalation-alert', conversationContext.userPhone, { escalationData });
+    }
+  };
+
+  const sendFollowUpSMS = async (followUpData: any) => {
+    if (conversationContext.userPhone) {
+      return await sendSMSNotification('followup', conversationContext.userPhone, { followUpData });
+    }
+  };
 
   // Exchange rates (mock data - in real app, fetch from API)
   const exchangeRates = {
@@ -184,13 +243,23 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
         escalationCount: (prev.escalationCount || 0) + 1 
       }));
       
+      // Send SMS escalation alert if user has phone number
+      const ticketNumber = `PC${Date.now().toString().slice(-6)}`;
+      if (conversationContext.userPhone && conversationContext.smsOptIn) {
+        sendEscalationAlert({
+          ticketNumber,
+          estimatedWaitTime: 2,
+          agentName: 'Support Team'
+        });
+      }
+      
       return {
         id: Date.now().toString(),
-        content: '🆘 I understand you need immediate assistance. Let me connect you with our human support team right away. They\'ll be with you within 2 minutes. Is this about a transaction issue, account problem, or something else urgent?',
+        content: `🆘 I understand you need immediate assistance. I've created support ticket #${ticketNumber} and connected you with our human support team. They'll be with you within 2 minutes.${conversationContext.smsOptIn ? ' You\'ll receive an SMS confirmation shortly.' : ''}\n\nIs this about a transaction issue, account problem, or something else urgent?`,
         sender: 'bot',
         timestamp: new Date(),
         type: 'escalation',
-        metadata: { escalationReason: 'User requested human agent' },
+        metadata: { escalationReason: 'User requested human agent', ticketNumber },
         quickReplies: ['Transaction issue', 'Account problem', 'Security concern', 'Other urgent matter']
       };
     }
@@ -225,14 +294,25 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
       
       setConversationContext(prev => ({ ...prev, lastAmount: amount, lastCountry: targetCountry }));
       
+      // Send rate alert SMS if user has opted in
+      if (conversationContext.userPhone && conversationContext.smsOptIn) {
+        sendRateAlert({
+          fromCurrency: 'ZAR',
+          toCurrency: targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN',
+          rate,
+          amount,
+          recipientAmount: recipientAmount.toFixed(2)
+        });
+      }
+      
       return {
         id: Date.now().toString(),
-        content: `💰 Cost breakdown for sending R${amount} to ${targetCountry}:\n\n✅ Send Amount: R${amount}\n✅ Transfer Fee: R${fee} (${feeStructures[targetCountry as keyof typeof feeStructures]?.percentage}% + base fee)\n✅ Total Cost: R${total}\n✅ Recipient Gets: ${targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN'} ${recipientAmount.toFixed(2)}\n✅ Exchange Rate: 1 ZAR = ${rate.toFixed(4)}\n\nThis is a simulation. Ready to send?`,
+        content: `💰 Cost breakdown for sending R${amount} to ${targetCountry}:\n\n✅ Send Amount: R${amount}\n✅ Transfer Fee: R${fee} (${feeStructures[targetCountry as keyof typeof feeStructures]?.percentage}% + base fee)\n✅ Total Cost: R${total}\n✅ Recipient Gets: ${targetCountry === 'zimbabwe' ? 'ZWL' : targetCountry === 'malawi' ? 'MWK' : 'MZN'} ${recipientAmount.toFixed(2)}\n✅ Exchange Rate: 1 ZAR = ${rate.toFixed(4)}\n\nThis is a simulation.${conversationContext.smsOptIn ? ' Rate details sent via SMS!' : ''} Ready to send?`,
         sender: 'bot',
         timestamp: new Date(),
         type: 'simulation',
         metadata: { amount, fees: fee, rate, total, country: targetCountry },
-        quickReplies: ['Send now', 'Try different amount', 'Compare other countries', 'Save for later']
+        quickReplies: ['Send now', 'Try different amount', 'Compare other countries', 'Get SMS alerts']
       };
     }
 
@@ -352,17 +432,75 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
       };
     }
 
+    // SMS opt-in and phone number collection
+    if (message.includes('sms alert') || message.includes('get sms') || message.includes('phone number') || message.includes('text me')) {
+      if (!conversationContext.userPhone) {
+        return {
+          id: Date.now().toString(),
+          content: '📱 **SMS Alerts Setup**\n\nI can send you helpful SMS notifications for:\n\n✅ Transaction confirmations\n✅ Exchange rate updates\n✅ Support ticket updates\n✅ Security alerts\n\nTo get started, please share your South African phone number (e.g., 0821234567 or +27821234567):',
+          sender: 'bot',
+          timestamp: new Date(),
+          type: 'quick-reply',
+          quickReplies: ['I\'ll type my number', 'Not right now', 'What SMS costs?', 'Privacy policy']
+        };
+      } else {
+        setConversationContext(prev => ({ ...prev, smsOptIn: true }));
+        return {
+          id: Date.now().toString(),
+          content: `📱 **SMS Alerts Activated!**\n\nGreat! You'll now receive SMS notifications at ${conversationContext.userPhone} for:\n\n✅ Transaction updates\n✅ Rate alerts\n✅ Support updates\n✅ Security notifications\n\n🔒 Your privacy is protected. Reply STOP to any SMS to unsubscribe.`,
+          sender: 'bot',
+          timestamp: new Date(),
+          type: 'quick-reply',
+          quickReplies: ['Test SMS now', 'Continue chatting', 'Privacy settings', 'Send money']
+        };
+      }
+    }
+
+    // Test SMS functionality
+    if (message.includes('test sms') && conversationContext.userPhone && conversationContext.smsOptIn) {
+      // Send a test SMS
+      sendSMSNotification('custom', conversationContext.userPhone, {
+        message: `Hi! This is a test message from PacheduConnect. Your SMS alerts are working perfectly! 🎉`,
+        context: 'test-message'
+      });
+      
+      return {
+        id: Date.now().toString(),
+        content: `📱 **Test SMS Sent!**\n\nI've sent a test message to ${conversationContext.userPhone}. You should receive it within 30 seconds.\n\n✅ If you receive it: SMS alerts are working!\n❌ If you don't receive it: Check your phone number or network coverage.\n\nWhat would you like to do next?`,
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Calculate transfer costs', 'Send money now', 'Update phone number', 'Continue chatting']
+      };
+    }
+
+    // Phone number detection and validation
+    const phoneMatch = message.match(/(?:\+27|0)[6-8][0-9]{8}/);
+    if (phoneMatch && !conversationContext.userPhone) {
+      const phoneNumber = phoneMatch[0];
+      setConversationContext(prev => ({ ...prev, userPhone: phoneNumber, smsOptIn: true }));
+      
+      return {
+        id: Date.now().toString(),
+        content: `📱 **Phone Number Confirmed!**\n\nThanks! I've saved ${phoneNumber} for SMS notifications.\n\n🔔 **You'll now receive:**\n• Transaction confirmations\n• Rate alerts when you calculate costs\n• Support ticket updates\n• Important security notifications\n\n✨ Let's continue! What would you like to do?`,
+        sender: 'bot',
+        timestamp: new Date(),
+        type: 'quick-reply',
+        quickReplies: ['Send money now', 'Calculate costs', 'Test SMS', 'Privacy settings']
+      };
+    }
+
     // Default response with context awareness
     const contextInfo = conversationContext.lastAmount ? 
       ` I remember you were interested in sending R${conversationContext.lastAmount}${conversationContext.lastCountry ? ` to ${conversationContext.lastCountry}` : ''}.` : '';
     
     return {
       id: Date.now().toString(),
-      content: `I understand you're asking about "${userMessage}".${contextInfo}\n\n🤖 **I can help you with:**\n• Sending money to Zimbabwe, Malawi, Mozambique\n• Calculating fees and exchange rates\n• Checking transaction status\n• Document verification\n• Troubleshooting issues\n\nWhat would you like to know more about?`,
+      content: `I understand you're asking about "${userMessage}".${contextInfo}\n\n🤖 **I can help you with:**\n• Sending money to Zimbabwe, Malawi, Mozambique\n• Calculating fees and exchange rates\n• Checking transaction status\n• Document verification\n• Troubleshooting issues\n${!conversationContext.smsOptIn ? '\n💬 Want SMS alerts? Just say "get SMS alerts"' : ''}\n\nWhat would you like to know more about?`,
       sender: 'bot',
       timestamp: new Date(),
       type: 'quick-reply',
-      quickReplies: ['Send money', 'Calculate costs', 'Check rates', 'Get help']
+      quickReplies: ['Send money', 'Calculate costs', 'Check rates', 'Get SMS alerts']
     };
   };
 

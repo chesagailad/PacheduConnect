@@ -24,6 +24,7 @@ const kycRoutes = require('./routes/kyc');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -110,6 +111,7 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use(notFound);
