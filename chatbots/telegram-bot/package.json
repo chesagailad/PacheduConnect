@@ -9,14 +9,12 @@
     "test": "jest"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "dotenv": "^16.3.0",
-    "node-telegram-bot-api": "^0.64.0",
-    "winston": "^3.11.0"
+    "dotenv": "16.3.1",
+    "node-telegram-bot-api": "0.64.0",
+    "winston": "3.11.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.2"
+    "nodemon": "3.0.2"
   },
   "engines": {
     "node": ">=18.0.0"
