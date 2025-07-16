@@ -5,7 +5,7 @@ async function testChatbotSMS() {
   console.log('🤖 Testing Chatbot SMS Notifications...\n');
 
   // Test phone number (use your own for testing)
-  const testPhone = '+27821234567'; // Replace with your phone number
+const testPhone = '+27838755929'; // Replace with your phone number
   
   try {
     // Test 1: Transaction Alert
