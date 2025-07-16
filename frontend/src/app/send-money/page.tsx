@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import PaymentProcessor from '../../components/PaymentProcessor';
 import logger from '@/utils/logger';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+const API_URL = API_CONFIG.BASE_URL;
 
 interface FeeBreakdown {
   amount: number;

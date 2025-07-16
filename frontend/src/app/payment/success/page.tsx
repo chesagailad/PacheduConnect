@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import logger from '@/utils/logger';
+import { CheckCircle, ArrowRight, Download } from 'lucide-react';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 export default function PaymentSuccessPage() {
   const router = useRouter();

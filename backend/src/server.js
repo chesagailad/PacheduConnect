@@ -42,8 +42,32 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const getAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',');
+  }
+  
+  // Default origins based on environment
+  if (process.env.NODE_ENV === 'production') {
+    return [
+      'https://pachedu.com',
+      'https://www.pachedu.com',
+      'https://api.pachedu.com',
+      'https://admin.pachedu.com'
+    ];
+  }
+  
+  // Development defaults
+  return [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001'
+  ];
+};
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: getAllowedOrigins(),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
