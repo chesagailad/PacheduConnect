@@ -1,7 +1,10 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import ChatBotWidget from '../components/ChatBotWidget';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,10 +19,22 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
   return (
     <html lang="en">
       <body className={inter.className}>
         {children}
+        
+        {/* Chat Bot Widget */}
+        <ChatBotWidget 
+          isOpen={isChatOpen} 
+          onToggle={toggleChat} 
+        />
       </body>
     </html>
   );

@@ -24,9 +24,10 @@ const kycRoutes = require('./routes/kyc');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Security middleware
 app.use(helmet({
@@ -110,6 +111,7 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // 404 handler
 app.use(notFound);
