@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import logger from '@/utils/logger';
 
 interface ExchangeRates {
   base: string;
@@ -40,8 +41,8 @@ export default function RatesPage() {
         });
         setLastUpdated(new Date().toLocaleString());
       }
-    } catch (error) {
-      console.error('Failed to fetch rates:', error);
+    } catch (error: any) {
+      logger.apiError('Failed to fetch exchange rates', error);
       // Fallback rates
       setRates({
         base: 'USD',

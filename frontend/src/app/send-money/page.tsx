@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentProcessor from '../../components/PaymentProcessor';
-import { API_CONFIG } from '@/config/api';
+import logger from '@/utils/logger';
+
 
 const API_URL = API_CONFIG.BASE_URL;
 
@@ -54,9 +55,11 @@ export default function SendMoneyPage() {
       if (res.ok) {
         const data = await res.json();
         setUserBalance(data.balance);
+      } else {
+        logger.warn('Could not fetch user balance');
       }
     } catch (err) {
-      console.log('Could not fetch balance');
+      logger.apiError('Could not fetch balance', err);
     }
   };
 
@@ -105,8 +108,8 @@ export default function SendMoneyPage() {
         const data = await res.json();
         setFeeBreakdown(data);
       }
-    } catch (err) {
-      console.error('Failed to calculate fee:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to calculate fee', err, { amount: parseFloat(form.amount), fromCurrency: form.currency, toCurrency: form.currency });
     }
   };
 
@@ -137,7 +140,7 @@ export default function SendMoneyPage() {
         setError('Recipient not found. Please check the email address.');
       }
     } catch (err: any) {
-      setError('Failed to verify recipient');
+      logger.apiError('Failed to verify recipient', err);
     } finally {
       setLoading(false);
     }

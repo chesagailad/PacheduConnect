@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, ArrowDownRight, Search, Filter } from 'lucide-react';
-import { API_CONFIG } from '@/config/api';
+import logger from '@/utils/logger';
+
 
 const API_URL = API_CONFIG.BASE_URL;
 
@@ -119,7 +119,7 @@ export default function TransactionsPage() {
         setStats(data);
       }
     } catch (err: any) {
-      console.error('Failed to fetch stats:', err);
+      logger.apiError('Failed to fetch transaction stats', err);
     }
   };
 

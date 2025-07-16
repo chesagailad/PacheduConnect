@@ -54,10 +54,12 @@ export default function PaymentSuccessPage() {
 
       setPaymentDetails(paymentStatus);
       setLoading(false);
-    } catch (err) {
-      console.error('Failed to verify payment:', err);
-      setError('Failed to verify payment status');
-      setLoading(false);
+    } catch (err: any) {
+      logger.apiError('Failed to verify payment', err, { 
+        transactionId, 
+        paymentId, 
+        sessionId 
+      });
     }
   };
 

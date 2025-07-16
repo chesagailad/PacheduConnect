@@ -93,7 +93,7 @@ export default function DashboardPage() {
         setTransactions(data.transactions || []);
       }
     } catch (err: any) {
-      console.error('Failed to fetch transactions:', err);
+      logger.apiError('Failed to fetch transactions', err);
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
   const handleNotificationClick = (notification: any) => {
     // Handle notification click - could navigate to relevant page
-    console.log('Notification clicked:', notification);
+    logger.debug('Notification clicked', { notificationId: notification.id, type: notification.type });
   };
 
   if (loading) {

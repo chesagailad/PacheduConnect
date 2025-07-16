@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { PaymentMethod } from '@/types/payment';
-import { API_CONFIG } from '@/config/api';
+import logger from '@/utils/logger';
+
 
 const API_URL = API_CONFIG.BASE_URL;
 
@@ -77,8 +77,8 @@ export default function PaymentProcessor({
           setSelectedGateway(availableGateways[0]);
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch gateways:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to fetch payment gateways', err);
     }
   };
 

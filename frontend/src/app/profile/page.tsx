@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, Mail, Phone, MapPin, Edit, Save, X } from 'lucide-react';
 import { API_CONFIG } from '@/config/api';
 
+
 const API_URL = API_CONFIG.BASE_URL;
 
 interface User {
@@ -113,7 +114,7 @@ export default function ProfilePage() {
         setStats(data);
       }
     } catch (err: any) {
-      console.error('Failed to fetch user stats:', err);
+      logger.apiError('Failed to fetch user stats', err);
     }
   };
 
@@ -131,7 +132,7 @@ export default function ProfilePage() {
         setActivities(data.activities || []);
       }
     } catch (err: any) {
-      console.error('Failed to fetch user activity:', err);
+      logger.apiError('Failed to fetch user activity', err);
     }
   };
 

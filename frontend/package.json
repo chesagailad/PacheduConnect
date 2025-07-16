@@ -14,7 +14,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "console-audit": "node scripts/console-audit.js",
+    "prebuild": "npm run console-audit"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
