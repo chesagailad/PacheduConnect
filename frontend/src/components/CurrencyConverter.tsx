@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ArrowUpDown } from 'lucide-react';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 interface ExchangeRate {
   rate: number;
