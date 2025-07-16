@@ -3,8 +3,18 @@
  * Eliminates hardcoded URLs throughout the application
  */
 
+const getApiBaseUrl = (): string => {
+  // In production, use environment variable or default to relative path
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || '/api';
+  }
+  
+  // In development, use environment variable or default backend port
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+};
+
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
+  BASE_URL: getApiBaseUrl(),
   TIMEOUT: 10000,
   
   ENDPOINTS: {
