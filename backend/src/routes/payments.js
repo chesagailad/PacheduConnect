@@ -6,8 +6,30 @@ const createPaymentModel = require('../models/Payment');
 const auth = require('../middleware/auth');
 const paymentGatewayService = require('../services/paymentGateways');
 const { v4: uuidv4 } = require('uuid');
+const auditLogger = require('../utils/auditLogger');
+const encryptionService = require('../utils/encryption');
+const {
+  encryptSensitiveData,
+  decryptSensitiveData,
+  secureHeaders,
+  validatePaymentData,
+  paymentRateLimit,
+  logPaymentOperations,
+  preventDataLeakage,
+  validateSessionSecurity,
+  enforceHTTPS,
+  validateOrigin
+} = require('../middleware/security');
 
 const router = express.Router();
+
+// Apply security middleware to all payment routes
+router.use(secureHeaders);
+router.use(enforceHTTPS);
+router.use(validateOrigin);
+router.use(validateSessionSecurity);
+router.use(preventDataLeakage);
+router.use(logPaymentOperations);
 
 // Get available payment gateways
 router.get('/gateways', auth, async (req, res) => {
@@ -32,7 +54,7 @@ router.get('/gateways', auth, async (req, res) => {
 });
 
 // Get user's payment methods
-router.get('/methods', auth, async (req, res) => {
+router.get('/methods', auth, decryptSensitiveData, async (req, res) => {
   try {
     // For demo purposes, return mock payment methods
     // In a real app, this would query a PaymentMethod table
@@ -44,7 +66,10 @@ router.get('/methods', auth, async (req, res) => {
         brand: 'Visa',
         expiryMonth: 12,
         expiryYear: 2025,
-        isDefault: true
+        isDefault: true,
+        // Encrypted sensitive data
+        cardNumber: encryptionService.encrypt('4111111111111111', 'payment_card'),
+        cvv: encryptionService.encrypt('123', 'payment_card')
       },
       {
         id: '2',
@@ -52,7 +77,10 @@ router.get('/methods', auth, async (req, res) => {
         accountType: 'checking',
         last4: '5678',
         bankName: 'Demo Bank',
-        isDefault: false
+        isDefault: false,
+        // Encrypted sensitive data
+        accountNumber: encryptionService.encrypt('1234567890', 'bank_account'),
+        routingNumber: encryptionService.encrypt('123456789', 'bank_account')
       }
     ];
 
@@ -63,13 +91,21 @@ router.get('/methods', auth, async (req, res) => {
 });
 
 // Add a new payment method
-router.post('/methods', auth, async (req, res) => {
+router.post('/methods', auth, encryptSensitiveData, validatePaymentData, paymentRateLimit, async (req, res) => {
   try {
     const { type, cardNumber, expiryMonth, expiryYear, cvv, bankName, accountNumber, routingNumber } = req.body;
     
     if (!type) {
       return res.status(400).json({ message: 'Payment method type is required' });
     }
+
+    // Log payment method addition
+    auditLogger.logPaymentOperation(
+      auditLogger.eventTypes.CARD_DATA_STORED,
+      { type, hasCardData: !!(cardNumber || cvv), hasBankData: !!(accountNumber || routingNumber) },
+      req.user,
+      req.ip
+    );
 
     // In a real app, this would validate and store payment method securely
     // For demo purposes, we'll just return a success response
@@ -98,6 +134,14 @@ router.delete('/methods/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Log payment method deletion
+    auditLogger.logPaymentOperation(
+      auditLogger.eventTypes.CARD_DATA_DELETED,
+      { paymentMethodId: id },
+      req.user,
+      req.ip
+    );
+    
     // In a real app, this would remove the payment method from the database
     return res.json({ message: 'Payment method removed successfully' });
   } catch (err) {
@@ -118,7 +162,7 @@ router.patch('/methods/:id/default', auth, async (req, res) => {
 });
 
 // Process a payment with specified gateway
-router.post('/process/:gateway', auth, async (req, res) => {
+router.post('/process/:gateway', auth, encryptSensitiveData, validatePaymentData, paymentRateLimit, async (req, res) => {
   try {
     const { gateway } = req.params;
     const { 
@@ -208,6 +252,19 @@ router.post('/process/:gateway', auth, async (req, res) => {
     const paymentResult = await paymentGatewayService.processPayment(gateway, paymentData);
 
     if (!paymentResult.success) {
+      // Log payment failure
+      auditLogger.logPaymentOperation(
+        auditLogger.eventTypes.PAYMENT_FAILED,
+        {
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          gateway,
+          error: paymentResult.error
+        },
+        req.user,
+        req.ip
+      );
+      
       return res.status(400).json({ 
         message: 'Payment failed', 
         error: paymentResult.error,

@@ -87,6 +87,10 @@ const nextConfig = {
       },
     ];
   },
+  // Ensure Next.js uses port 3000
+  experimental: {
+    appDir: true,
+  },
 };
 
 module.exports = nextConfig; 

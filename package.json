@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && PORT=5001 npm run dev",
+    "dev:frontend": "cd frontend && PORT=3000 npm run dev",
     "dev:mobile": "cd mobile && npm run start",
     "build": "npm run build:backend && npm run build:frontend",
     "build:all": "npm run build:backend && npm run build:frontend && npm run build:mobile",
@@ -35,11 +35,19 @@
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
     "e2e:report": "playwright show-report",
+    "e2e:headed": "playwright test --headed",
+    "e2e:install": "playwright install",
+    "e2e:registration": "playwright test --grep @registration",
+    "e2e:login": "playwright test --grep @login",
+    "e2e:send": "playwright test --grep @send",
+    "e2e:transactions": "playwright test --grep @transactions",
+    "e2e:support": "playwright test --grep @support",
+    "e2e:mobile": "playwright test --project=\"Mobile Chrome\" --project=\"Mobile Safari\"",
+    "e2e:desktop": "playwright test --project=\"chromium\" --project=\"firefox\" --project=\"webkit\"",
+    "e2e:ci": "playwright test --reporter=html,junit --output-dir=test-results",
     "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:mobile",
     "lint:backend": "cd backend && npm run lint",
     "lint:frontend": "cd frontend && npm run lint",
-    "clean": "npx rimraf node_modules **/node_modules package-lock.json **/package-lock.json",
-    "install:clean": "npm run clean && npm install",
     "lint:mobile": "cd mobile && npm run lint",
     "lint:fix": "npm run lint:fix:backend && npm run lint:fix:frontend && npm run lint:fix:mobile",
     "lint:fix:backend": "cd backend && npm run lint:fix",
@@ -47,7 +55,9 @@
     "lint:fix:mobile": "cd mobile && npm run lint:fix",
     "install:all": "npm install && npm run install:workspaces",
     "install:workspaces": "npm install --workspaces",
+    "install:clean": "npm run clean && npm install",
     "clean": "npm run clean:backend && npm run clean:frontend && npm run clean:mobile",
+    "clean:quick": "npx rimraf node_modules **/node_modules package-lock.json **/package-lock.json",
     "clean:backend": "cd backend && rm -rf node_modules dist coverage",
     "clean:frontend": "cd frontend && rm -rf node_modules .next coverage",
     "clean:mobile": "cd mobile && rm -rf node_modules coverage",
@@ -57,8 +67,12 @@
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
+    "security:audit": "npm audit --workspaces && npm audit",
+    "security:fix": "npm audit fix --workspaces",
     "analyze:deps": "npx depcheck --ignores=\"@types/*,eslint-*\" && npm ls --depth=0",
-    "dedupe": "npm dedupe && npm audit fix --force"
+    "dedupe": "npm dedupe && npm audit fix --force",
+    "prepare": "husky install"
   },
   "dependencies": {
     "axios": "1.6.0",
@@ -75,23 +89,15 @@
     "typescript": "5.1.3"
   },
   "devDependencies": {
-    "concurrently": "8.2.0",
-    "husky": "8.0.0",
-    "lint-staged": "15.0.0",
-    "rimraf": "5.0.0",
-    "eslint": "8.55.0",
-    "@typescript-eslint/eslint-plugin": "6.0.0",
-    "@typescript-eslint/parser": "6.0.0"
-    "docker:test": "docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
-    "security:audit": "npm audit --workspaces && npm audit",
-    "security:fix": "npm audit fix --workspaces",
-    "prepare": "husky install"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "^1.54.1",
     "concurrently": "^8.2.0",
     "husky": "^8.0.0",
-    "lint-staged": "^15.0.0"
+    "lint-staged": "^15.0.0",
+    "rimraf": "^5.0.0",
+    "eslint": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "playwright": "^1.54.1"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -109,4 +115,4 @@
   ],
   "author": "Pachedu Team",
   "license": "MIT"
-} 
+}

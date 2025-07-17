@@ -1,4 +1,5 @@
 const express = require('express');
+const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const { getSequelize } = require('../utils/database');
 const createTransactionModel = require('../models/Transaction');
@@ -150,10 +151,10 @@ router.get('/', auth, async (req, res) => {
     
     if (type) where.type = type;
     if (status) where.status = status;
-    if (startDate) where.createdAt = { [getSequelize().Op.gte]: new Date(startDate) };
-    if (endDate) where.createdAt = { ...where.createdAt, [getSequelize().Op.lte]: new Date(endDate) };
-    if (minAmount) where.amount = { [getSequelize().Op.gte]: parseFloat(minAmount) };
-    if (maxAmount) where.amount = { ...where.amount, [getSequelize().Op.lte]: parseFloat(maxAmount) };
+    if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
+    if (endDate) where.createdAt = { ...where.createdAt, [Op.lte]: new Date(endDate) };
+    if (minAmount) where.amount = { [Op.gte]: parseFloat(minAmount) };
+    if (maxAmount) where.amount = { ...where.amount, [Op.lte]: parseFloat(maxAmount) };
     
     const transactions = await Transaction.findAndCountAll({
       where,
@@ -219,6 +220,34 @@ router.post('/', auth, async (req, res) => {
     const User = createUserModel(sequelize);
     const Transaction = createTransactionModel(sequelize);
     const Notification = createNotificationModel(sequelize);
+    const createKYCModel = require('../models/KYC');
+    const KYC = createKYCModel(sequelize);
+    
+    // Check KYC status and limits
+    const kyc = await KYC.findOne({ where: { userId: req.user.id } });
+    if (!kyc) {
+      return res.status(400).json({ error: 'KYC verification required' });
+    }
+    
+    if (kyc.status !== 'approved') {
+      return res.status(400).json({ 
+        error: 'KYC verification pending or rejected',
+        kycStatus: kyc.status,
+        kycLevel: kyc.level
+      });
+    }
+    
+    // Check if user can send this amount
+    if (!kyc.canSendAmount(parseFloat(amount))) {
+      const remainingLimit = kyc.monthlySendLimit - kyc.currentMonthSent;
+      return res.status(400).json({ 
+        error: 'Monthly send limit exceeded',
+        monthlyLimit: kyc.monthlySendLimit,
+        currentMonthSent: kyc.currentMonthSent,
+        remainingLimit: Math.max(0, remainingLimit),
+        kycLevel: kyc.level
+      });
+    }
     
     // Find recipient
     const recipient = await User.findOne({ where: { email: recipientEmail } });
@@ -275,6 +304,10 @@ router.post('/', auth, async (req, res) => {
       fee: feeInfo.fee, // Store fee amount
       totalAmount: feeInfo.totalAmount // Store total amount including fee
     });
+    
+    // Update KYC monthly sent amount
+    kyc.addToMonthlySent(parseFloat(amount));
+    await kyc.save();
     
     // Create notification for sender
     await Notification.create({
