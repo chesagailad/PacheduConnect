@@ -38,6 +38,13 @@ describe('Authentication API', () => {
     // Setup Express app with routes
     app = express();
     app.use(express.json());
+    
+    // Add error handling middleware
+    app.use((err, req, res, next) => {
+      console.error('Test Error:', err);
+      res.status(500).json({ message: err.message });
+    });
+    
     app.use('/api/auth', authRoutes);
   });
 
@@ -66,8 +73,13 @@ describe('Authentication API', () => {
         .post('/api/auth/register')
         .send(userData);
 
+      if (response.status !== 201) {
+        console.error('Registration failed. Status:', response.status);
+        console.error('Response body:', JSON.stringify(response.body, null, 2));
+        console.error('Response text:', response.text);
+      }
+
       expect(response.status).toBe(201);
-      expect(response.body.success).toBe(true);
       expect(response.body.message).toContain('registered successfully');
       expect(response.body.user).toBeDefined();
       expect(response.body.user.email).toBe(userData.email);

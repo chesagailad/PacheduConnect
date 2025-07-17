@@ -6,6 +6,7 @@ const createUserModel = (sequelize) => {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+      allowNull: false,
     },
     name: {
       type: DataTypes.STRING,
@@ -24,8 +25,9 @@ const createUserModel = (sequelize) => {
       allowNull: true,
       validate: {
         isValidPhoneNumber(value) {
-          if (value && value !== '') {
-            if (!/^\+?[1-9]\d{1,14}$/.test(value)) {
+          if (value && value !== '' && value !== null) {
+            // Check for valid phone number format with country code
+            if (!/^\+[1-9]\d{8,14}$/.test(value)) {
               throw new Error('Invalid phone number format');
             }
           }
@@ -45,6 +47,11 @@ const createUserModel = (sequelize) => {
     timestamps: true,
     defaultScope: {
       attributes: { exclude: ['passwordHash'] },
+    },
+    scopes: {
+      withPassword: {
+        attributes: {},
+      }
     }
   });
 

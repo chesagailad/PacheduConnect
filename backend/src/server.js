@@ -6,7 +6,10 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 require('express-async-errors');
-require('dotenv').config();
+
+// Load environment configuration based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+require('dotenv').config({ path: envFile });
 
 const { logger } = require('./utils/logger');
 const { errorHandler } = require('./middleware/errorHandler');
