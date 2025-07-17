@@ -6,6 +6,29 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
+  
+  /* Fix placeholder visibility issues caused by @tailwindcss/forms plugin */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9CA3AF; /* gray-400 */
+    opacity: 1; /* Ensure full opacity */
+  }
+  
+  /* Ensure placeholders are visible in different input states */
+  input:focus::placeholder,
+  textarea:focus::placeholder {
+    color: #D1D5DB; /* gray-300 - slightly lighter when focused */
+    opacity: 1;
+  }
+  
+  /* Dark mode support if you plan to add it */
+  @media (prefers-color-scheme: dark) {
+    input::placeholder,
+    textarea::placeholder {
+      color: #6B7280; /* gray-500 for dark backgrounds */
+      opacity: 1;
+    }
+  }
 }
 
 @layer components {
