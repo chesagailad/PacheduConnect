@@ -25,6 +25,7 @@ const adminRoutes = require('./routes/admin');
 const superAdminRoutes = require('./routes/superAdmin');
 const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,8 +43,32 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const getAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',');
+  }
+  
+  // Default origins based on environment
+  if (process.env.NODE_ENV === 'production') {
+    return [
+      'https://pachedu.com',
+      'https://www.pachedu.com',
+      'https://api.pachedu.com',
+      'https://admin.pachedu.com'
+    ];
+  }
+  
+  // Development defaults
+  return [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001'
+  ];
+};
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: getAllowedOrigins(),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -112,6 +137,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use(notFound);

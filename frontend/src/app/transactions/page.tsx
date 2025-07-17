@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import logger from '@/utils/logger';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 interface Transaction {
   id: string;
@@ -117,7 +119,7 @@ export default function TransactionsPage() {
         setStats(data);
       }
     } catch (err: any) {
-      console.error('Failed to fetch stats:', err);
+      logger.apiError('Failed to fetch transaction stats', err);
     }
   };
 

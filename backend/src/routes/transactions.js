@@ -6,7 +6,7 @@ const createTransactionModel = require('../models/Transaction');
 const createUserModel = require('../models/User');
 const createNotificationModel = require('../models/Notification');
 const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
-const { convertCurrency, getExchangeRate, getAllRates } = require('../utils/exchangeRate');
+const { convertCurrency, getExchangeRate, getAllRates, calculateCommission, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
 
 const router = express.Router();
 
@@ -14,14 +14,35 @@ const router = express.Router();
 router.get('/exchange-rates', async (req, res) => {
   try {
     const rates = await getAllRates();
-    res.json(rates);
+    res.json({
+      ...rates,
+      message: 'Exchange rates fetched successfully from XE Currency Data API'
+    });
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch exchange rates',
+      supportedCurrencies: SUPPORTED_CURRENCIES,
+      fallbackMessage: 'Using fallback rates due to API unavailability'
+    });
+  }
+});
+
+// Get platform fee structure
+router.get('/fee-structure', async (req, res) => {
+  try {
+    const feeStructure = getFeeStructure();
+    res.json({
+      ...feeStructure,
+      message: 'Pachedu platform fee structure'
+    });
+  } catch (error) {
+    console.error('Error fetching fee structure:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Convert currency
+// Convert currency with commission calculation
 router.post('/convert-currency', async (req, res) => {
   try {
     const { amount, fromCurrency, toCurrency } = req.body;
@@ -34,14 +55,52 @@ router.post('/convert-currency', async (req, res) => {
       return res.status(400).json({ error: 'Both fromCurrency and toCurrency are required' });
     }
     
-    const conversion = await convertCurrency(parseFloat(amount), fromCurrency, toCurrency);
+    if (!SUPPORTED_CURRENCIES.includes(fromCurrency.toUpperCase()) || 
+        !SUPPORTED_CURRENCIES.includes(toCurrency.toUpperCase())) {
+      return res.status(400).json({ 
+        error: 'Unsupported currency', 
+        supportedCurrencies: SUPPORTED_CURRENCIES 
+      });
+    }
+    
+    const conversion = await convertCurrency(parseFloat(amount), fromCurrency.toUpperCase(), toCurrency.toUpperCase());
     
     res.json({
       conversion,
-      message: 'Currency converted successfully'
+      message: 'Currency converted successfully with XE real-time rates',
+      note: conversion.commission.commissionAmount > 0 ? 
+        `Commission of ${conversion.commission.commissionRate * 100}% applied to ZAR amount` : 
+        'No commission applied'
     });
   } catch (error) {
     console.error('Error converting currency:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Calculate commission for ZAR transactions
+router.post('/calculate-commission', async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
+    if (!currency) {
+      return res.status(400).json({ error: 'Currency is required' });
+    }
+    
+    const commission = calculateCommission(parseFloat(amount), currency.toUpperCase());
+    
+    res.json({
+      commission,
+      message: commission.commissionAmount > 0 ? 
+        'Commission calculated for ZAR transaction' : 
+        'No commission applicable for this currency'
+    });
+  } catch (error) {
+    console.error('Error calculating commission:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -51,11 +110,19 @@ router.get('/exchange-rate/:from/:to', async (req, res) => {
   try {
     const { from, to } = req.params;
     
-    const rate = await getExchangeRate(from, to);
+    if (!SUPPORTED_CURRENCIES.includes(from.toUpperCase()) || 
+        !SUPPORTED_CURRENCIES.includes(to.toUpperCase())) {
+      return res.status(400).json({ 
+        error: 'Unsupported currency pair', 
+        supportedCurrencies: SUPPORTED_CURRENCIES 
+      });
+    }
+    
+    const rate = await getExchangeRate(from.toUpperCase(), to.toUpperCase());
     
     res.json({
       rate,
-      message: 'Exchange rate retrieved successfully'
+      message: 'Exchange rate retrieved successfully from XE Currency Data API'
     });
   } catch (error) {
     console.error('Error fetching exchange rate:', error);

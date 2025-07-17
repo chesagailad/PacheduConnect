@@ -4,9 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '../../components/NotificationBell';
 import CurrencyConverter from '../../components/CurrencyConverter';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  Users, 
+  CreditCard,
+  ArrowUpRight,
+  ArrowDownRight 
+} from 'lucide-react';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 interface User {
   id: string;
@@ -85,7 +93,7 @@ export default function DashboardPage() {
         setTransactions(data.transactions || []);
       }
     } catch (err: any) {
-      console.error('Failed to fetch transactions:', err);
+      logger.apiError('Failed to fetch transactions', err);
     } finally {
       setLoading(false);
     }
@@ -106,14 +114,14 @@ export default function DashboardPage() {
 
   const handleNotificationClick = (notification: any) => {
     // Handle notification click - could navigate to relevant page
-    console.log('Notification clicked:', notification);
+    logger.debug('Notification clicked', { notificationId: notification.id, type: notification.type });
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="text-center">
-          <LoadingSpinner size="lg" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -286,68 +294,36 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Enhanced Currency Converter */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center mb-6">
-            <div className="p-3 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full mr-4">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Transfer Calculator</h2>
-              <p className="text-gray-600">Calculate transfer costs and exchange rates for different countries</p>
-            </div>
-          </div>
-          
+        {/* Currency Converter */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <CurrencyConverter />
-        </div>
-
-        {/* Additional Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-100 rounded-full mr-3">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900">Real-time Rates</h3>
-            </div>
-            <p className="text-gray-600 text-sm">
-              Our currency converter uses real-time exchange rates from reliable sources. 
-              Rates are updated hourly to ensure accuracy.
-            </p>
-          </div>
           
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-green-100 rounded-full mr-3">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Exchange Rate Info</h3>
+            <div className="space-y-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Real-time Rates</h4>
+                <p className="text-blue-700 text-sm">
+                  Our currency converter uses real-time exchange rates from reliable sources. 
+                  Rates are updated hourly to ensure accuracy.
+                </p>
               </div>
-              <h3 className="font-semibold text-gray-900">Supported Countries</h3>
-            </div>
-            <p className="text-gray-600 text-sm">
-              We support transfers to Zimbabwe, Malawi, Zambia, Botswana, Namibia, and Mozambique 
-              with competitive rates and fast delivery.
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-yellow-100 rounded-full mr-3">
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+              
+              <div className="bg-green-50 rounded-lg p-4">
+                <h4 className="font-medium text-green-900 mb-2">Supported Currencies</h4>
+                <p className="text-green-700 text-sm">
+                  We support major currencies including USD, EUR, GBP, ZAR, CAD, AUD, JPY, and CHF.
+                </p>
               </div>
-              <h3 className="font-semibold text-gray-900">Important Note</h3>
+              
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <h4 className="font-medium text-yellow-900 mb-2">Important Note</h4>
+                <p className="text-yellow-700 text-sm">
+                  Exchange rates are for informational purposes only. Actual rates may vary 
+                  when processing transactions.
+                </p>
+              </div>
             </div>
-            <p className="text-gray-600 text-sm">
-              Exchange rates and fees are for informational purposes only. Actual rates may vary 
-              when processing transactions.
-            </p>
           </div>
         </div>
       </main>
