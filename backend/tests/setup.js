@@ -1,5 +1,6 @@
-const { Sequelize } = require('sequelize');
+// Load test environment first
 require('dotenv').config({ path: '.env.test' });
+const { Sequelize } = require('sequelize');
 
 // Mock Redis for tests
 jest.mock('ioredis', () => {
