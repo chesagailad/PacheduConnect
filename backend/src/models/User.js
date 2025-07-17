@@ -36,12 +36,33 @@ const createUserModel = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    role: {
+      type: DataTypes.ENUM('user', 'admin', 'super_admin'),
+      defaultValue: 'user',
+      allowNull: false,
+    },
   }, {
     timestamps: true,
     defaultScope: {
       attributes: { exclude: ['passwordHash'] },
-    },
+    }
   });
+
+  // Define associations
+  User.associate = (models) => {
+    User.hasOne(models.KYC, {
+      foreignKey: 'userId',
+      as: 'kyc'
+    });
+    User.hasMany(models.Transaction, {
+      foreignKey: 'userId',
+      as: 'transactions'
+    });
+    User.hasMany(models.Beneficiary, {
+      foreignKey: 'userId',
+      as: 'beneficiaries'
+    });
+  };
 
   return User;
 };
