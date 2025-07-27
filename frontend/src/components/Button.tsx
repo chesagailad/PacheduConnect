@@ -6,7 +6,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;
@@ -34,11 +34,10 @@ export default function Button({
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 focus:ring-blue-500 shadow-lg hover:shadow-xl',
-    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500',
-    outline: 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500',
+    primary: 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-lg hover:shadow-xl',
+    secondary: 'bg-white text-primary-600 border-2 border-primary-600 hover:bg-primary-50 hover:border-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md',
     ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500',
-    danger: 'bg-gradient-to-r from-red-600 to-pink-600 text-white hover:from-red-700 hover:to-pink-700 focus:ring-red-500 shadow-lg hover:shadow-xl'
+    danger: 'bg-gradient-to-r from-error-600 to-error-700 text-white hover:from-error-700 hover:to-error-800 focus:ring-error-500 shadow-lg hover:shadow-xl'
   };
 
   const sizeClasses = {
@@ -66,46 +65,43 @@ export default function Button({
   };
 
   const content = (
-    <motion.div
-      className="flex items-center justify-center space-x-2"
-      initial="initial"
-      whileHover="hover"
-      whileTap="tap"
-    >
-      {loading ? (
-        <>
-          <LoadingSpinner size="sm" color="white" />
-          <span>Processing...</span>
-        </>
-      ) : (
-        <>
-          {icon && iconPosition === 'left' && (
-            <motion.span variants={iconVariants}>
-              {icon}
-            </motion.span>
-          )}
-          <span>{children}</span>
-          {icon && iconPosition === 'right' && (
-            <motion.span variants={iconVariants}>
-              {icon}
-            </motion.span>
-          )}
-        </>
+    <>
+      {loading && <LoadingSpinner size="sm" className="mr-2" />}
+      {icon && iconPosition === 'left' && !loading && (
+        <motion.div
+          className="mr-2"
+          variants={iconVariants}
+          initial="initial"
+          whileHover="hover"
+          whileTap="tap"
+        >
+          {icon}
+        </motion.div>
       )}
-    </motion.div>
+      <span>{children}</span>
+      {icon && iconPosition === 'right' && (
+        <motion.div
+          className="ml-2"
+          variants={iconVariants}
+          initial="initial"
+          whileHover="hover"
+          whileTap="tap"
+        >
+          {icon}
+        </motion.div>
+      )}
+    </>
   );
-
-  const buttonClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`;
 
   if (href) {
     return (
       <motion.a
         href={href}
-        className={buttonClasses}
+        className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
         variants={buttonVariants}
         initial="initial"
-        whileHover={disabled || loading ? "initial" : "hover"}
-        whileTap={disabled || loading ? "initial" : "tap"}
+        whileHover="hover"
+        whileTap="tap"
       >
         {content}
       </motion.a>
@@ -114,14 +110,14 @@ export default function Button({
 
   return (
     <motion.button
-      className={buttonClasses}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
       variants={buttonVariants}
       initial="initial"
-      whileHover={disabled || loading ? "initial" : "hover"}
-      whileTap={disabled || loading ? "initial" : "tap"}
-      animate={loading ? "loading" : "initial"}
+      whileHover="hover"
+      whileTap="tap"
+      whileInView="initial"
     >
       {content}
     </motion.button>

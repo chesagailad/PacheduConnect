@@ -1,4 +1,4 @@
-const { getSequelize } = require('../../../utils/database');
+const { getModels } = require('../../utils/database');
 
 /**
  * Get transaction status by ID and user ID
@@ -8,14 +8,7 @@ const { getSequelize } = require('../../../utils/database');
  */
 async function getTransactionStatus(transactionId, userId) {
   try {
-    const sequelize = getSequelize();
-    
-    // Import models
-    const { createTransactionModel } = require('../../../models/Transaction');
-    const { createUserModel } = require('../../../models/User');
-    
-    const Transaction = createTransactionModel(sequelize);
-    const User = createUserModel(sequelize);
+    const { Transaction, User } = getModels();
     
     const transaction = await Transaction.findOne({
       where: {
@@ -62,12 +55,7 @@ async function getTransactionStatus(transactionId, userId) {
  */
 async function getRecentTransactions(userId, limit = 5) {
   try {
-    const sequelize = getSequelize();
-    const { createTransactionModel } = require('../../../models/Transaction');
-    const { createUserModel } = require('../../../models/User');
-    
-    const Transaction = createTransactionModel(sequelize);
-    const User = createUserModel(sequelize);
+    const { Transaction, User } = getModels();
     
     const transactions = await Transaction.findAll({
       where: { userId: userId },
@@ -105,19 +93,16 @@ async function getRecentTransactions(userId, limit = 5) {
  */
 async function getTransactionStats(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createTransactionModel } = require('../../../models/Transaction');
-    
-    const Transaction = createTransactionModel(sequelize);
+    const { Transaction } = getModels();
     
     const stats = await Transaction.findAll({
       where: { userId: userId },
       attributes: [
-        [sequelize.fn('COUNT', sequelize.col('id')), 'totalTransactions'],
-        [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'completed' THEN 1 END")), 'completedTransactions'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'pending' THEN 1 END")), 'pendingTransactions'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'failed' THEN 1 END")), 'failedTransactions']
+        [Transaction.sequelize.fn('COUNT', Transaction.sequelize.col('id')), 'totalTransactions'],
+        [Transaction.sequelize.fn('SUM', Transaction.sequelize.col('amount')), 'totalAmount'],
+        [Transaction.sequelize.fn('COUNT', Transaction.sequelize.literal("CASE WHEN status = 'completed' THEN 1 END")), 'completedTransactions'],
+        [Transaction.sequelize.fn('COUNT', Transaction.sequelize.literal("CASE WHEN status = 'pending' THEN 1 END")), 'pendingTransactions'],
+        [Transaction.sequelize.fn('COUNT', Transaction.sequelize.literal("CASE WHEN status = 'failed' THEN 1 END")), 'failedTransactions']
       ],
       raw: true
     });
@@ -131,7 +116,7 @@ async function getTransactionStats(userId) {
       pendingTransactions: parseInt(result.pendingTransactions) || 0,
       failedTransactions: parseInt(result.failedTransactions) || 0,
       successRate: result.totalTransactions > 0 
-        ? ((result.completedTransactions / result.totalTransactions) * 100).toFixed(1)
+        ? Math.round((parseInt(result.completedTransactions) / parseInt(result.totalTransactions)) * 100)
         : 0
     };
     
@@ -149,23 +134,18 @@ async function getTransactionStats(userId) {
 }
 
 /**
- * Check if user has any pending transactions
+ * Get pending transactions for user
  * @param {string} userId 
  * @returns {array}
  */
 async function getPendingTransactions(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createTransactionModel } = require('../../../models/Transaction');
-    const { createUserModel } = require('../../../models/User');
+    const { Transaction, User } = getModels();
     
-    const Transaction = createTransactionModel(sequelize);
-    const User = createUserModel(sequelize);
-    
-    const pendingTransactions = await Transaction.findAll({
-      where: {
+    const transactions = await Transaction.findAll({
+      where: { 
         userId: userId,
-        status: ['pending', 'processing']
+        status: 'pending'
       },
       include: [
         {
@@ -177,9 +157,8 @@ async function getPendingTransactions(userId) {
       order: [['createdAt', 'DESC']]
     });
     
-    return pendingTransactions.map(transaction => ({
+    return transactions.map(transaction => ({
       id: transaction.id,
-      status: transaction.status,
       amount: transaction.amount,
       currency: transaction.currency,
       recipientName: transaction.recipient?.name || 'Unknown',
@@ -195,19 +174,19 @@ async function getPendingTransactions(userId) {
 }
 
 /**
- * Get estimated completion time based on delivery method
+ * Get estimated completion time for delivery method
  * @param {string} deliveryMethod 
  * @returns {string}
  */
 function getEstimatedCompletion(deliveryMethod) {
-  const estimations = {
-    'ecocash': 'Within 5 minutes',
-    'bank_transfer': 'Within 2 hours',
-    'cash_pickup': 'Within 1 hour',
-    'home_delivery': 'Within 24 hours'
+  const estimates = {
+    'bank_transfer': '2-4 hours',
+    'mobile_money': '5-15 minutes',
+    'cash_pickup': '1-2 hours',
+    'home_delivery': '3-6 hours'
   };
   
-  return estimations[deliveryMethod] || 'Processing';
+  return estimates[deliveryMethod] || '2-4 hours';
 }
 
 /**
@@ -219,31 +198,29 @@ function getEstimatedCompletion(deliveryMethod) {
  */
 async function searchTransactions(userId, keyword, limit = 10) {
   try {
-    const sequelize = getSequelize();
-    const { createTransactionModel } = require('../../../models/Transaction');
-    const { createUserModel } = require('../../../models/User');
-    
-    const Transaction = createTransactionModel(sequelize);
-    const User = createUserModel(sequelize);
+    const { Transaction, User } = getModels();
     
     const transactions = await Transaction.findAll({
       where: {
         userId: userId,
-        [sequelize.Op.or]: [
-          { id: { [sequelize.Op.iLike]: `%${keyword}%` } },
-          { description: { [sequelize.Op.iLike]: `%${keyword}%` } },
-          sequelize.literal(`EXISTS (
-            SELECT 1 FROM users 
-            WHERE users.id = "Transaction"."recipientId" 
-            AND (users.name ILIKE '%${keyword}%' OR users.email ILIKE '%${keyword}%')
-          )`)
+        [Transaction.sequelize.Op.or]: [
+          { id: { [Transaction.sequelize.Op.iLike]: `%${keyword}%` } },
+          { status: { [Transaction.sequelize.Op.iLike]: `%${keyword}%` } },
+          { deliveryMethod: { [Transaction.sequelize.Op.iLike]: `%${keyword}%` } }
         ]
       },
       include: [
         {
           model: User,
           as: 'recipient',
-          attributes: ['name', 'email']
+          attributes: ['name', 'email'],
+          where: {
+            [User.sequelize.Op.or]: [
+              { name: { [User.sequelize.Op.iLike]: `%${keyword}%` } },
+              { email: { [User.sequelize.Op.iLike]: `%${keyword}%` } }
+            ]
+          },
+          required: false
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -271,6 +248,5 @@ module.exports = {
   getRecentTransactions,
   getTransactionStats,
   getPendingTransactions,
-  searchTransactions,
-  getEstimatedCompletion
+  searchTransactions
 };

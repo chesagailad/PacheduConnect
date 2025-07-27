@@ -1,4 +1,4 @@
-const { getSequelize } = require('../../../utils/database');
+const { getModels } = require('../../utils/database');
 
 /**
  * Get user by email
@@ -7,10 +7,7 @@ const { getSequelize } = require('../../../utils/database');
  */
 async function getUserByEmail(email) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    
-    const User = createUserModel(sequelize);
+    const { User } = getModels();
     
     const user = await User.findOne({
       where: { email: email },
@@ -32,10 +29,7 @@ async function getUserByEmail(email) {
  */
 async function getUserById(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    
-    const User = createUserModel(sequelize);
+    const { User } = getModels();
     
     const user = await User.findByPk(userId, {
       attributes: ['id', 'name', 'email', 'phoneNumber', 'kycStatus', 'balance', 'createdAt']
@@ -56,12 +50,7 @@ async function getUserById(userId) {
  */
 async function getUserProfile(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    const { createTransactionModel } = require('../../../models/Transaction');
-    
-    const User = createUserModel(sequelize);
-    const Transaction = createTransactionModel(sequelize);
+    const { User, Transaction } = getModels();
     
     const user = await User.findByPk(userId, {
       attributes: ['id', 'name', 'email', 'phoneNumber', 'kycStatus', 'balance', 'createdAt'],
@@ -86,9 +75,9 @@ async function getUserProfile(userId) {
     const transactionStats = await Transaction.findAll({
       where: { userId: userId },
       attributes: [
-        [sequelize.fn('COUNT', sequelize.col('id')), 'totalTransactions'],
-        [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'completed' THEN 1 END")), 'completedTransactions']
+        [User.sequelize.fn('COUNT', User.sequelize.col('id')), 'totalTransactions'],
+        [User.sequelize.fn('SUM', User.sequelize.col('amount')), 'totalAmount'],
+        [User.sequelize.fn('COUNT', User.sequelize.literal("CASE WHEN status = 'completed' THEN 1 END")), 'completedTransactions']
       ],
       raw: true
     });
@@ -116,10 +105,7 @@ async function getUserProfile(userId) {
  */
 async function getUserKYCStatus(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    
-    const User = createUserModel(sequelize);
+    const { User } = getModels();
     
     const user = await User.findByPk(userId, {
       attributes: ['id', 'kycStatus', 'kycSubmittedAt', 'kycApprovedAt', 'kycRejectedAt', 'kycRejectionReason']
@@ -162,10 +148,7 @@ async function getUserKYCStatus(userId) {
  */
 async function getUserBalance(userId) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    
-    const User = createUserModel(sequelize);
+    const { User } = getModels();
     
     const user = await User.findByPk(userId, {
       attributes: ['id', 'balance']
@@ -238,16 +221,13 @@ async function canUserSendMoney(userId, amount = 0) {
  */
 async function searchUsers(query, limit = 10) {
   try {
-    const sequelize = getSequelize();
-    const { createUserModel } = require('../../../models/User');
-    
-    const User = createUserModel(sequelize);
+    const { User } = getModels();
     
     const users = await User.findAll({
       where: {
-        [sequelize.Op.or]: [
-          { name: { [sequelize.Op.iLike]: `%${query}%` } },
-          { email: { [sequelize.Op.iLike]: `%${query}%` } }
+        [User.sequelize.Op.or]: [
+          { name: { [User.sequelize.Op.iLike]: `%${query}%` } },
+          { email: { [User.sequelize.Op.iLike]: `%${query}%` } }
         ]
       },
       attributes: ['id', 'name', 'email', 'phoneNumber', 'kycStatus', 'createdAt'],

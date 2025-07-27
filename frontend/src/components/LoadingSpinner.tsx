@@ -6,14 +6,12 @@ import { motion } from 'framer-motion';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: 'primary' | 'white' | 'blue';
-  text?: string;
   className?: string;
 }
 
 export default function LoadingSpinner({ 
   size = 'md', 
-  color = 'primary', 
-  text,
+  color = 'primary',
   className = '' 
 }: LoadingSpinnerProps) {
   const sizeClasses = {
@@ -23,21 +21,9 @@ export default function LoadingSpinner({
   };
 
   const colorClasses = {
-    primary: 'border-blue-600',
+    primary: 'border-primary-600',
     white: 'border-white',
-    blue: 'border-blue-500'
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: { 
-      opacity: 1, 
-      scale: 1,
-      transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    }
+    blue: 'border-blue-600'
   };
 
   const spinnerVariants = {
@@ -52,29 +38,12 @@ export default function LoadingSpinner({
   };
 
   return (
-    <motion.div 
-      className={`flex items-center justify-center ${className}`}
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <div className="flex flex-col items-center space-y-3">
-        <motion.div
-          className={`${sizeClasses[size]} border-2 border-t-transparent rounded-full ${colorClasses[color]}`}
-          variants={spinnerVariants}
-          animate="animate"
-        />
-        {text && (
-          <motion.p 
-            className="text-sm text-gray-600 font-medium"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {text}
-          </motion.p>
-        )}
-      </div>
-    </motion.div>
+    <motion.div
+      className={`${sizeClasses[size]} ${colorClasses[color]} border-2 border-gray-300 rounded-full ${className}`}
+      variants={spinnerVariants}
+      animate="animate"
+      role="status"
+      aria-label="Loading"
+    />
   );
 } 

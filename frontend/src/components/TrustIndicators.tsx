@@ -1,26 +1,78 @@
-import React from 'react';
+'use client';
 
-export default function TrustIndicators() {
+import React from 'react';
+import { motion } from 'framer-motion';
+
+interface TrustIndicatorsProps {
+  className?: string;
+}
+
+export default function TrustIndicators({ className = '' }: TrustIndicatorsProps) {
+  const indicators = [
+    {
+      icon: '🔒',
+      title: 'Bank-Level Security',
+      description: '256-bit SSL encryption'
+    },
+    {
+      icon: '⚡',
+      title: 'Instant Transfers',
+      description: '2-4 hour delivery'
+    },
+    {
+      icon: '💎',
+      title: 'Best Rates',
+      description: 'Guaranteed competitive rates'
+    },
+    {
+      icon: '🛡️',
+      title: 'Licensed & Regulated',
+      description: 'FSCA approved'
+    }
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3 }
+    }
+  };
+
   return (
-    <div className="flex items-center space-x-6 text-sm text-gray-600">
-      <div className="flex items-center space-x-2">
-        <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-        </svg>
-        <span>Bank-level security</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-        </svg>
-        <span>Licensed & regulated</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <svg className="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-        </svg>
-        <span>24/7 support</span>
-      </div>
-    </div>
+    <motion.div
+      className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${className}`}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {indicators.map((indicator, index) => (
+        <motion.div
+          key={index}
+          className="text-center p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-100 hover:bg-white/80 transition-all duration-200"
+          variants={itemVariants}
+          whileHover={{ scale: 1.05 }}
+        >
+          <div className="text-2xl mb-2">{indicator.icon}</div>
+          <h4 className="font-semibold text-gray-900 text-sm mb-1">
+            {indicator.title}
+          </h4>
+          <p className="text-xs text-gray-600">
+            {indicator.description}
+          </p>
+        </motion.div>
+      ))}
+    </motion.div>
   );
 } 

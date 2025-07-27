@@ -1,122 +1,169 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
-interface ExchangeRate {
-  rate: number;
-  change: number;
-  lastUpdated: string;
+interface ExchangeRateCalculatorProps {
+  className?: string;
 }
 
-export default function ExchangeRateCalculator() {
-  const [sendAmount, setSendAmount] = useState<number>(100);
-  const [receiveAmount, setReceiveAmount] = useState<number>(15.4);
-  const [exchangeRate, setExchangeRate] = useState<ExchangeRate>({
-    rate: 0.154,
-    change: 2.3,
-    lastUpdated: '2 min ago'
-  });
+export default function ExchangeRateCalculator({ className = '' }: ExchangeRateCalculatorProps) {
+  const [amount, setAmount] = useState('');
+  const [fromCurrency, setFromCurrency] = useState('ZAR');
+  const [toCurrency, setToCurrency] = useState('ZWD');
+  const [exchangeRate, setExchangeRate] = useState(0.0025);
+  const [fee, setFee] = useState(0);
+  const [total, setTotal] = useState(0);
 
-  // Simulate real-time rate updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setExchangeRate(prev => ({
-        ...prev,
-        rate: prev.rate + (Math.random() - 0.5) * 0.001,
-        lastUpdated: 'Just now'
-      }));
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Calculate receive amount when send amount changes
-  useEffect(() => {
-    const calculated = sendAmount * exchangeRate.rate;
-    setReceiveAmount(Number(calculated.toFixed(2)));
-  }, [sendAmount, exchangeRate.rate]);
-
-  const handleSendAmountChange = (value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setSendAmount(numValue);
+  // Mock exchange rate data
+  const rates = {
+    'ZAR-ZWD': 0.0025,
+    'USD-ZWD': 0.00015,
+    'EUR-ZWD': 0.00018,
   };
 
-  const transferFee = 15;
-  const totalCost = sendAmount + transferFee;
+  const fees = {
+    'ZAR-ZWD': 25,
+    'USD-ZWD': 2,
+    'EUR-ZWD': 2.5,
+  };
+
+  useEffect(() => {
+    const rateKey = `${fromCurrency}-${toCurrency}`;
+    const currentRate = rates[rateKey as keyof typeof rates] || 0.0025;
+    const currentFee = fees[rateKey as keyof typeof fees] || 25;
+    
+    setExchangeRate(currentRate);
+    setFee(currentFee);
+    
+    const numAmount = parseFloat(amount) || 0;
+    const calculatedTotal = (numAmount * currentRate) - currentFee;
+    setTotal(Math.max(0, calculatedTotal));
+  }, [amount, fromCurrency, toCurrency]);
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.3 }
+    }
+  };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
-      <h3 className="text-2xl font-bold text-gray-900 mb-6">Live Exchange Rate</h3>
-      
-      {/* Exchange Rate Display */}
-      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-sm font-medium text-gray-600">Current Rate</span>
-          <span className="text-xs text-gray-500">Updated {exchangeRate.lastUpdated}</span>
-        </div>
-        <div className="text-3xl font-bold text-gray-900 mb-2">
-          1 ZAR = {exchangeRate.rate.toFixed(3)} USD
-        </div>
-        <div className={`text-sm font-medium ${exchangeRate.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {exchangeRate.change >= 0 ? '+' : ''}{exchangeRate.change.toFixed(1)}% from yesterday
-        </div>
-      </div>
+    <motion.div
+      className={`bg-white rounded-2xl shadow-soft border border-gray-100 p-6 ${className}`}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.h3 
+        className="text-xl font-semibold text-gray-900 mb-6"
+        variants={itemVariants}
+      >
+        💱 Live Exchange Rate Calculator
+      </motion.h3>
 
-      {/* Calculator */}
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">You Send</label>
-          <div className="relative">
-            <input
-              type="number"
-              value={sendAmount}
-              onChange={(e) => handleSendAmountChange(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <span className="text-gray-500 font-medium">ZAR</span>
+        <motion.div variants={itemVariants}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Amount to Send
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount"
+            className="input-field"
+            min="0"
+            step="0.01"
+          />
+        </motion.div>
+
+        <motion.div className="grid grid-cols-2 gap-4" variants={itemVariants}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              From
+            </label>
+            <select
+              value={fromCurrency}
+              onChange={(e) => setFromCurrency(e.target.value)}
+              className="select-field"
+            >
+              <option value="ZAR">🇿🇦 South African Rand (ZAR)</option>
+              <option value="USD">🇺🇸 US Dollar (USD)</option>
+              <option value="EUR">🇪🇺 Euro (EUR)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              To
+            </label>
+            <select
+              value={toCurrency}
+              onChange={(e) => setToCurrency(e.target.value)}
+              className="select-field"
+            >
+              <option value="ZWD">🇿🇼 Zimbabwe Dollar (ZWD)</option>
+            </select>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl p-4 border border-primary-100"
+          variants={itemVariants}
+        >
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Exchange Rate:</span>
+              <span className="font-semibold text-primary-600">
+                1 {fromCurrency} = {(exchangeRate * 1000).toFixed(2)} {toCurrency}
+              </span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Transfer Fee:</span>
+              <span className="font-semibold text-warning-600">
+                {fee.toFixed(2)} {fromCurrency}
+              </span>
+            </div>
+            
+            <div className="border-t border-gray-200 pt-2">
+              <div className="flex justify-between text-base font-semibold">
+                <span className="text-gray-800">Recipient Gets:</span>
+                <span className="text-success-600">
+                  {total.toFixed(2)} {toCurrency}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="flex justify-center">
-          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-          </svg>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Gets</label>
-          <div className="relative">
-            <input
-              type="number"
-              value={receiveAmount}
-              placeholder="0.00"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-              readOnly
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <span className="text-gray-500 font-medium">USD</span>
-            </div>
+        <motion.div 
+          className="bg-gray-50 rounded-xl p-4"
+          variants={itemVariants}
+        >
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <svg className="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span>Rates updated every 5 minutes • Delivery in 2-4 hours</span>
           </div>
-        </div>
-
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Transfer fee:</span>
-            <span className="font-medium">R{transferFee.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm mt-1">
-            <span className="text-gray-600">Total cost:</span>
-            <span className="font-medium text-gray-900">R{totalCost.toFixed(2)}</span>
-          </div>
-        </div>
-
-        <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
-          Send Money Now
-        </button>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 } 

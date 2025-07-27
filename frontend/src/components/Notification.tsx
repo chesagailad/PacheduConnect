@@ -34,31 +34,31 @@ export default function Notification({
   const typeConfig = {
     success: {
       icon: '✅',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      textColor: 'text-green-800',
-      iconColor: 'text-green-600'
+      bgColor: 'bg-success-50',
+      borderColor: 'border-success-200',
+      textColor: 'text-success-800',
+      iconColor: 'text-success-600'
     },
     error: {
       icon: '❌',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
-      textColor: 'text-red-800',
-      iconColor: 'text-red-600'
+      bgColor: 'bg-error-50',
+      borderColor: 'border-error-200',
+      textColor: 'text-error-800',
+      iconColor: 'text-error-600'
     },
     warning: {
       icon: '⚠️',
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200',
-      textColor: 'text-yellow-800',
-      iconColor: 'text-yellow-600'
+      bgColor: 'bg-warning-50',
+      borderColor: 'border-warning-200',
+      textColor: 'text-warning-800',
+      iconColor: 'text-warning-600'
     },
     info: {
       icon: 'ℹ️',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-      textColor: 'text-blue-800',
-      iconColor: 'text-blue-600'
+      bgColor: 'bg-info-50',
+      borderColor: 'border-info-200',
+      textColor: 'text-info-800',
+      iconColor: 'text-info-600'
     }
   };
 
@@ -116,8 +116,10 @@ export default function Notification({
           initial="hidden"
           animate="visible"
           exit="exit"
+          role="alert"
+          aria-live="assertive"
         >
-          <div className={`${config.bgColor} ${config.borderColor} border rounded-xl shadow-lg p-4`}>
+          <div className={`${config.bgColor} ${config.borderColor} border rounded-xl shadow-soft p-4`}>
             <div className="flex items-start space-x-3">
               <motion.div
                 className={`text-xl ${config.iconColor}`}
@@ -152,14 +154,12 @@ export default function Notification({
               
               <motion.button
                 onClick={onClose}
-                className={`text-gray-400 hover:text-gray-600 transition-colors ${config.iconColor} hover:${config.iconColor}`}
+                className={`text-gray-400 hover:text-gray-600 transition-colors ${config.iconColor}`}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                aria-label="Close notification"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </motion.button>
