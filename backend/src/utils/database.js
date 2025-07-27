@@ -13,18 +13,24 @@ async function connectDB() {
   try {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
-      logging: false,
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
       pool: {
         max: 5,
         min: 0,
         acquire: 30000,
-        idle: 10000
-      }
+        idle: 10000,
+      },
+      dialectOptions: {
+        ssl: process.env.NODE_ENV === 'production' ? {
+          require: true,
+          rejectUnauthorized: false,
+        } : false,
+      },
     });
 
     // Test the connection
     await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
+    logger.info('Database connection has been established successfully.');
 
     // Register models
     const User = createUserModel(sequelize);
@@ -54,11 +60,11 @@ async function connectDB() {
 
     // Sync models with database
     await sequelize.sync({ alter: true });
-    console.log('Database models synchronized successfully.');
+    logger.info('Database models synchronized successfully.');
 
     return sequelize;
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    logger.error('Unable to connect to the database:', error);
     throw error;
   }
 }
@@ -73,4 +79,4 @@ function getSequelize() {
 module.exports = {
   connectDB,
   getSequelize
-}; 
+};
