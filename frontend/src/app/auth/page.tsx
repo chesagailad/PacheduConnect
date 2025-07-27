@@ -1,15 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Button from '../../components/Button';
-import FormInput from '../../components/FormInput';
-import Notification from '../../components/Notification';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 export default function AuthPage() {
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'send-otp' | 'verify-otp'>('login');
+  
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'register') {
+      setMode('register');
+    } else if (modeParam === 'login') {
+      setMode('login');
+    }
+  }, [searchParams]);
   const [form, setForm] = useState({ 
     name: '', 
     email: '', 
@@ -22,24 +30,9 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
 
-  const handleChange = (field: string, value: string) => {
-    setForm({ ...form, [field]: value });
-  };
-
-  // Validate phone number format (must start with + and have country code)
-  const validatePhoneNumber = (phoneNumber: string): boolean => {
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    return phoneRegex.test(phoneNumber);
-  };
-
-  const showNotificationMessage = (type: 'success' | 'error', message: string) => {
-    setNotificationType(type);
-    setError(type === 'error' ? message : '');
-    setSuccess(type === 'success' ? message : '');
-    setShowNotification(true);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,21 +44,7 @@ export default function AuthPage() {
     try {
       if (mode === 'register') {
         if (form.password !== form.confirmPassword) {
-          showNotificationMessage('error', 'Passwords do not match');
-          setLoading(false);
-          return;
-        }
-
-        // Validate phone number
-        if (!form.phoneNumber.trim()) {
-          showNotificationMessage('error', 'Phone number is required');
-          setLoading(false);
-          return;
-        }
-
-        if (!validatePhoneNumber(form.phoneNumber.trim())) {
-          showNotificationMessage('error', 'Please enter a valid phone number with country code (e.g., +1234567890)');
-          setLoading(false);
+          setError('Passwords do not match');
           return;
         }
         
@@ -76,19 +55,16 @@ export default function AuthPage() {
             name: form.name,
             email: form.email,
             password: form.password,
-            phoneNumber: form.phoneNumber.trim()
+            phoneNumber: form.phoneNumber
           }),
         });
 
         const data = await response.json();
         if (response.ok) {
           localStorage.setItem('token', data.token);
-          showNotificationMessage('success', 'Account created successfully!');
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
+          window.location.href = '/dashboard';
         } else {
-          showNotificationMessage('error', data.message);
+          setError(data.message);
         }
       } else if (mode === 'login') {
         const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -103,12 +79,9 @@ export default function AuthPage() {
         const data = await response.json();
         if (response.ok) {
           localStorage.setItem('token', data.token);
-          showNotificationMessage('success', 'Login successful!');
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
+          window.location.href = '/dashboard';
         } else {
-          showNotificationMessage('error', data.message);
+          setError(data.message);
         }
       } else if (mode === 'send-otp') {
         const response = await fetch(`${API_URL}/api/auth/send-otp`, {
@@ -119,10 +92,10 @@ export default function AuthPage() {
 
         const data = await response.json();
         if (response.ok) {
-          showNotificationMessage('success', `OTP sent to ${data.maskedPhone}`);
+          setSuccess(`OTP sent to ${data.phoneNumber}`);
           setMode('verify-otp');
         } else {
-          showNotificationMessage('error', data.message);
+          setError(data.message);
         }
       } else if (mode === 'verify-otp') {
         const response = await fetch(`${API_URL}/api/auth/reset-password`, {
@@ -137,40 +110,17 @@ export default function AuthPage() {
 
         const data = await response.json();
         if (response.ok) {
-          showNotificationMessage('success', 'Password reset successfully! You can now login.');
-          setTimeout(() => {
-            setMode('login');
-            setForm({ name: '', email: '', password: '', newPassword: '', confirmPassword: '', phoneNumber: '', otp: '' });
-          }, 2000);
+          setSuccess('Password reset successfully! You can now login.');
+          setMode('login');
+          setForm({ name: '', email: '', password: '', newPassword: '', confirmPassword: '', phoneNumber: '', otp: '' });
         } else {
-          showNotificationMessage('error', data.message);
+          setError(data.message);
         }
       }
     } catch (error) {
-      showNotificationMessage('error', 'An error occurred. Please try again.');
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
     }
   };
 
@@ -178,247 +128,220 @@ export default function AuthPage() {
     switch (mode) {
       case 'login':
         return (
-          <motion.form onSubmit={handleSubmit} className="space-y-6" variants={containerVariants}>
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Email"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
                 type="email"
+                name="email"
                 value={form.email}
-                onChange={(value) => handleChange('email', value)}
-                placeholder="Enter your email address"
+                onChange={handleChange}
                 required
-                autoComplete="email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Password"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <input
                 type="password"
+                name="password"
                 value={form.password}
-                onChange={(value) => handleChange('password', value)}
-                placeholder="Enter your password"
+                onChange={handleChange}
                 required
-                autoComplete="current-password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                loading={loading}
-                disabled={loading}
-                fullWidth
-                size="lg"
-              >
-                Sign In
-              </Button>
-            </motion.div>
-            
-            <motion.div className="text-center space-y-3" variants={itemVariants}>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setMode('register')}
-                className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                className="text-indigo-600 hover:text-indigo-500"
               >
                 Don't have an account? Sign up
               </button>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setMode('send-otp')}
-                  className="text-gray-600 hover:text-gray-500 text-sm transition-colors"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            </motion.div>
-          </motion.form>
+            </div>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('send-otp')}
+                className="text-indigo-600 hover:text-indigo-500"
+              >
+                Forgot Password?
+              </button>
+            </div>
+          </form>
         );
 
       case 'register':
         return (
-          <motion.form onSubmit={handleSubmit} className="space-y-6" variants={containerVariants}>
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Full Name"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Name</label>
+              <input
                 type="text"
+                name="name"
                 value={form.name}
-                onChange={(value) => handleChange('name', value)}
-                placeholder="Enter your full name"
+                onChange={handleChange}
                 required
-                autoComplete="name"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Email"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
                 type="email"
+                name="email"
                 value={form.email}
-                onChange={(value) => handleChange('email', value)}
-                placeholder="Enter your email address"
+                onChange={handleChange}
                 required
-                autoComplete="email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Phone Number"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Phone Number (optional)</label>
+              <input
                 type="tel"
+                name="phoneNumber"
                 value={form.phoneNumber}
-                onChange={(value) => handleChange('phoneNumber', value)}
-                placeholder="+27 83 123 4567"
-                required
-                autoComplete="tel"
+                onChange={handleChange}
+                placeholder="+1234567890"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Enter your phone number with country code (e.g., +27 for South Africa, +1 for US, +44 for UK)
-              </p>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Password"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <input
                 type="password"
+                name="password"
                 value={form.password}
-                onChange={(value) => handleChange('password', value)}
-                placeholder="Create a strong password"
+                onChange={handleChange}
                 required
-                autoComplete="new-password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Confirm Password"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+              <input
                 type="password"
+                name="confirmPassword"
                 value={form.confirmPassword}
-                onChange={(value) => handleChange('confirmPassword', value)}
-                placeholder="Confirm your password"
+                onChange={handleChange}
                 required
-                autoComplete="new-password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                loading={loading}
-                disabled={loading}
-                fullWidth
-                size="lg"
-              >
-                Create Account
-              </Button>
-            </motion.div>
-            
-            <motion.div className="text-center" variants={itemVariants}>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
+            </button>
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setMode('login')}
-                className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                className="text-indigo-600 hover:text-indigo-500"
               >
                 Already have an account? Sign in
               </button>
-            </motion.div>
-          </motion.form>
+            </div>
+          </form>
         );
 
       case 'send-otp':
         return (
-          <motion.form onSubmit={handleSubmit} className="space-y-6" variants={containerVariants}>
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="Email"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
                 type="email"
+                name="email"
                 value={form.email}
-                onChange={(value) => handleChange('email', value)}
-                placeholder="Enter your email address"
+                onChange={handleChange}
                 required
-                autoComplete="email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                loading={loading}
-                disabled={loading}
-                fullWidth
-                size="lg"
-              >
-                Send OTP
-              </Button>
-            </motion.div>
-            
-            <motion.div className="text-center" variants={itemVariants}>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Sending OTP...' : 'Send OTP'}
+            </button>
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setMode('login')}
-                className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                className="text-indigo-600 hover:text-indigo-500"
               >
                 Back to Sign In
               </button>
-            </motion.div>
-          </motion.form>
+            </div>
+          </form>
         );
 
       case 'verify-otp':
         return (
-          <motion.form onSubmit={handleSubmit} className="space-y-6" variants={containerVariants}>
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="OTP"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">OTP</label>
+              <input
                 type="text"
+                name="otp"
                 value={form.otp}
-                onChange={(value) => handleChange('otp', value)}
+                onChange={handleChange}
                 placeholder="Enter 6-digit OTP"
+                maxLength={6}
                 required
-                autoComplete="one-time-code"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FormInput
-                label="New Password"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">New Password</label>
+              <input
                 type="password"
+                name="newPassword"
                 value={form.newPassword}
-                onChange={(value) => handleChange('newPassword', value)}
-                placeholder="Create a new password"
+                onChange={handleChange}
                 required
-                autoComplete="new-password"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <Button
-                loading={loading}
-                disabled={loading}
-                fullWidth
-                size="lg"
-              >
-                Reset Password
-              </Button>
-            </motion.div>
-            
-            <motion.div className="text-center space-y-3" variants={itemVariants}>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Resetting password...' : 'Reset Password'}
+            </button>
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setMode('send-otp')}
-                className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                className="text-indigo-600 hover:text-indigo-500"
               >
                 Resend OTP
               </button>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  className="text-gray-600 hover:text-gray-500 text-sm transition-colors"
-                >
-                  Back to Sign In
-                </button>
-              </div>
-            </motion.div>
-          </motion.form>
+            </div>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="text-indigo-600 hover:text-indigo-500"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          </form>
         );
 
       default:
@@ -427,69 +350,31 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div 
-        className="max-w-md w-full space-y-8"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="text-center">
-            <motion.h1 
-              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"
-              whileHover={{ scale: 1.05 }}
-            >
-              Pachedu
-            </motion.h1>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {mode === 'login' && 'Welcome back'}
-              {mode === 'register' && 'Create your account'}
-              {mode === 'send-otp' && 'Reset your password'}
-              {mode === 'verify-otp' && 'Enter verification code'}
-            </h2>
-            <p className="mt-2 text-gray-600">
-              {mode === 'login' && 'Sign in to continue to your account'}
-              {mode === 'register' && 'Join thousands of users sending money safely'}
-              {mode === 'send-otp' && 'We\'ll send you a verification code'}
-              {mode === 'verify-otp' && 'Enter the 6-digit code sent to your phone'}
-            </p>
-          </div>
-        </motion.div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {mode === 'login' && 'Sign in to your account'}
+            {mode === 'register' && 'Create your account'}
+            {mode === 'send-otp' && 'Reset Password'}
+            {mode === 'verify-otp' && 'Enter OTP'}
+          </h2>
+        </div>
         
-        <motion.div
-          className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-white/20"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mode}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {renderForm()}
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-      </motion.div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            {success}
+          </div>
+        )}
 
-      {/* Notification */}
-      <Notification
-        type={notificationType}
-        title={notificationType === 'success' ? 'Success!' : 'Error'}
-        message={notificationType === 'success' ? success : error}
-        isVisible={showNotification}
-        onClose={() => setShowNotification(false)}
-        duration={5000}
-      />
+        {renderForm()}
+      </div>
     </div>
   );
 } 

@@ -10,6 +10,7 @@ module.exports = {
       colors: {
         primary: {
           50: '#eff6ff',
+<<<<<<< HEAD
           100: '#dbeafe',
           200: '#bfdbfe',
           300: '#93c5fd',
@@ -89,6 +90,11 @@ module.exports = {
         slideDown: {
           '0%': { transform: 'translateY(-10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
+=======
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+>>>>>>> origin/main
         },
       },
     },
@@ -96,4 +102,8 @@ module.exports = {
   plugins: [
     require('@tailwindcss/forms'),
   ],
+<<<<<<< HEAD
 }; 
+=======
+}
+>>>>>>> origin/main

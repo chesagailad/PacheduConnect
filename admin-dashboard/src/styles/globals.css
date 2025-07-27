@@ -1,5 +1,6 @@
 @tailwind base;
 @tailwind components;
+<<<<<<< HEAD
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -227,3 +228,6 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
   }
 } 
+=======
+@tailwind utilities;
+>>>>>>> origin/main

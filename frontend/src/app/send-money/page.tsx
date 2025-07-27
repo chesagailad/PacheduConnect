@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentProcessor from '../../components/PaymentProcessor';
-import Button from '../../components/Button';
-import Navigation from '../../components/Navigation';
+import logger from '@/utils/logger';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 interface FeeBreakdown {
   amount: number;
@@ -33,7 +33,6 @@ export default function SendMoneyPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdown | null>(null);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -41,25 +40,9 @@ export default function SendMoneyPage() {
       router.push('/auth');
       return;
     }
-    // Fetch user data and balance
-    fetchUserData();
+    // Fetch user balance
     fetchUserBalance();
   }, [router]);
-
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
 
   const fetchUserBalance = async () => {
     try {
@@ -72,9 +55,11 @@ export default function SendMoneyPage() {
       if (res.ok) {
         const data = await res.json();
         setUserBalance(data.balance);
+      } else {
+        logger.warn('Could not fetch user balance');
       }
     } catch (err) {
-      console.log('Could not fetch balance');
+      logger.apiError('Could not fetch balance', err);
     }
   };
 
@@ -123,8 +108,8 @@ export default function SendMoneyPage() {
         const data = await res.json();
         setFeeBreakdown(data);
       }
-    } catch (err) {
-      console.error('Failed to calculate fee:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to calculate fee', err, { amount: parseFloat(form.amount), fromCurrency: form.currency, toCurrency: form.currency });
     }
   };
 
@@ -155,7 +140,7 @@ export default function SendMoneyPage() {
         setError('Recipient not found. Please check the email address.');
       }
     } catch (err: any) {
-      setError('Failed to verify recipient');
+      logger.apiError('Failed to verify recipient', err);
     } finally {
       setLoading(false);
     }
@@ -225,13 +210,8 @@ export default function SendMoneyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50">
-      <Navigation 
-        title="Send Money" 
-        showBackButton={true} 
-        user={user}
-      />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
           <p className="text-gray-600">Transfer money to friends and family securely</p>
@@ -261,28 +241,33 @@ export default function SendMoneyPage() {
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Email
+                </label>
                 <input
                   type="email"
-                  placeholder="Enter recipient's email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="recipientEmail"
                   value={form.recipientEmail}
                   onChange={handleChange}
+                  placeholder="Enter recipient's email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount
+                </label>
                 <div className="flex">
                   <input
                     type="number"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleChange}
                     placeholder="0.00"
                     step="0.01"
                     min="0"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    name="amount"
-                    value={form.amount}
-                    onChange={handleChange}
                   />
                   <select
                     name="currency"
@@ -298,25 +283,29 @@ export default function SendMoneyPage() {
                 </div>
               </div>
             </div>
+
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Optional)
+              </label>
               <textarea
                 name="description"
+                value={form.description}
+                onChange={handleChange}
                 placeholder="What's this payment for?"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={form.description}
-                onChange={handleChange}
               />
             </div>
+
             <div className="mt-6">
-              <Button
+              <button
                 onClick={verifyRecipient}
                 disabled={loading}
-                className="w-full"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Continue
-              </Button>
+                {loading ? 'Verifying...' : 'Continue'}
+              </button>
             </div>
           </div>
         ) : (
@@ -384,20 +373,19 @@ export default function SendMoneyPage() {
             </div>
 
             <div className="flex space-x-3">
-              <Button
-                onClick={proceedToPayment}
-                disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
-                className="flex-1"
-              >
+                             <button
+                 onClick={proceedToPayment}
+                 disabled={!!(userBalance !== null && feeBreakdown && userBalance < feeBreakdown.totalAmount)}
+                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+               >
                 Proceed to Payment
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={backToForm}
-                variant="secondary"
-                className="px-4"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
               >
                 Back
-              </Button>
+              </button>
             </div>
           </div>
         )}

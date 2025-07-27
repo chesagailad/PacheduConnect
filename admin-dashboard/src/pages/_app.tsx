@@ -1,4 +1,5 @@
 import type { AppProps } from 'next/app';
+<<<<<<< HEAD
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import '@/styles/globals.css';
@@ -43,3 +44,10 @@ export default function App({ Component, pageProps }: AppProps) {
     </QueryClientProvider>
   );
 } 
+=======
+import '../styles/globals.css';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+>>>>>>> origin/main

@@ -9,9 +9,9 @@ class EncryptionService {
     this.tagLength = 16; // 128 bits
     this.saltLength = 64; // 512 bits
     
-    // Get encryption key from environment or generate one
-    this.masterKey = process.env.ENCRYPTION_MASTER_KEY || this.generateMasterKey();
-    
+    // Hard code the encryption key for debugging
+    this.masterKey =
+      '310c83e054874a26b9f01207354f834071351de6ccdccbf18709be9056f5ece3';
     // Validate master key
     if (!this.masterKey || this.masterKey.length !== this.keyLength * 2) {
       throw new Error('Invalid ENCRYPTION_MASTER_KEY. Must be 64 characters (32 bytes)');

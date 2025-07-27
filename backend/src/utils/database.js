@@ -52,6 +52,7 @@ async function connectDB() {
     Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Transaction.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
     Transaction.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
+    
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Payment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Payment.belongsTo(Transaction, { foreignKey: 'transactionId', as: 'transaction' });
@@ -76,7 +77,23 @@ function getSequelize() {
   return sequelize;
 }
 
+function getModels() {
+  if (!sequelize) {
+    throw new Error('Database not connected. Call connectDB() first.');
+  }
+  
+  const User = createUserModel(sequelize);
+  const Transaction = createTransactionModel(sequelize);
+  const Notification = createNotificationModel(sequelize);
+  const Payment = createPaymentModel(sequelize);
+  const Beneficiary = createBeneficiaryModel(sequelize);
+  const KYC = createKYCModel(sequelize);
+  
+  return { User, Transaction, Notification, Payment, Beneficiary, KYC };
+}
+
 module.exports = {
   connectDB,
-  getSequelize
+  getSequelize,
+  getModels
 };

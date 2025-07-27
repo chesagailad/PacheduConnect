@@ -6,6 +6,29 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
+  
+  /* Fix placeholder visibility issues caused by @tailwindcss/forms plugin */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9CA3AF; /* gray-400 */
+    opacity: 1; /* Ensure full opacity */
+  }
+  
+  /* Ensure placeholders are visible in different input states */
+  input:focus::placeholder,
+  textarea:focus::placeholder {
+    color: #D1D5DB; /* gray-300 - slightly lighter when focused */
+    opacity: 1;
+  }
+  
+  /* Dark mode support if you plan to add it */
+  @media (prefers-color-scheme: dark) {
+    input::placeholder,
+    textarea::placeholder {
+      color: #6B7280; /* gray-500 for dark backgrounds */
+      opacity: 1;
+    }
+  }
 }
 
 @layer components {
@@ -21,79 +44,24 @@
     @apply bg-white rounded-lg shadow-soft p-6;
   }
 
-  /* Loading Spinner */
-  .loader {
-    transform: rotateZ(45deg);
-    perspective: 1000px;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    color: #fff;
+  /* ChatBot custom styles */
+  .chatbot-container {
+    @apply fixed bottom-4 right-4 z-50;
   }
   
-  .loader:before,
-  .loader:after {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: inherit;
-    height: inherit;
-    border-radius: 50%;
-    transform: rotateX(70deg);
-    animation: 1s spin linear infinite;
+  .chatbot-message-user {
+    @apply bg-primary-600 text-white max-w-xs px-3 py-2 rounded-lg;
   }
   
-  .loader:after {
-    color: #FF3D00;
-    transform: rotateY(70deg);
-    animation-delay: .4s;
+  .chatbot-message-bot {
+    @apply bg-gray-100 text-gray-800 max-w-xs px-3 py-2 rounded-lg;
   }
-
-  @keyframes rotate {
-    0% {
-      transform: translate(-50%, -50%) rotateZ(0deg);
-    }
-    100% {
-      transform: translate(-50%, -50%) rotateZ(360deg);
-    }
+  
+  .chatbot-typing-indicator {
+    @apply flex space-x-1;
   }
-
-  @keyframes rotateccw {
-    0% {
-      transform: translate(-50%, -50%) rotate(0deg);
-    }
-    100% {
-      transform: translate(-50%, -50%) rotate(-360deg);
-    }
-  }
-
-  @keyframes spin {
-    0%,
-    100% {
-      box-shadow: .2em 0px 0 0px currentcolor;
-    }
-    12% {
-      box-shadow: .2em .2em 0 0 currentcolor;
-    }
-    25% {
-      box-shadow: 0 .2em 0 0px currentcolor;
-    }
-    37% {
-      box-shadow: -.2em .2em 0 0 currentcolor;
-    }
-    50% {
-      box-shadow: -.2em 0 0 0 currentcolor;
-    }
-    62% {
-      box-shadow: -.2em -.2em 0 0 currentcolor;
-    }
-    75% {
-      box-shadow: 0px -.2em 0 0 currentcolor;
-    }
-    87% {
-      box-shadow: .2em -.2em 0 0 currentcolor;
-    }
+  
+  .chatbot-typing-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
   }
 } 
