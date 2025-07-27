@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import logger from '@/utils/logger';
+import { API_CONFIG } from '@/config/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = API_CONFIG.BASE_URL;
 
 interface PaymentGateway {
   name: string;
@@ -75,8 +77,8 @@ export default function PaymentProcessor({
           setSelectedGateway(availableGateways[0]);
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch gateways:', err);
+    } catch (err: any) {
+      logger.apiError('Failed to fetch payment gateways', err);
     }
   };
 
@@ -354,19 +356,21 @@ export default function PaymentProcessor({
       )}
 
       <div className="flex space-x-3">
-        <button
+        <Button
           onClick={processPayment}
+          loading={loading}
           disabled={loading || !selectedGateway}
-          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="flex-1"
         >
-          {loading ? 'Processing...' : `Pay ${currency} ${total.toFixed(2)}`}
-        </button>
-        <button
+          Pay {currency} {total.toFixed(2)}
+        </Button>
+        <Button
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          variant="outline"
+          className="px-4"
         >
           Cancel
-        </button>
+        </Button>
       </div>
 
       <div className="mt-4 text-xs text-gray-500">

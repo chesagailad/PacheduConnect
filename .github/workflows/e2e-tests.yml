@@ -1,0 +1,204 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test against multiple browsers
+        project: [chromium, firefox, webkit]
+        # Test against mobile and desktop viewports
+        shardIndex: [1, 2, 3, 4, 5]
+        shardTotal: [5]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    
+    - name: Start PostgreSQL
+      run: |
+        sudo systemctl start postgresql
+        sudo -u postgres createdb pachedu_test
+        sudo -u postgres psql -c "CREATE USER pachedu_test WITH PASSWORD 'test_password';"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE pachedu_test TO pachedu_test;"
+    
+    - name: Start Redis
+      run: |
+        sudo systemctl start redis-server
+    
+    - name: Setup test database
+      run: |
+        cd backend
+        npm run db:reset
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Build application
+      run: npm run build
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Start application
+      run: |
+        npm run dev &
+        sleep 30
+        curl -f http://localhost:3000/api/health || exit 1
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Run Playwright tests
+      run: |
+        npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-${{ matrix.project }}-${{ matrix.shardIndex }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+    
+    - name: Upload test videos
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-video-${{ matrix.project }}-${{ matrix.shardIndex }}
+        path: test-results/
+        retention-days: 30
+
+  test-mobile:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [Mobile Chrome, Mobile Safari]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    
+    - name: Start PostgreSQL
+      run: |
+        sudo systemctl start postgresql
+        sudo -u postgres createdb pachedu_test
+        sudo -u postgres psql -c "CREATE USER pachedu_test WITH PASSWORD 'test_password';"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE pachedu_test TO pachedu_test;"
+    
+    - name: Start Redis
+      run: |
+        sudo systemctl start redis-server
+    
+    - name: Setup test database
+      run: |
+        cd backend
+        npm run db:reset
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Build application
+      run: npm run build
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Start application
+      run: |
+        npm run dev &
+        sleep 30
+        curl -f http://localhost:3000/api/health || exit 1
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Run mobile tests
+      run: |
+        npx playwright test --project="${{ matrix.project }}"
+      env:
+        DATABASE_URL: postgresql://pachedu_test:test_password@localhost:5432/pachedu_test
+        NODE_ENV: test
+    
+    - name: Upload mobile test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mobile-test-results-${{ matrix.project }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+
+  test-report:
+    needs: [test, test-mobile]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        path: test-results/
+    
+    - name: Generate test report
+      run: |
+        npx playwright merge-reports test-results/ --reporter html
+        npx playwright show-report --host 0.0.0.0 --port 9323 &
+        sleep 5
+        curl -f http://localhost:9323 || exit 1
+    
+    - name: Upload combined test report
+      uses: actions/upload-artifact@v4
+      with:
+        name: combined-test-report
+        path: playwright-report/
+        retention-days: 30 

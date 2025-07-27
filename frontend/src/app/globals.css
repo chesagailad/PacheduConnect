@@ -6,6 +6,29 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
+  
+  /* Fix placeholder visibility issues caused by @tailwindcss/forms plugin */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9CA3AF; /* gray-400 */
+    opacity: 1; /* Ensure full opacity */
+  }
+  
+  /* Ensure placeholders are visible in different input states */
+  input:focus::placeholder,
+  textarea:focus::placeholder {
+    color: #D1D5DB; /* gray-300 - slightly lighter when focused */
+    opacity: 1;
+  }
+  
+  /* Dark mode support if you plan to add it */
+  @media (prefers-color-scheme: dark) {
+    input::placeholder,
+    textarea::placeholder {
+      color: #6B7280; /* gray-500 for dark backgrounds */
+      opacity: 1;
+    }
+  }
 }
 
 @layer components {
@@ -19,5 +42,26 @@
   
   .card {
     @apply bg-white rounded-lg shadow-soft p-6;
+  }
+
+  /* ChatBot custom styles */
+  .chatbot-container {
+    @apply fixed bottom-4 right-4 z-50;
+  }
+  
+  .chatbot-message-user {
+    @apply bg-primary-600 text-white max-w-xs px-3 py-2 rounded-lg;
+  }
+  
+  .chatbot-message-bot {
+    @apply bg-gray-100 text-gray-800 max-w-xs px-3 py-2 rounded-lg;
+  }
+  
+  .chatbot-typing-indicator {
+    @apply flex space-x-1;
+  }
+  
+  .chatbot-typing-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
   }
 } 
