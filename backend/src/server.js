@@ -28,10 +28,11 @@ const adminRoutes = require('./routes/admin');
 const superAdminRoutes = require('./routes/superAdmin');
 const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
+const chatbotRoutes = require('./routes/chatbot');
 const notificationRoutes = require('./routes/notifications');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Security middleware
 app.use(helmet({
@@ -140,6 +141,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // 404 handler

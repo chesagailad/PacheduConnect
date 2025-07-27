@@ -1,22 +1,32 @@
 {
   "name": "pachedu-telegram-bot",
   "version": "1.0.0",
-  "description": "Pachedu Telegram Bot for customer interactions",
-  "main": "src/index.js",
+  "description": "Pachedu Telegram chatbot for remittance services",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
-    "test": "jest"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "dotenv": "16.3.1",
-    "node-telegram-bot-api": "0.64.0",
-    "winston": "3.11.0"
+    "telegraf": "^4.15.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "winston": "^3.10.0"
   },
   "devDependencies": {
-    "nodemon": "3.0.2"
+    "nodemon": "^3.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "author": "Pachedu Team",
+  "license": "MIT",
+  "keywords": [
+    "telegram",
+    "chatbot",
+    "remittance",
+    "zimbabwe",
+    "south-africa"
+  ]
 }

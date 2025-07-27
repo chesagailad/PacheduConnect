@@ -12,17 +12,17 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy source code
 COPY . .
 
-# Create a non-root user
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs
-RUN adduser -S telegram -u 1001
+RUN adduser -S nodejs -u 1001
 
 # Change ownership
-RUN chown -R telegram:nodejs /app
-USER telegram
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
-# Health check
+# Health check (for bot status)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "console.log('Health check passed')" || exit 1
+  CMD pgrep -f "node.*index.js" || exit 1
 
-# Start the application
+# Start the bot
 CMD ["npm", "start"]
