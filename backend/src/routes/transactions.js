@@ -1,10 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
-const { getSequelize } = require('../utils/database');
-const createTransactionModel = require('../models/Transaction');
-const createUserModel = require('../models/User');
-const createNotificationModel = require('../models/Notification');
+const { getSequelize, getModels } = require('../utils/database');
 const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
 const { convertCurrency, getExchangeRate, getAllRates, calculateCommission, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
 
@@ -133,8 +130,7 @@ router.get('/exchange-rate/:from/:to', async (req, res) => {
 // Get user transactions with filters
 router.get('/', auth, async (req, res) => {
   try {
-    const Transaction = createTransactionModel(getSequelize());
-    const User = createUserModel(getSequelize());
+    const { User, Transaction } = getModels();
     
     const {
       type,
@@ -216,12 +212,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid input data' });
     }
     
-    const sequelize = getSequelize();
-    const User = createUserModel(sequelize);
-    const Transaction = createTransactionModel(sequelize);
-    const Notification = createNotificationModel(sequelize);
-    const createKYCModel = require('../models/KYC');
-    const KYC = createKYCModel(sequelize);
+    const { User, Transaction, Notification, KYC } = getModels();
     
     // Check KYC status and limits
     const kyc = await KYC.findOne({ where: { userId: req.user.id } });

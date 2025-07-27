@@ -77,7 +77,23 @@ function getSequelize() {
   return sequelize;
 }
 
+function getModels() {
+  if (!sequelize) {
+    throw new Error('Database not connected. Call connectDB() first.');
+  }
+  
+  const User = createUserModel(sequelize);
+  const Transaction = createTransactionModel(sequelize);
+  const Notification = createNotificationModel(sequelize);
+  const Payment = createPaymentModel(sequelize);
+  const Beneficiary = createBeneficiaryModel(sequelize);
+  const KYC = createKYCModel(sequelize);
+  
+  return { User, Transaction, Notification, Payment, Beneficiary, KYC };
+}
+
 module.exports = {
   connectDB,
-  getSequelize
+  getSequelize,
+  getModels
 }; 
