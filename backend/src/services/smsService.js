@@ -99,7 +99,6 @@ class SMSService {
     return this.sendOTP(phoneNumber, otp);
   }
 
-<<<<<<< HEAD
   // Chatbot SMS Notification Templates
   /**
    * Validate phone number format

@@ -47,51 +47,89 @@ const FEE_CONFIG = {
 /**
  * Calculate transaction fee based on amount and currency
  * @param {number} amount - Transaction amount
- * @param {string} currency - Currency code (USD, EUR, etc.)
+ * @param {string} fromCurrency - Source currency code (ZAR, USD, etc.)
+ * @param {string} toCurrency - Target currency code (USD, EUR, etc.)
+ * @param {string} speed - Processing speed ('standard' or 'express')
  * @returns {object} Fee breakdown
  */
-function calculateFee(amount, currency = 'USD') {
+function calculateFee(amount, fromCurrency = 'USD', toCurrency = 'USD', speed = 'standard') {
   if (amount <= 0) {
-    throw new Error('Amount must be greater than 0');
+    throw new Error('Amount must be positive');
+  }
+
+  // Validate currencies
+  const supportedCurrencies = ['USD', 'EUR', 'GBP', 'ZAR'];
+  if (!supportedCurrencies.includes(fromCurrency) || !supportedCurrencies.includes(toCurrency)) {
+    throw new Error('Unsupported currency');
   }
   
   // Get fee configuration for currency
-  const feeConfig = FEE_CONFIG[currency] || FEE_CONFIG.default;
+  const feeConfig = FEE_CONFIG[toCurrency] || FEE_CONFIG.default;
   
-  let fee = 0;
+  let serviceFee = 0;
+  let processingFee = 0;
+  let exchangeMargin = 0;
+  let regulatoryFee = 0;
   let feeType = feeConfig.type;
   
-  // Check if large amount fee applies
+  // Calculate service fee
   if (amount >= FEE_CONFIG.large.threshold) {
     const largeConfig = FEE_CONFIG.large;
-    fee = (amount * largeConfig.value) / 100;
-    fee = Math.max(fee, largeConfig.minFee);
-    fee = Math.min(fee, largeConfig.maxFee);
+    serviceFee = (amount * largeConfig.value) / 100;
+    serviceFee = Math.max(serviceFee, largeConfig.minFee);
+    serviceFee = Math.min(serviceFee, largeConfig.maxFee);
     feeType = 'large_percentage';
   } else {
     // Apply standard fee calculation
     if (feeConfig.type === 'percentage') {
-      fee = (amount * feeConfig.value) / 100;
+      serviceFee = (amount * feeConfig.value) / 100;
     } else if (feeConfig.type === 'flat') {
-      fee = feeConfig.value;
+      serviceFee = feeConfig.value;
     } else if (feeConfig.type === 'tiered') {
-      fee = calculateTieredFee(amount, feeConfig.tiers);
+      serviceFee = calculateTieredFee(amount, feeConfig.tiers);
     }
     
     // Apply min/max constraints
-    fee = Math.max(fee, feeConfig.minFee);
-    fee = Math.min(fee, feeConfig.maxFee);
+    serviceFee = Math.max(serviceFee, feeConfig.minFee);
+    serviceFee = Math.min(serviceFee, feeConfig.maxFee);
   }
+
+  // Calculate processing fee (base 1.5% for express, 0.5% for standard)
+  processingFee = speed === 'express' ? (amount * 1.5) / 100 : (amount * 0.5) / 100;
   
-  const totalAmount = amount + fee;
+  // Calculate exchange margin if different currencies
+  if (fromCurrency !== toCurrency) {
+    exchangeMargin = (amount * 0.5) / 100; // 0.5% exchange margin
+  }
+
+  // Calculate regulatory fee for large amounts (50000 and above)
+  if (amount >= 50000) {
+    regulatoryFee = Math.min((amount * 0.1) / 100, 25); // 0.1% capped at $25
+  }
+
+  const fixedFee = serviceFee;
+  const percentageFee = processingFee + exchangeMargin;
+  const totalFee = fixedFee + percentageFee + regulatoryFee;
+  const totalAmount = amount + totalFee;
   
   return {
     amount: parseFloat(amount.toFixed(2)),
-    fee: parseFloat(fee.toFixed(2)),
+    fixedFee: parseFloat(fixedFee.toFixed(2)),
+    percentageFee: parseFloat(percentageFee.toFixed(2)),
+    regulatoryFee: parseFloat(regulatoryFee.toFixed(2)),
+    totalFee: parseFloat(totalFee.toFixed(2)),
     totalAmount: parseFloat(totalAmount.toFixed(2)),
     feeType,
     feePercentage: feeConfig.value,
-    currency
+    fromCurrency,
+    toCurrency,
+    speed,
+    breakdown: {
+      serviceFee: parseFloat(serviceFee.toFixed(2)),
+      processingFee: parseFloat(processingFee.toFixed(2)),
+      exchangeMargin: parseFloat(exchangeMargin.toFixed(2)),
+      regulatoryFee: parseFloat(regulatoryFee.toFixed(2))
+    }
   };
 }
 

@@ -1,5 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
+import ExchangeRateCalculator from '../components/ExchangeRateCalculator';
+import TrustIndicators from '../components/TrustIndicators';
+import CustomerTestimonials from '../components/CustomerTestimonials';
+import FeeTransparency from '../components/FeeTransparency';
+import StepByStepProcess from '../components/StepByStepProcess';
+import SecurityTrustIndicators from '../components/SecurityTrustIndicators';
 
 export default function Home() {
   return (
@@ -10,50 +16,50 @@ export default function Home() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">P</span>
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">PacheduConnect</h1>
               </div>
             </div>
             <nav className="hidden lg:flex space-x-8">
-              <Link href="/about" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+              <Link href="/about" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                 About Us
               </Link>
-              <Link href="/services" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+              <Link href="/services" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                 How It Works
               </Link>
-              <Link href="/rates" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+              <Link href="/rates" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                 Exchange Rates
               </Link>
-              <Link href="/support" className="text-gray-600 hover:text-primary-600 font-medium transition-colors">
+              <Link href="/support" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                 Support
               </Link>
             </nav>
             <div className="flex items-center space-x-3">
               <Link
                 href="/auth?mode=login"
-                className="text-gray-600 hover:text-primary-600 px-4 py-2 font-medium transition-colors"
+                className="text-gray-600 hover:text-blue-600 px-4 py-2 font-medium transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth?mode=register"
-                className="bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                Get Started
+                Send Money Now
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+      {/* Enhanced Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50">
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,76,231,0.1)_50%,transparent_75%,transparent_100%)]"></div>
-          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary-100 rounded-full opacity-20"></div>
-          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-secondary-100 rounded-full opacity-20"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(59,130,246,0.1)_50%,transparent_75%,transparent_100%)]"></div>
+          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-blue-100 rounded-full opacity-20"></div>
+          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-blue-100 rounded-full opacity-20"></div>
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
@@ -73,120 +79,71 @@ export default function Home() {
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight mb-6">
                 Send Money to{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-secondary-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700">
                   Zimbabwe
                 </span>
                 <br />
                 <span className="text-4xl md:text-5xl lg:text-6xl text-gray-700">
-                  in Minutes, Not Hours
+                  Fast, Secure, Affordable
                 </span>
               </h1>
               
               <p className="text-xl text-gray-600 mb-8 max-w-2xl leading-relaxed">
-                The fastest, most secure way to send money from South Africa to Zimbabwe. 
+                The most trusted way to send money from South Africa to Zimbabwe. 
                 Save up to 90% on fees with real-time transfers and unbeatable exchange rates.
               </p>
 
               {/* Key Benefits */}
               <div className="flex flex-wrap gap-4 mb-8">
-                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm">
+                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm border border-gray-100">
                   <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <span className="text-sm font-medium text-gray-700">2-5 minute transfers</span>
                 </div>
-                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm">
+                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm border border-gray-100">
+                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-gray-700">From R10 only</span>
+                </div>
+                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm border border-gray-100">
                   <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <span className="text-sm font-medium text-gray-700">Best exchange rates</span>
                 </div>
-                <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-sm">
-                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm font-medium text-gray-700">Bank-grade security</span>
-                </div>
               </div>
 
-              {/* CTA Buttons */}
+              {/* Enhanced CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Link
                   href="/send-money"
-                  className="group bg-primary-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
                 >
-                  Send Money Now
-                  <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
+                  <span>Send Money Now</span>
                 </Link>
                 <Link
-                  href="/rates"
-                  className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:border-primary-600 hover:text-primary-600 transition-all duration-200 flex items-center justify-center"
+                  href="/auth?mode=register"
+                  className="bg-white text-blue-600 px-8 py-4 rounded-lg border-2 border-blue-600 hover:bg-blue-50 font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
                 >
-                  Check Exchange Rates
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                  <span>Get Started</span>
                 </Link>
               </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-4 pt-8 border-t border-gray-200">
-                <div>
-                  <div className="text-2xl font-bold text-primary-600">$50M+</div>
-                  <div className="text-sm text-gray-600">Total Transferred</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary-600">50K+</div>
-                  <div className="text-sm text-gray-600">Happy Customers</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary-600">99.9%</div>
-                  <div className="text-sm text-gray-600">Success Rate</div>
-                </div>
-              </div>
+              {/* Trust Indicators */}
+              <TrustIndicators />
             </div>
 
+            {/* Live Exchange Rate Calculator */}
             <div className="lg:col-span-5 mt-12 lg:mt-0">
-              <div className="relative">
-                {/* Phone Mockup */}
-                <div className="mx-auto w-80 h-96 bg-gray-900 rounded-3xl p-2 shadow-2xl">
-                  <div className="w-full h-full bg-white rounded-2xl overflow-hidden">
-                    <div className="bg-primary-600 h-20 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">PacheduConnect</span>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">You Send</div>
-                        <div className="text-2xl font-bold text-gray-900">R 1,000</div>
-                      </div>
-                      <div className="bg-primary-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">They Receive</div>
-                        <div className="text-2xl font-bold text-primary-600">$65.50</div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">Transfer Time</div>
-                        <div className="text-lg font-bold text-green-600">2-5 minutes</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Floating Elements */}
-                <div className="absolute -top-4 -left-4 bg-white rounded-lg shadow-lg p-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-gray-700">Live Rates</span>
-                  </div>
-                </div>
-                
-                <div className="absolute -bottom-4 -right-4 bg-white rounded-lg shadow-lg p-3">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700">Secure</span>
-                  </div>
-                </div>
-              </div>
+              <ExchangeRateCalculator />
             </div>
           </div>
         </div>
@@ -252,6 +209,15 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Customer Testimonials */}
+      <CustomerTestimonials />
+
+      {/* Fee Transparency */}
+      <FeeTransparency />
+
+      {/* Step-by-Step Process */}
+      <StepByStepProcess />
 
       {/* Features Section */}
       <section className="py-20 bg-white">
@@ -440,6 +406,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Security Trust Indicators */}
+      <SecurityTrustIndicators />
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16">

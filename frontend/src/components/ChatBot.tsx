@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { buildApiUrl } from '../config/api';
-import logger from '@/utils/logger';
+// import logger from '@/utils/logger';
 
 interface Message {
   id: string;
@@ -104,20 +104,20 @@ export default function ChatBot({ className = '' }: ChatBotProps) {
 
       if (response.ok) {
         const result = await response.json();
-        logger.info('SMS sent successfully via ChatBot', { 
-          phoneNumber: data.phoneNumber?.replace(/\d(?=\d{4})/g, '*'), // Mask phone number for privacy
-          messageLength: data.message?.length 
-        });
+        // logger.info('SMS sent successfully via ChatBot', { 
+        //   phoneNumber: data.phoneNumber?.replace(/\d(?=\d{4})/g, '*'), // Mask phone number for privacy
+        //   messageLength: data.message?.length 
+        // });
         return true;
       } else {
-        logger.error('Failed to send SMS via ChatBot', { 
-          status: response.status,
-          statusText: response.statusText 
-        });
+        // logger.error('Failed to send SMS via ChatBot', { 
+        //   status: response.status,
+        //   statusText: response.statusText 
+        // });
         return false;
       }
     } catch (error) {
-      logger.error('Error sending SMS via ChatBot', error);
+      // logger.error('Error sending SMS via ChatBot', error);
       return false;
     }
   };
