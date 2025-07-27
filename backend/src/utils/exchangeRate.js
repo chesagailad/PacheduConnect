@@ -1,6 +1,6 @@
 /**
  * Exchange rate utility for PacheduConnect
- * Fetches real-time rates from XE Currency Data API with margin and commission
+ * Fetches real-time rates from XE Currency Data API with margin and flat 3% fee
  */
 
 const axios = require('axios');
@@ -15,7 +15,7 @@ const XE_API_KEY = process.env.XE_API_KEY;
 
 // Platform configuration
 const EXCHANGE_RATE_MARGIN = 0.015; // 1.5% margin
-const ZAR_COMMISSION_RATE = 0.035; // 3.5% commission on ZAR amounts
+const TRANSFER_FEE_RATE = 0.03; // 3% flat fee on sending amount
 
 // Cache for exchange rates to avoid excessive API calls
 let rateCache = {
@@ -34,7 +34,7 @@ function validateXECredentials() {
 }
 
 /**
- * Create XE API authentication header
+ * Get XE API authentication header
  */
 function getXEAuthHeader() {
   validateXECredentials();
@@ -178,12 +178,12 @@ async function getExchangeRates() {
 }
 
 /**
- * Calculate commission fee for ZAR transactions
+ * Calculate transfer fee (3% flat fee on sending amount)
  * @param {number} amount - Amount being sent
  * @param {string} currency - Currency of the amount
- * @returns {object} Commission details
+ * @returns {object} Transfer fee details
  */
-function calculateCommission(amount, currency) {
+function calculateTransferFee(amount, currency) {
   // Input validation
   if (typeof amount !== 'number' || amount < 0 || !isFinite(amount)) {
     throw new Error('Invalid amount: must be a non-negative finite number');
@@ -200,30 +200,23 @@ function calculateCommission(amount, currency) {
     throw new Error(`Unsupported currency '${currency}'. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}`);
   }
   
-  if (currency === 'ZAR') {
-    const commissionAmount = amount * ZAR_COMMISSION_RATE;
-    return {
-      commissionRate: ZAR_COMMISSION_RATE,
-      commissionAmount: parseFloat(commissionAmount.toFixed(2)),
-      totalAmount: parseFloat((amount + commissionAmount).toFixed(2)),
-      currency: 'ZAR'
-    };
-  }
+  // Flat 3% fee on sending amount for all currencies
+  const transferFeeAmount = amount * TRANSFER_FEE_RATE;
   
   return {
-    commissionRate: 0,
-    commissionAmount: 0,
-    totalAmount: parseFloat(amount.toFixed(2)),
-    currency
+    transferFeeRate: TRANSFER_FEE_RATE,
+    transferFeeAmount: parseFloat(transferFeeAmount.toFixed(2)),
+    totalAmount: parseFloat((amount + transferFeeAmount).toFixed(2)),
+    currency: currency
   };
 }
 
 /**
- * Convert amount from one currency to another with commission
+ * Convert amount from one currency to another with transfer fee
  * @param {number} amount - Amount to convert
  * @param {string} fromCurrency - Source currency
  * @param {string} toCurrency - Target currency
- * @returns {object} Conversion result with commission details
+ * @returns {object} Conversion result with transfer fee details
  */
 async function convertCurrency(amount, fromCurrency, toCurrency) {
   // Enhanced input validation
@@ -253,14 +246,14 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
   }
   
   if (fromCurrency === toCurrency) {
-    const commission = calculateCommission(amount, fromCurrency);
+    const transferFee = calculateTransferFee(amount, fromCurrency);
     return {
       originalAmount: parseFloat(amount.toFixed(2)),
       convertedAmount: parseFloat(amount.toFixed(2)),
       fromCurrency,
       toCurrency,
       rate: 1.000000,
-      commission,
+      transferFee,
       margin: 0.000, // No margin for same currency
       timestamp: new Date().toISOString(),
       source: 'Same currency conversion'
@@ -276,8 +269,8 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
   const rate = allRates[fromCurrency][toCurrency];
   const convertedAmount = amount * rate;
   
-  // Calculate commission (only applies to ZAR amounts being sent)
-  const commission = calculateCommission(amount, fromCurrency);
+  // Calculate transfer fee (3% flat fee on sending amount)
+  const transferFee = calculateTransferFee(amount, fromCurrency);
   
   return {
     originalAmount: parseFloat(amount.toFixed(2)),
@@ -285,7 +278,7 @@ async function convertCurrency(amount, fromCurrency, toCurrency) {
     fromCurrency,
     toCurrency,
     rate: parseFloat(rate.toFixed(6)),
-    commission,
+    transferFee,
     margin: EXCHANGE_RATE_MARGIN,
     timestamp: new Date().toISOString(),
     source: 'XE Currency Data API'
@@ -361,7 +354,7 @@ async function getAllRates() {
     supportedCurrencies: SUPPORTED_CURRENCIES,
     rates: allRates,
     margin: EXCHANGE_RATE_MARGIN,
-    zarCommissionRate: ZAR_COMMISSION_RATE,
+    transferFeeRate: TRANSFER_FEE_RATE,
     timestamp: new Date().toISOString(),
     source: 'XE Currency Data API',
     cacheDuration: rateCache.cacheDuration
@@ -383,17 +376,17 @@ function isCurrencySupported(currency) {
 }
 
 /**
- * Get platform fee structure
- * @returns {object} Fee information
+ * Get platform fee structure information
+ * @returns {object} Fee structure details
  */
 function getFeeStructure() {
   return {
     exchangeRateMargin: EXCHANGE_RATE_MARGIN,
-    zarCommissionRate: ZAR_COMMISSION_RATE,
+    transferFeeRate: TRANSFER_FEE_RATE,
     supportedCurrencies: SUPPORTED_CURRENCIES,
     description: {
       margin: 'Exchange rate margin added to all conversions',
-      zarCommission: 'Commission fee applied to ZAR amounts being sent'
+      transferFee: 'Flat 3% fee applied to all sending amounts'
     }
   };
 }
@@ -402,11 +395,9 @@ module.exports = {
   convertCurrency,
   getExchangeRate,
   getAllRates,
-  isCurrencySupported,
-  getExchangeRates,
-  calculateCommission,
+  calculateTransferFee,
   getFeeStructure,
   SUPPORTED_CURRENCIES,
   EXCHANGE_RATE_MARGIN,
-  ZAR_COMMISSION_RATE
+  TRANSFER_FEE_RATE
 }; 

@@ -1,46 +1,58 @@
 /**
  * Fee calculation utility for PacheduConnect
- * Supports percentage, flat, and tiered fee structures
+ * Flat 3% fee on sending amount across all currencies
  */
 
 const FEE_CONFIG = {
-  // Default fee structure
+  // Flat 3% fee for all currencies
   default: {
     type: 'percentage',
-    value: 2.5, // 2.5% fee
-    minFee: 1.00, // Minimum $1 fee
-    maxFee: 50.00 // Maximum $50 fee
+    value: 3.0, // 3% flat fee
+    minFee: 0.01, // Minimum fee
+    maxFee: null // No maximum fee limit
   },
   
-  // Currency-specific fees
+  // Currency-specific fees (all set to 3%)
   USD: {
     type: 'percentage',
-    value: 2.5,
-    minFee: 1.00,
-    maxFee: 50.00
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
   },
   
   EUR: {
     type: 'percentage',
-    value: 2.0,
-    minFee: 0.50,
-    maxFee: 40.00
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
   },
   
   GBP: {
     type: 'percentage',
-    value: 2.0,
-    minFee: 0.50,
-    maxFee: 35.00
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
   },
   
-  // Special fee for large amounts
-  large: {
-    threshold: 1000, // Amount above which different fee applies
+  ZAR: {
     type: 'percentage',
-    value: 1.5, // Lower percentage for large amounts
-    minFee: 5.00,
-    maxFee: 100.00
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
+  },
+  
+  MWK: {
+    type: 'percentage',
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
+  },
+  
+  MZN: {
+    type: 'percentage',
+    value: 3.0,
+    minFee: 0.01,
+    maxFee: null
   }
 };
 
@@ -58,44 +70,28 @@ function calculateFee(amount, fromCurrency = 'USD', toCurrency = 'USD', speed = 
   }
 
   // Validate currencies
-  const supportedCurrencies = ['USD', 'EUR', 'GBP', 'ZAR'];
+  const supportedCurrencies = ['USD', 'EUR', 'GBP', 'ZAR', 'MWK', 'MZN'];
   if (!supportedCurrencies.includes(fromCurrency) || !supportedCurrencies.includes(toCurrency)) {
     throw new Error('Unsupported currency');
   }
   
-  // Get fee configuration for currency
-  const feeConfig = FEE_CONFIG[toCurrency] || FEE_CONFIG.default;
+  // Get fee configuration for currency (default to 3% for all)
+  const feeConfig = FEE_CONFIG[fromCurrency] || FEE_CONFIG.default;
   
-  let serviceFee = 0;
+  let transferFee = 0;
   let processingFee = 0;
   let exchangeMargin = 0;
   let regulatoryFee = 0;
-  let feeType = feeConfig.type;
+  let feeType = 'flat_percentage';
   
-  // Calculate service fee
-  if (amount >= FEE_CONFIG.large.threshold) {
-    const largeConfig = FEE_CONFIG.large;
-    serviceFee = (amount * largeConfig.value) / 100;
-    serviceFee = Math.max(serviceFee, largeConfig.minFee);
-    serviceFee = Math.min(serviceFee, largeConfig.maxFee);
-    feeType = 'large_percentage';
-  } else {
-    // Apply standard fee calculation
-    if (feeConfig.type === 'percentage') {
-      serviceFee = (amount * feeConfig.value) / 100;
-    } else if (feeConfig.type === 'flat') {
-      serviceFee = feeConfig.value;
-    } else if (feeConfig.type === 'tiered') {
-      serviceFee = calculateTieredFee(amount, feeConfig.tiers);
-    }
-    
-    // Apply min/max constraints
-    serviceFee = Math.max(serviceFee, feeConfig.minFee);
-    serviceFee = Math.min(serviceFee, feeConfig.maxFee);
-  }
-
-  // Calculate processing fee (base 1.5% for express, 0.5% for standard)
-  processingFee = speed === 'express' ? (amount * 1.5) / 100 : (amount * 0.5) / 100;
+  // Calculate transfer fee (3% of sending amount)
+  transferFee = (amount * feeConfig.value) / 100;
+  transferFee = Math.max(transferFee, feeConfig.minFee);
+  
+  // No maximum fee limit - let it scale with amount
+  
+  // Calculate processing fee (base 0.5% for standard, 1% for express)
+  processingFee = speed === 'express' ? (amount * 1.0) / 100 : (amount * 0.5) / 100;
   
   // Calculate exchange margin if different currencies
   if (fromCurrency !== toCurrency) {
@@ -107,15 +103,14 @@ function calculateFee(amount, fromCurrency = 'USD', toCurrency = 'USD', speed = 
     regulatoryFee = Math.min((amount * 0.1) / 100, 25); // 0.1% capped at $25
   }
 
-  const fixedFee = serviceFee;
-  const percentageFee = processingFee + exchangeMargin;
-  const totalFee = fixedFee + percentageFee + regulatoryFee;
+  const totalFee = transferFee + processingFee + exchangeMargin + regulatoryFee;
   const totalAmount = amount + totalFee;
   
   return {
     amount: parseFloat(amount.toFixed(2)),
-    fixedFee: parseFloat(fixedFee.toFixed(2)),
-    percentageFee: parseFloat(percentageFee.toFixed(2)),
+    transferFee: parseFloat(transferFee.toFixed(2)),
+    processingFee: parseFloat(processingFee.toFixed(2)),
+    exchangeMargin: parseFloat(exchangeMargin.toFixed(2)),
     regulatoryFee: parseFloat(regulatoryFee.toFixed(2)),
     totalFee: parseFloat(totalFee.toFixed(2)),
     totalAmount: parseFloat(totalAmount.toFixed(2)),
@@ -125,35 +120,12 @@ function calculateFee(amount, fromCurrency = 'USD', toCurrency = 'USD', speed = 
     toCurrency,
     speed,
     breakdown: {
-      serviceFee: parseFloat(serviceFee.toFixed(2)),
+      transferFee: parseFloat(transferFee.toFixed(2)),
       processingFee: parseFloat(processingFee.toFixed(2)),
       exchangeMargin: parseFloat(exchangeMargin.toFixed(2)),
       regulatoryFee: parseFloat(regulatoryFee.toFixed(2))
     }
   };
-}
-
-/**
- * Calculate tiered fee structure
- * @param {number} amount - Transaction amount
- * @param {array} tiers - Tier configuration
- * @returns {number} Calculated fee
- */
-function calculateTieredFee(amount, tiers) {
-  let totalFee = 0;
-  let remainingAmount = amount;
-  
-  for (const tier of tiers) {
-    if (remainingAmount <= 0) break;
-    
-    const tierAmount = Math.min(remainingAmount, tier.max - (tier.min || 0));
-    const tierFee = (tierAmount * tier.rate) / 100;
-    
-    totalFee += tierFee;
-    remainingAmount -= tierAmount;
-  }
-  
-  return totalFee;
 }
 
 /**
@@ -169,10 +141,10 @@ function getFeeBreakdown(amount, currency = 'USD') {
     ...feeInfo,
     breakdown: {
       transferAmount: feeInfo.amount,
-      feeAmount: feeInfo.fee,
+      feeAmount: feeInfo.transferFee,
       totalAmount: feeInfo.totalAmount,
       feeRate: `${feeInfo.feePercentage}%`,
-      effectiveRate: `${((feeInfo.fee / feeInfo.amount) * 100).toFixed(2)}%`
+      effectiveRate: `${((feeInfo.transferFee / feeInfo.amount) * 100).toFixed(2)}%`
     }
   };
 }
@@ -193,7 +165,7 @@ function validateTransferWithFees(userBalance, transferAmount, currency = 'USD')
     isValid: hasSufficientBalance,
     userBalance: parseFloat(userBalance.toFixed(2)),
     transferAmount: feeInfo.amount,
-    feeAmount: feeInfo.fee,
+    feeAmount: feeInfo.transferFee,
     totalRequired: feeInfo.totalAmount,
     shortfall: hasSufficientBalance ? 0 : totalRequired - userBalance,
     currency
