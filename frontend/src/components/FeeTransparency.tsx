@@ -29,13 +29,75 @@ export default function FeeTransparency({ className = '' }: FeeTransparencyProps
     }
   };
 
-  const calculateFee = (amount: number) => {
-    // Flat 3% fee on sending amount
-    return (amount * 0.03);
+  // Fee calculation constants
+  const FEE_RATE = 0.03; // 3% flat fee
+  const MIN_AMOUNT = 10; // Minimum transfer amount in ZAR
+  const MAX_AMOUNT = 50000; // Maximum transfer amount in ZAR
+  const MIN_FEE = 0.01; // Minimum fee amount
+
+  interface FeeCalculationResult {
+    isValid: boolean;
+    fee: number;
+    error?: string;
+    totalCost?: number;
+  }
+
+  const calculateFee = (amount: number): FeeCalculationResult => {
+    // Input validation
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      return {
+        isValid: false,
+        fee: 0,
+        error: 'Invalid amount: must be a valid number'
+      };
+    }
+
+    if (amount < 0) {
+      return {
+        isValid: false,
+        fee: 0,
+        error: 'Amount must be positive'
+      };
+    }
+
+    if (amount === 0) {
+      return {
+        isValid: false,
+        fee: 0,
+        error: 'Amount must be greater than zero'
+      };
+    }
+
+    if (amount < MIN_AMOUNT) {
+      return {
+        isValid: false,
+        fee: 0,
+        error: `Minimum transfer amount is R ${MIN_AMOUNT.toLocaleString()}`
+      };
+    }
+
+    if (amount > MAX_AMOUNT) {
+      return {
+        isValid: false,
+        fee: 0,
+        error: `Maximum transfer amount is R ${MAX_AMOUNT.toLocaleString()}`
+      };
+    }
+
+    // Calculate fee with minimum fee protection
+    let fee = amount * FEE_RATE;
+    fee = Math.max(fee, MIN_FEE);
+
+    return {
+      isValid: true,
+      fee: parseFloat(fee.toFixed(2)),
+      totalCost: parseFloat((amount + fee).toFixed(2))
+    };
   };
 
-  const currentFee = calculateFee(selectedAmount);
-  const totalCost = selectedAmount + currentFee;
+  const feeResult = calculateFee(selectedAmount);
+  const currentFee = feeResult.fee;
+  const totalCost = feeResult.totalCost || (selectedAmount + currentFee);
 
   return (
     <motion.section
@@ -69,19 +131,19 @@ export default function FeeTransparency({ className = '' }: FeeTransparencyProps
                   </label>
                   <input
                     type="range"
-                    min="100"
-                    max="10000"
+                    min={MIN_AMOUNT}
+                    max={MAX_AMOUNT}
                     step="100"
                     value={selectedAmount}
                     onChange={(e) => setSelectedAmount(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-sm text-gray-600 mt-1">
-                    <span>R100</span>
+                    <span>R{MIN_AMOUNT.toLocaleString()}</span>
                     <span className="font-semibold text-primary-600">
                       R{selectedAmount.toLocaleString()}
                     </span>
-                    <span>R10,000</span>
+                    <span>R{MAX_AMOUNT.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -90,16 +152,30 @@ export default function FeeTransparency({ className = '' }: FeeTransparencyProps
                     <span className="text-gray-600">Transfer Amount:</span>
                     <span className="font-semibold">R{selectedAmount.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Transfer Fee (3%):</span>
-                    <span className="font-semibold text-warning-600">R{currentFee.toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-gray-200 pt-3">
-                    <div className="flex justify-between text-lg font-bold">
-                      <span>Total Cost:</span>
-                      <span className="text-primary-600">R{totalCost.toFixed(2)}</span>
+                  
+                  {!feeResult.isValid ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-red-700 text-sm font-medium">{feeResult.error}</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transfer Fee (3%):</span>
+                        <span className="font-semibold text-warning-600">R{currentFee.toFixed(2)}</span>
+                      </div>
+                      <div className="border-t border-gray-200 pt-3">
+                        <div className="flex justify-between text-lg font-bold">
+                          <span>Total Cost:</span>
+                          <span className="text-primary-600">R{totalCost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

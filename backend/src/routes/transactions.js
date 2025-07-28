@@ -213,6 +213,45 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Amount must be positive' });
     }
     
+    // Validate currency format and support
+    if (typeof currency !== 'string' || currency.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Invalid currency format. Currency must be a non-empty string.',
+        field: 'currency',
+        received: currency
+      });
+    }
+    
+    const normalizedCurrency = currency.toUpperCase().trim();
+    if (!SUPPORTED_CURRENCIES.includes(normalizedCurrency)) {
+      return res.status(400).json({ 
+        error: `Unsupported currency '${currency}'. Please use one of the supported currencies.`,
+        field: 'currency',
+        supportedCurrencies: SUPPORTED_CURRENCIES,
+        received: currency
+      });
+    }
+    
+    // Validate recipientId format (UUID)
+    if (typeof recipientId !== 'string' || recipientId.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Invalid recipient ID format. Recipient ID must be a valid UUID string.',
+        field: 'recipientId',
+        received: recipientId
+      });
+    }
+    
+    // UUID format validation (basic check)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(recipientId.trim())) {
+      return res.status(400).json({ 
+        error: 'Invalid recipient ID format. Recipient ID must be a valid UUID.',
+        field: 'recipientId',
+        received: recipientId,
+        expectedFormat: 'UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)'
+      });
+    }
+    
     // Check if recipient exists
     const recipient = await User.findByPk(recipientId);
     if (!recipient) {
@@ -220,7 +259,7 @@ router.post('/', auth, async (req, res) => {
     }
     
     // Calculate transfer fee
-    const transferFee = calculateTransferFee(parseFloat(amount), currency);
+    const transferFee = calculateTransferFee(parseFloat(amount), normalizedCurrency);
     const totalAmount = transferFee.totalAmount;
     
     // Check user balance
@@ -233,17 +272,43 @@ router.post('/', auth, async (req, res) => {
       });
     }
     
+    // Validate delivery method
+    const supportedDeliveryMethods = ['bank_transfer', 'mobile_money', 'cash_pickup', 'home_delivery'];
+    let validatedDeliveryMethod = 'bank_transfer'; // Default value
+    
+    if (deliveryMethod !== null && deliveryMethod !== undefined) {
+      if (typeof deliveryMethod !== 'string' || deliveryMethod.trim() === '') {
+        return res.status(400).json({ 
+          error: 'Invalid delivery method format. Delivery method must be a non-empty string.',
+          field: 'deliveryMethod',
+          received: deliveryMethod,
+          supportedMethods: supportedDeliveryMethods
+        });
+      }
+      
+      const normalizedDeliveryMethod = deliveryMethod.toLowerCase().trim();
+      if (!supportedDeliveryMethods.includes(normalizedDeliveryMethod)) {
+        return res.status(400).json({ 
+          error: `Unsupported delivery method '${deliveryMethod}'. Please use one of the supported delivery methods.`,
+          field: 'deliveryMethod',
+          supportedMethods: supportedDeliveryMethods,
+          received: deliveryMethod
+        });
+      }
+      
+      validatedDeliveryMethod = normalizedDeliveryMethod;
+    }
+    
     // Create transaction
     const transaction = await Transaction.create({
       userId,
       recipientId,
-      senderId: userId,
       type: 'send',
       amount: parseFloat(amount),
-      currency,
+      currency: normalizedCurrency,
       status: 'pending',
       description: description || 'Money transfer',
-      deliveryMethod: deliveryMethod || 'bank_transfer',
+      deliveryMethod: validatedDeliveryMethod,
       fees: transferFee.transferFeeAmount
     });
     

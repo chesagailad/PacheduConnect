@@ -10,49 +10,6 @@ const FEE_CONFIG = {
     value: 3.0, // 3% flat fee
     minFee: 0.01, // Minimum fee
     maxFee: null // No maximum fee limit
-  },
-  
-  // Currency-specific fees (all set to 3%)
-  USD: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
-  },
-  
-  EUR: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
-  },
-  
-  GBP: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
-  },
-  
-  ZAR: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
-  },
-  
-  MWK: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
-  },
-  
-  MZN: {
-    type: 'percentage',
-    value: 3.0,
-    minFee: 0.01,
-    maxFee: null
   }
 };
 
@@ -75,8 +32,8 @@ function calculateFee(amount, fromCurrency = 'USD', toCurrency = 'USD', speed = 
     throw new Error('Unsupported currency');
   }
   
-  // Get fee configuration for currency (default to 3% for all)
-  const feeConfig = FEE_CONFIG[fromCurrency] || FEE_CONFIG.default;
+  // Get fee configuration (all currencies use the same 3% flat fee)
+  const feeConfig = FEE_CONFIG.default;
   
   let transferFee = 0;
   let processingFee = 0;

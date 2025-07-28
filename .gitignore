@@ -194,4 +194,19 @@ temp/
 *.backup
 
 # Local development
-.local/ 
+.local/
+
+# Test artifacts and reports
+test-results/
+playwright-report/
+*.webm
+*.png
+*.mp4
+*.avi
+error-context.md
+test-failed-*.png
+results.json
+results.xml
+
+# Playwright artifacts
+.playwright-artifacts-*/ 
