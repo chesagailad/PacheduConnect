@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: SECURITY_COMPLIANCE_FRAMEWORK - handles application functionality
+ */
+
 # Security Compliance Framework for PacheduConnect
 
 ## Overview

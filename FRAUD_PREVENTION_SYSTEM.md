@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: FRAUD_PREVENTION_SYSTEM - handles application functionality
+ */
+
 # Fraud Prevention System Documentation
 
 ## Overview

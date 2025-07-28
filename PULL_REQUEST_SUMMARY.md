@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: PULL_REQUEST_SUMMARY - handles application functionality
+ */
+
 # Pull Request Created Successfully
 
 ## Details

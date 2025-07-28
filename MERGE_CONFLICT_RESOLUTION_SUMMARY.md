@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: MERGE_CONFLICT_RESOLUTION_SUMMARY - handles application functionality
+ */
+
 # Merge Conflict Resolution Summary
 
 ## Overview

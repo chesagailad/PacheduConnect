@@ -1,2 +1,8 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: invalid - handles application functionality
+ */
+
 This is an invalid file type for testing file upload validation.
 The system should reject this file and show an appropriate error message. 

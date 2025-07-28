@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: ENTERPRISE_DEPLOYMENT_GUIDE - handles application functionality
+ */
+
 # Enterprise Deployment Guide for PacheduConnect
 
 ## Overview

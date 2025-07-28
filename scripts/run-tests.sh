@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: run-tests - test file for backend functionality
+ */
+
 #!/bin/bash
 
 # PacheduConnect Test Runner

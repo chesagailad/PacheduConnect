@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: SUPER_ADMIN_IMPLEMENTATION - handles application functionality
+ */
+
 # Super Admin Implementation
 
 ## Overview

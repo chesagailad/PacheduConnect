@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: ERROR_RESOLUTION_SUMMARY - handles application functionality
+ */
+
 # Error Resolution Summary
 
 ## Issues Found and Fixed

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: optimize-dependencies - handles application functionality
+ */
+
 #!/bin/bash
 
 echo "🧹 Starting dependency optimization for PacheduConnect monorepo..."

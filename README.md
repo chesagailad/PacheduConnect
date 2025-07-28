@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: README - handles application functionality
+ */
+
 # PacheduConnect - Cross-Border Remittance Platform
 
 A comprehensive, secure, and user-friendly cross-border remittance platform designed for Zimbabwean expatriates living in South Africa. The platform provides seamless money transfer services with advanced KYC verification, real-time tracking, and multiple delivery options.

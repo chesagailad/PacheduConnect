@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: PAYMENT_INTEGRATION - handles application functionality
+ */
+
 # Payment Gateway Integration
 
 PacheduConnect now supports multiple payment gateways for secure payment processing.

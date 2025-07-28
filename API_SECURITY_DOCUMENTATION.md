@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: API_SECURITY_DOCUMENTATION - handles application functionality
+ */
+
 # API Security Documentation for PacheduConnect
 
 ## Overview

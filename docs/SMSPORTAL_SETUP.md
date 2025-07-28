@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: SMSPORTAL_SETUP - handles application functionality
+ */
+
 # SMSPortal Integration Setup
 
 This document explains how to set up SMSPortal as the SMS provider for PacheduConnect's OTP functionality.
