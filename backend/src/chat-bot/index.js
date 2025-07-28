@@ -1,66 +1,164 @@
 const express = require('express');
 const { processMessage } = require('./services/nlpService');
-const { getSessionById, createSession, updateSession } = require('./services/sessionService');
+const { getSessionById, createSession, updateSession, getSessionsByUserId } = require('./services/sessionService');
 const { getExchangeRate } = require('./services/rateService');
 const { getTransactionStatus } = require('./services/transactionService');
 const { getUserByEmail } = require('./services/userService');
 const auth = require('./middleware/auth');
+const analyticsService = require('./services/analyticsService');
+const logger = require('../../utils/logger');
 
 const router = express.Router();
 
 // Chat endpoint
 router.post('/message', async (req, res) => {
+  const startTime = Date.now();
+  let session = null;
+  
   try {
-    const { message, sessionId } = req.body;
-    const userId = req.user?.id || null;
-    
-    if (!message || !message.trim()) {
-      return res.status(400).json({ error: 'Message is required' });
+    const { message, userId, platform = 'web' } = req.body;
+
+    // Input validation
+    if (!message || typeof message !== 'string') {
+      logger.warn('Invalid message format received', { 
+        userId, 
+        platform, 
+        messageType: typeof message,
+        messageLength: message?.length 
+      });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Message is required and must be a string' 
+      });
+    }
+
+    if (!userId) {
+      logger.warn('Missing userId in chatbot request', { platform });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User ID is required' 
+      });
     }
 
     // Get or create session
-    let session;
-    if (sessionId) {
-      session = await getSessionById(sessionId);
-    }
-    
-    if (!session) {
-      session = await createSession(userId);
+    let userSessions = await getSessionsByUserId(userId);
+    if (userSessions.length === 0) {
+      session = await createSession(userId, platform);
+      logger.info('New chatbot session created', { 
+        sessionId: session.id, 
+        userId, 
+        platform 
+      });
+    } else {
+      session = userSessions[0]; // Use most recent session
+      logger.debug('Using existing chatbot session', { 
+        sessionId: session.id, 
+        userId, 
+        platform 
+      });
     }
 
-    // Process the message with NLP
+    // Process message with NLP
     const nlpResult = await processMessage(message, session.context);
     
-    // Generate response based on intent
+    // Track NLP processing
+    await analyticsService.trackEvent({
+      userId,
+      sessionId: session.id,
+      platform,
+      eventType: 'nlp_processed',
+      intent: nlpResult.intent,
+      confidence: nlpResult.confidence,
+      entities: nlpResult.entities,
+      message,
+      responseTime: Date.now() - startTime
+    });
+
+    // Generate response
     const response = await generateResponse(nlpResult, session, userId);
     
+    // Add messages to session
+    await sessionService.addMessage(session.id, {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    });
+
+    await sessionService.addMessage(session.id, {
+      role: 'assistant',
+      content: response.text,
+      timestamp: new Date().toISOString()
+    });
+
     // Update session context
-    session.context = {
-      ...session.context,
+    await sessionService.updateContext(session.id, {
       lastIntent: nlpResult.intent,
       lastEntities: nlpResult.entities,
-      conversationHistory: [
-        ...(session.context.conversationHistory || []).slice(-5),
-        { user: message, bot: response.text, timestamp: new Date() }
-      ]
-    };
-    
-    await updateSession(session.id, session.context);
-    
-    res.json({
-      response: response.text,
-      type: response.type,
-      options: response.options,
-      sessionId: session.id,
-      intent: nlpResult.intent,
-      confidence: nlpResult.confidence
+      lastActivity: new Date().toISOString()
     });
-    
+
+    const totalResponseTime = Date.now() - startTime;
+
+    // Track successful response
+    await analyticsService.trackEvent({
+      userId,
+      sessionId: session.id,
+      platform,
+      eventType: 'response_generated',
+      intent: nlpResult.intent,
+      confidence: nlpResult.confidence,
+      entities: nlpResult.entities,
+      message,
+      response: response.text,
+      responseTime: totalResponseTime
+    });
+
+    logger.info('Chatbot message processed successfully', {
+      sessionId: session.id,
+      userId,
+      platform,
+      intent: nlpResult.intent,
+      confidence: nlpResult.confidence,
+      responseTime: totalResponseTime,
+      messageLength: message.length
+    });
+
+    res.json({
+      success: true,
+      response,
+      sessionId: session.id
+    });
+
   } catch (error) {
-    console.error('Chatbot error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      response: 'I apologize, but I\'m experiencing technical difficulties. Please try again later or contact our support team.'
+    const errorResponseTime = Date.now() - startTime;
+    
+    // Track error event
+    if (session) {
+      await analyticsService.trackEvent({
+        userId: session.userId,
+        sessionId: session.id,
+        platform: session.platform,
+        eventType: 'error',
+        message: req.body.message,
+        error: error.message,
+        responseTime: errorResponseTime
+      });
+    }
+
+    logger.error('Chatbot message processing failed', {
+      sessionId: session?.id,
+      userId: req.body.userId,
+      platform: req.body.platform,
+      message: req.body.message,
+      error: error.message,
+      stack: error.stack,
+      responseTime: errorResponseTime
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Sorry, I\'m having trouble right now. Please try again in a moment.',
+      sessionId: session?.id
     });
   }
 });
@@ -227,5 +325,101 @@ function getStatusMessage(status) {
       return "Transaction status updated.";
   }
 }
+
+// Analytics endpoints
+router.get('/analytics', async (req, res) => {
+  try {
+    const { period = 'day' } = req.query;
+    const analytics = await analyticsService.getAnalytics(period);
+    
+    res.json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    logger.error('Failed to get analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve analytics'
+    });
+  }
+});
+
+router.get('/analytics/intents', async (req, res) => {
+  try {
+    const { period = 'day' } = req.query;
+    const performance = await analyticsService.getIntentPerformance(period);
+    
+    res.json({
+      success: true,
+      data: performance
+    });
+  } catch (error) {
+    logger.error('Failed to get intent performance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve intent performance'
+    });
+  }
+});
+
+router.get('/analytics/platforms', async (req, res) => {
+  try {
+    const { period = 'day' } = req.query;
+    const usage = await analyticsService.getPlatformUsage(period);
+    
+    res.json({
+      success: true,
+      data: usage
+    });
+  } catch (error) {
+    logger.error('Failed to get platform usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve platform usage'
+    });
+  }
+});
+
+router.get('/analytics/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { sessionId } = req.query;
+    const journey = await analyticsService.getUserJourney(userId, sessionId);
+    
+    res.json({
+      success: true,
+      data: journey
+    });
+  } catch (error) {
+    logger.error('Failed to get user journey:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve user journey'
+    });
+  }
+});
+
+router.get('/analytics/export', async (req, res) => {
+  try {
+    const { period = 'day', format = 'json' } = req.query;
+    const data = await analyticsService.exportAnalytics(period, format);
+    
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="chatbot-analytics-${period}.csv"`);
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+    }
+    
+    res.send(data);
+  } catch (error) {
+    logger.error('Failed to export analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export analytics'
+    });
+  }
+});
 
 module.exports = router;
