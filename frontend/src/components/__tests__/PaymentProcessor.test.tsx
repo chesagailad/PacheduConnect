@@ -319,28 +319,246 @@ describe('PaymentProcessor Component', () => {
   });
 
   describe('Form Validation', () => {
-    test('validates required fields', async () => {
+    test('validates Stripe card details', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ gateways: mockGateways }),
       });
 
-      render(<PaymentProcessor {...defaultProps} />);
+      const onSuccess = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onSuccess={onSuccess} />);
 
       await waitFor(() => {
         expect(screen.getByText('Stripe')).toBeInTheDocument();
       });
 
-      const payButton = screen.getByText(/Pay ZAR/);
+      const payButton = screen.getByTestId('pay-button');
       
-      // Button should be enabled initially (validation happens on submit)
-      expect(payButton).not.toBeDisabled();
+      // Initially no error should be shown
+      expect(screen.queryByText('Please fill in all card details')).not.toBeInTheDocument();
       
-      // Click without filling form
+      // Click without filling any card details
       fireEvent.click(payButton);
       
-      // Should still be enabled (validation might be handled differently)
-      expect(payButton).not.toBeDisabled();
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText('Please fill in all card details')).toBeInTheDocument();
+      });
+      
+      // onSuccess should not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+      
+      // Fill in some but not all required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      
+      // Clear error and try again
+      fireEvent.click(payButton);
+      
+      // Should still show validation error (missing expiry year and CVV)
+      await waitFor(() => {
+        expect(screen.getByText('Please fill in all card details')).toBeInTheDocument();
+      });
+      
+      // onSuccess should still not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    test('validates Stitch bank details', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      });
+
+      const onSuccess = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onSuccess={onSuccess} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Switch to Stitch gateway
+      const stitchOption = screen.getByLabelText(/stitch/i);
+      fireEvent.click(stitchOption);
+      
+      const payButton = screen.getByTestId('pay-button');
+      
+      // Initially no error should be shown
+      expect(screen.queryByText('Please provide bank account and bank code')).not.toBeInTheDocument();
+      
+      // Click without filling bank details
+      fireEvent.click(payButton);
+      
+      // Should show validation error for Stitch
+      await waitFor(() => {
+        expect(screen.getByText('Please provide bank account and bank code')).toBeInTheDocument();
+      });
+      
+      // onSuccess should not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+      
+      // Fill in only bank account
+      const bankAccountInput = screen.getByPlaceholderText('1234567890');
+      fireEvent.change(bankAccountInput, { target: { value: '1234567890' } });
+      
+      // Clear error and try again
+      fireEvent.click(payButton);
+      
+      // Should still show validation error (missing bank code)
+      await waitFor(() => {
+        expect(screen.getByText('Please provide bank account and bank code')).toBeInTheDocument();
+      });
+      
+      // onSuccess should still not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    test('validates partial form completion', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      });
+
+      const onSuccess = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onSuccess={onSuccess} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      const payButton = screen.getByTestId('pay-button');
+      
+      // Fill in only some required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      
+      // Submit with incomplete form
+      fireEvent.click(payButton);
+      
+      // Should show validation error for missing fields
+      await waitFor(() => {
+        expect(screen.getByText('Please fill in all card details')).toBeInTheDocument();
+      });
+      
+      // onSuccess should not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+      
+      // Fill in the remaining required fields
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+      
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+      
+      // Clear error and try again
+      fireEvent.click(payButton);
+      
+      // Should not show validation error anymore
+      await waitFor(() => {
+        expect(screen.queryByText('Please fill in all card details')).not.toBeInTheDocument();
+      });
+    });
+
+    test('validates form fields for different gateways', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      });
+
+      const onSuccess = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onSuccess={onSuccess} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      const payButton = screen.getByTestId('pay-button');
+      
+      // Test Stripe validation
+      fireEvent.click(payButton);
+      
+      // Should show validation error for missing card details
+      await waitFor(() => {
+        expect(screen.getByText('Please fill in all card details')).toBeInTheDocument();
+      });
+      
+      // onSuccess should not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+      
+      // Switch to Stitch and test bank validation
+      const stitchOption = screen.getByLabelText(/stitch/i);
+      fireEvent.click(stitchOption);
+      fireEvent.click(payButton);
+      
+      // Should show validation error for missing bank details
+      await waitFor(() => {
+        expect(screen.getByText('Please provide bank account and bank code')).toBeInTheDocument();
+      });
+      
+      // onSuccess should still not be called
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    test('allows submission with valid form data', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ gateways: mockGateways }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ 
+            success: true, 
+            paymentId: 'pay_123',
+            payment: {}
+          }),
+        });
+
+      const onSuccess = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onSuccess={onSuccess} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in all required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByTestId('pay-button');
+      
+      // No validation errors should be shown
+      expect(screen.queryByText('Please fill in all card details')).not.toBeInTheDocument();
+      
+      // Submit with valid data
+      fireEvent.click(payButton);
+      
+      // Should not show validation errors
+      await waitFor(() => {
+        expect(screen.queryByText('Please fill in all card details')).not.toBeInTheDocument();
+      });
+      
+      // onSuccess should be called (payment processing will succeed)
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledWith({
+          success: true,
+          paymentId: 'pay_123',
+          payment: {}
+        });
+      });
     });
   });
 
