@@ -3,16 +3,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ChatBotWidget from '../ChatBotWidget';
 
-// Mock fetch for API calls
+// Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock the chatbot API response
+// Test wrapper component to provide required props
+const TestChatBotWidget = () => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const onToggle = () => setIsOpen(!isOpen);
+  
+  return <ChatBotWidget isOpen={isOpen} onToggle={onToggle} />;
+};
+
 const mockChatbotResponse = {
-  success: true,
-  response: {
-    text: 'Hello! How can I help you today?',
-    type: 'text'
-  }
+  response: 'Hello! How can I help you today?',
+  type: 'text',
+  options: null
 };
 
 describe('ChatBotWidget', () => {
@@ -23,7 +28,7 @@ describe('ChatBotWidget', () => {
 
   describe('Initial State', () => {
     test('should render chat widget in closed state initially', () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Chat should be closed by default
       expect(screen.queryByTestId('chat-messages')).not.toBeInTheDocument();
@@ -31,7 +36,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should show chat when toggle button is clicked', () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       const toggleButton = screen.getByTestId('chat-toggle');
       fireEvent.click(toggleButton);
@@ -41,7 +46,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should hide chat when toggle button is clicked again', () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       const toggleButton = screen.getByTestId('chat-toggle');
       
@@ -64,7 +69,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should send message when user types and presses enter', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -95,7 +100,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should display user message in chat', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -114,7 +119,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should display bot response in chat', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -133,7 +138,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should clear input after sending message', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -152,7 +157,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should not send empty messages', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -440,26 +445,34 @@ describe('ChatBotWidget', () => {
     });
 
     test('should scroll to bottom when new messages are added', async () => {
+      // Save original scrollIntoView method
+      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      
       // Mock scrollIntoView
       const mockScrollIntoView = jest.fn();
       Element.prototype.scrollIntoView = mockScrollIntoView;
 
-      render(<ChatBotWidget />);
-      
-      // Open chat
-      fireEvent.click(screen.getByTestId('chat-toggle'));
-      
-      const input = screen.getByTestId('chat-input');
-      const sendButton = screen.getByTestId('send-button');
-      
-      // Send message
-      fireEvent.change(input, { target: { value: 'Hello' } });
-      fireEvent.click(sendButton);
-      
-      // Check scrollIntoView was called
-      await waitFor(() => {
-        expect(mockScrollIntoView).toHaveBeenCalled();
-      });
+      try {
+        render(<ChatBotWidget />);
+        
+        // Open chat
+        fireEvent.click(screen.getByTestId('chat-toggle'));
+        
+        const input = screen.getByTestId('chat-input');
+        const sendButton = screen.getByTestId('send-button');
+        
+        // Send message
+        fireEvent.change(input, { target: { value: 'Hello' } });
+        fireEvent.click(sendButton);
+        
+        // Check scrollIntoView was called
+        await waitFor(() => {
+          expect(mockScrollIntoView).toHaveBeenCalled();
+        });
+      } finally {
+        // Restore original scrollIntoView method
+        Element.prototype.scrollIntoView = originalScrollIntoView;
+      }
     });
   });
 
