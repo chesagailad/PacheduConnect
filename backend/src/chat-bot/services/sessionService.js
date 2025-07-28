@@ -181,6 +181,7 @@ class SessionService {
    * Update session context
    * @param {string} sessionId - Session identifier
    * @param {object} context - Context object
+   * @returns {object} Updated session
    */
   async updateContext(sessionId, context) {
     if (!sessionId) {
@@ -197,21 +198,61 @@ class SessionService {
         throw new Error('Session not found');
       }
 
-      // Merge context
       session.context = { ...session.context, ...context };
       session.lastActivity = new Date().toISOString();
 
-      // Store updated session
+      // Update session in Redis
       await this.redis.setex(
         `${this.sessionPrefix}${sessionId}`,
         this.sessionTTL,
         JSON.stringify(session)
       );
 
-      logger.debug(`Context updated for session: ${sessionId}`);
+      logger.info(`Session context updated: ${sessionId}`);
+      return session;
     } catch (error) {
       logger.error('Failed to update session context:', error);
-      throw error;
+      throw new Error('Failed to update session context');
+    }
+  }
+
+  /**
+   * Update session properties
+   * @param {string} sessionId - Session identifier
+   * @param {object} updates - Properties to update
+   * @returns {object} Updated session
+   */
+  async updateSession(sessionId, updates) {
+    if (!sessionId) {
+      throw new Error('Invalid session ID');
+    }
+
+    if (!updates || typeof updates !== 'object') {
+      throw new Error('Invalid updates format');
+    }
+
+    try {
+      const session = await this.getSession(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      // Update session properties
+      Object.assign(session, updates);
+      session.lastActivity = new Date().toISOString();
+
+      // Update session in Redis
+      await this.redis.setex(
+        `${this.sessionPrefix}${sessionId}`,
+        this.sessionTTL,
+        JSON.stringify(session)
+      );
+
+      logger.info(`Session updated: ${sessionId}`);
+      return session;
+    } catch (error) {
+      logger.error('Failed to update session:', error);
+      throw new Error('Failed to update session');
     }
   }
 
