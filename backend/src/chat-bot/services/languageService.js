@@ -93,19 +93,25 @@ class LanguageService {
       // Fees
       fees: {
         en: {
-          fee_structure: 'Our fee structure is: 3% of transfer amount + $2 processing fee',
-          fee_calculation: 'For a $100 transfer, you would pay $3 + $2 = $5 in fees',
-          fee_info: 'Fees are transparent and shown before you confirm the transfer'
+          fee_structure: 'Our updated fee structure: 3% transfer fee + processing fees (0.5% standard, 1% express)',
+          fee_calculation: 'For a $100 transfer: $3 transfer fee + $0.50 processing = $3.50 total',
+          fee_info: 'Fees are transparent and shown before you confirm the transfer',
+          fee_breakdown: 'Transfer Fee: 3% of amount\nProcessing: 0.5% standard, 1% express\nExchange: 0.5% for currency conversion\nRegulatory: 0.1% for amounts ≥ $50,000',
+          fee_examples: 'Examples:\n$100: $3.50 total fees\n$500: $17.50 total fees\n$1000: $35 total fees'
         },
         sn: {
-          fee_structure: 'Mari yedu yekubhadhara ndeye: 3% yemari inotumirwa + $2 yekugadzirisa',
-          fee_calculation: 'Kune $100 yekutumira, unobhadhara $3 + $2 = $5 mumari',
-          fee_info: 'Mari dzinoonekwa uye dzinoratidzwa usati wasimbisa kutuma'
+          fee_structure: 'Mari yedu yakagadziridzwa: 3% mari yekutuma + mari yekugadzirisa (0.5% yakajairika, 1% yekukurumidza)',
+          fee_calculation: 'Kune $100 yekutumira: $3 mari yekutuma + $0.50 yekugadzirisa = $3.50 yese',
+          fee_info: 'Mari dzinoonekwa uye dzinoratidzwa usati wasimbisa kutuma',
+          fee_breakdown: 'Mari Yekutuma: 3% yemari\nKugadzirisa: 0.5% yakajairika, 1% yekukurumidza\nKuchinja: 0.5% yekuchinja mari\nMutemo: 0.1% yemari ≥ $50,000',
+          fee_examples: 'Mienzaniso:\n$100: $3.50 mari yese\n$500: $17.50 mari yese\n$1000: $35 mari yese'
         },
         nd: {
-          fee_structure: 'Uhlelo lwethu lwemali: 3% yemali ethunyelwayo + $2 imali yokucubungula',
-          fee_calculation: 'Kokuthumela kuka-$100, uzokhokha $3 + $2 = $5 emalini',
-          fee_info: 'Imali icacile futhi iboniswa ngaphambi kokuthi uqinisekise ukuthumela'
+          fee_structure: 'Uhlelo lwethu lwemali olugcinwe: 3% imali yokuthumela + imali yokucubungula (0.5% ejwayelekile, 1% ngokushesha)',
+          fee_calculation: 'Kokuthumela kuka-$100: $3 imali yokuthumela + $0.50 yokucubungula = $3.50 yonke',
+          fee_info: 'Imali icacile futhi iboniswa ngaphambi kokuthi uqinisekise ukuthumela',
+          fee_breakdown: 'Imali Yokuthumela: 3% yemali\nUkucubungula: 0.5% ejwayelekile, 1% ngokushesha\nUkushintshana: 0.5% yokushintsha imali\nUmthetho: 0.1% yemali ≥ $50,000',
+          fee_examples: 'Izibonelo:\n$100: $3.50 imali yonke\n$500: $17.50 imali yonke\n$1000: $35 imali yonke'
         }
       },
 

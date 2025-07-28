@@ -10,6 +10,7 @@ const openaiService = require('./services/openaiService');
 const languageService = require('./services/languageService');
 const mediaService = require('./services/mediaService');
 const authService = require('./services/authService');
+const feeService = require('./services/feeService');
 const logger = require('../../utils/logger');
 
 const router = express.Router();
@@ -415,6 +416,137 @@ router.get('/media/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve media statistics'
+    });
+  }
+});
+
+// Fee service endpoints
+router.post('/fees/calculate', async (req, res) => {
+  try {
+    const { amount, fromCurrency, toCurrency, speed, language } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid amount is required'
+      });
+    }
+
+    const feeResult = feeService.calculateTransferFees(
+      parseFloat(amount), 
+      fromCurrency || 'USD', 
+      toCurrency || 'USD', 
+      speed || 'standard'
+    );
+
+    if (!feeResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: feeResult.error
+      });
+    }
+
+    // Generate user-friendly explanation
+    const explanation = feeService.generateFeeExplanation(
+      parseFloat(amount),
+      fromCurrency || 'USD',
+      toCurrency || 'USD',
+      speed || 'standard',
+      language || 'en'
+    );
+
+    res.json({
+      success: true,
+      fees: feeResult,
+      explanation: explanation.explanation
+    });
+  } catch (error) {
+    logger.error('Fee calculation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to calculate fees'
+    });
+  }
+});
+
+router.get('/fees/examples', async (req, res) => {
+  try {
+    const { currency, language } = req.query;
+    const examples = feeService.getFeeExamples(currency || 'USD', language || 'en');
+    
+    res.json({
+      success: true,
+      examples
+    });
+  } catch (error) {
+    logger.error('Failed to get fee examples:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve fee examples'
+    });
+  }
+});
+
+router.post('/fees/validate-balance', async (req, res) => {
+  try {
+    const { userBalance, transferAmount, currency } = req.body;
+    
+    if (!userBalance || !transferAmount) {
+      return res.status(400).json({
+        success: false,
+        error: 'User balance and transfer amount are required'
+      });
+    }
+
+    const validation = feeService.validateTransferBalance(
+      parseFloat(userBalance),
+      parseFloat(transferAmount),
+      currency || 'USD'
+    );
+
+    res.json({
+      success: true,
+      validation
+    });
+  } catch (error) {
+    logger.error('Balance validation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to validate balance'
+    });
+  }
+});
+
+router.get('/fees/supported-options', (req, res) => {
+  try {
+    const options = feeService.getSupportedOptions();
+    
+    res.json({
+      success: true,
+      options
+    });
+  } catch (error) {
+    logger.error('Failed to get supported options:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve supported options'
+    });
+  }
+});
+
+router.get('/fees/stats', (req, res) => {
+  try {
+    const stats = feeService.getFeeStats();
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to get fee stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve fee statistics'
     });
   }
 });

@@ -59,6 +59,14 @@ Key guidelines:
 - Use simple, clear language
 - Be culturally sensitive to African users
 
+Fee Structure (Updated):
+- Transfer Fee: 3% flat rate on sending amount
+- Processing Fee: 0.5% for standard, 1% for express
+- Exchange Margin: 0.5% for currency conversion
+- Regulatory Fee: 0.1% for amounts ≥ $50,000 (capped at $25)
+- Minimum Fee: $0.01
+- No maximum fee limit
+
 Current context: {context}`,
 
       conversation: `You are an AI assistant for Pachedu money transfer platform. 
