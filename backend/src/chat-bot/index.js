@@ -20,6 +20,32 @@ const logger = require('../../utils/logger');
 
 const router = express.Router();
 
+/**
+ * Select the most relevant session from user sessions
+ * @param {Array} userSessions - Array of user sessions
+ * @returns {Object} The most relevant session
+ */
+function selectMostRelevantSession(userSessions) {
+  if (!userSessions || userSessions.length === 0) {
+    return null;
+  }
+
+  // First, try to find an active session
+  const activeSession = userSessions.find(session => session.isActive === true);
+  if (activeSession) {
+    return activeSession;
+  }
+
+  // If no active session, find the most recent session based on lastActivity
+  const sortedSessions = userSessions.sort((a, b) => {
+    const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
+    const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
+    return bTime - aTime; // Sort in descending order (most recent first)
+  });
+
+  return sortedSessions[0];
+}
+
 // Chat endpoint
 router.post('/message', async (req, res) => {
   const startTime = Date.now();
@@ -60,11 +86,14 @@ router.post('/message', async (req, res) => {
         platform 
       });
     } else {
-      session = userSessions[0]; // Use most recent session
+      // Select the most recent or active session
+      session = selectMostRelevantSession(userSessions);
       logger.debug('Using existing chatbot session', { 
         sessionId: session.id, 
         userId, 
-        platform 
+        platform,
+        sessionCount: userSessions.length,
+        selectedReason: session.isActive ? 'active' : 'most_recent'
       });
     }
 
