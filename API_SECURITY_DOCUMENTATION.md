@@ -194,9 +194,12 @@ const apiEncryption = {
   // Encrypt sensitive data
   encrypt: (data, purpose = 'api') => {
     const salt = crypto.randomBytes(64);
+    // Use binary concatenation to preserve full entropy
+    const purposeBuffer = Buffer.from(purpose, 'utf8');
+    const saltAndPurpose = Buffer.concat([salt, purposeBuffer]);
     const key = crypto.pbkdf2Sync(
       process.env.ENCRYPTION_MASTER_KEY,
-      salt + purpose,
+      saltAndPurpose,
       100000,
       32,
       'sha512'
@@ -222,11 +225,13 @@ const apiEncryption = {
   
   // Decrypt sensitive data
   decrypt: (encryptedData) => {
-    // Reconstruct the binary concatenation: Buffer(salt) + string(purpose)
+    // Reconstruct the binary concatenation to match encryption
     const saltBuffer = Buffer.from(encryptedData.salt, 'hex');
+    const purposeBuffer = Buffer.from(encryptedData.purpose, 'utf8');
+    const saltAndPurpose = Buffer.concat([saltBuffer, purposeBuffer]);
     const key = crypto.pbkdf2Sync(
       process.env.ENCRYPTION_MASTER_KEY,
-      saltBuffer + encryptedData.purpose,
+      saltAndPurpose,
       100000,
       32,
       'sha512'
