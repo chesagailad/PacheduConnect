@@ -222,9 +222,11 @@ const apiEncryption = {
   
   // Decrypt sensitive data
   decrypt: (encryptedData) => {
+    // Reconstruct the binary concatenation: Buffer(salt) + string(purpose)
+    const saltBuffer = Buffer.from(encryptedData.salt, 'hex');
     const key = crypto.pbkdf2Sync(
       process.env.ENCRYPTION_MASTER_KEY,
-      encryptedData.salt + encryptedData.purpose,
+      saltBuffer + encryptedData.purpose,
       100000,
       32,
       'sha512'
