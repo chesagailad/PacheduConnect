@@ -172,7 +172,7 @@ describe('ChatBotWidget', () => {
     });
 
     test('should handle enter key press', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -200,7 +200,7 @@ describe('ChatBotWidget', () => {
         }), 100))
       );
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -230,7 +230,7 @@ describe('ChatBotWidget', () => {
         }), 100))
       );
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
