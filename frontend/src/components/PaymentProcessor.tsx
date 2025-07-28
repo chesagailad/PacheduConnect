@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import logger from '@/utils/logger';
 import { API_CONFIG } from '@/config/api';
+import Button from './Button';
 
 const API_URL = API_CONFIG.BASE_URL;
 
@@ -366,7 +367,7 @@ export default function PaymentProcessor({
         </Button>
         <Button
           onClick={onCancel}
-          variant="outline"
+          variant="secondary"
           className="px-4"
         >
           Cancel
