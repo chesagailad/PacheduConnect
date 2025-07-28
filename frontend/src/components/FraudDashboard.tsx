@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: FraudDashboard - handles frontend functionality
+ */
+
+/**
  * Fraud Dashboard Component
  * 
  * This component provides a comprehensive interface for monitoring and managing

@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: page - handles frontend functionality
+ */
+
+/**
  * PacheduConnect Home Page
  * 
  * This is the main landing page for the PacheduConnect remittance platform.

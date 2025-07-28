@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: encryption - handles backend functionality
+ */
+
+/**
  * Encryption Service
  * 
  * This module provides comprehensive encryption and security services for the

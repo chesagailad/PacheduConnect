@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: index - handles backend functionality
+ */
+
 export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">

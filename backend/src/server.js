@@ -1,38 +1,7 @@
 /**
- * PacheduConnect Backend Server
- * 
- * This is the main entry point for the PacheduConnect backend API server.
- * The server provides a comprehensive REST API for the money transfer platform,
- * including user management, transaction processing, KYC verification, and
- * payment gateway integrations.
- * 
- * Key Features:
- * - Secure API endpoints with authentication and authorization
- * - Real-time transaction processing and monitoring
- * - KYC verification and document management
- * - Payment gateway integrations (Stripe, Ozow, PayFast, Stitch)
- * - Fraud detection and prevention systems
- * - Admin and super admin management interfaces
- * - Webhook handling for payment notifications
- * - Chatbot integration for customer support
- * 
- * Security Implementations:
- * - Helmet.js for security headers
- * - CORS configuration with environment-specific origins
- * - Rate limiting and request throttling
- * - Input validation and sanitization
- * - PCI-DSS compliant payment processing
- * - AES-256 encryption for sensitive data
- * 
- * Performance Optimizations:
- * - Compression middleware for response optimization
- * - Redis caching for session management
- * - Database connection pooling
- * - Request/response logging with Morgan
- * 
- * @author PacheduConnect Development Team
- * @version 1.0.0
- * @since 2024-01-01
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Main Express server entry point - handles API routes, middleware, security, and database connections
  */
 
 const express = require('express');

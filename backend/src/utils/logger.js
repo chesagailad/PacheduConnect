@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: logger - handles backend functionality
+ */
+
+/**
  * Winston Logger Configuration
  * 
  * This module configures Winston logger for the PacheduConnect backend application.

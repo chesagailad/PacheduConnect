@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: ensureKYCForAllUsers - handles backend functionality
+ */
+
 const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createKYCModel = require('../models/KYC');

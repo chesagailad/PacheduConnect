@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: auth - handles backend functionality
+ */
+
 const jwt = require('jsonwebtoken');
 const { getUserById } = require('../services/userService');
 

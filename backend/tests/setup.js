@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: setup - handles backend functionality
+ */
+
 // Load test environment first
 require('dotenv').config({ path: '.env.test' });
 const { Sequelize } = require('sequelize');

@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: fraudPrevention - handles backend functionality
+ */
+
+/**
  * Fraud Prevention Middleware
  *
  * This middleware integrates comprehensive fraud detection into the request pipeline,

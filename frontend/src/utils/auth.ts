@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: auth - handles frontend functionality
+ */
+
+/**
  * Centralized Authentication Utilities
  * Eliminates duplicated token handling throughout the application
  */

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: SendMoneyScreen.test - test file for backend functionality
+ */
+
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';

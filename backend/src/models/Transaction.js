@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Transaction - handles backend functionality
+ */
+
 const { DataTypes } = require('sequelize');
 
 function createTransactionModel(sequelize) {

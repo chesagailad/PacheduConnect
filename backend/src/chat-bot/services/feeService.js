@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: feeService - handles backend functionality
+ */
+
 const { calculateFee, getFeeBreakdown, validateTransferWithFees } = require('../../utils/feeCalculator');
 const logger = require('../../utils/logger');
 

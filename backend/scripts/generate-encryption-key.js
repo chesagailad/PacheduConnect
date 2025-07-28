@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: generate-encryption-key - handles backend functionality
+ */
+
 #!/usr/bin/env node
 
 const crypto = require('crypto');

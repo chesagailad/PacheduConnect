@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: reset-database - handles backend functionality
+ */
+
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
 

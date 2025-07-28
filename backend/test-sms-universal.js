@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-sms-universal - test file for backend functionality
+ */
+
 require('dotenv').config();
 const axios = require('axios');
 

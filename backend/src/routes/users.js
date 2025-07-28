@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: users - handles backend functionality
+ */
+
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { getSequelize } = require('../utils/database');

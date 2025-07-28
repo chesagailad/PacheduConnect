@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: auth - handles backend functionality
+ */
+
+/**
  * Authentication Routes
  * 
  * This module handles all authentication-related endpoints for the PacheduConnect

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: mediaService - handles backend functionality
+ */
+
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;

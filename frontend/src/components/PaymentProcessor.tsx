@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: PaymentProcessor - handles frontend functionality
+ */
+
+/**
  * PaymentProcessor Component
  * 
  * This component handles the complete payment processing workflow for the

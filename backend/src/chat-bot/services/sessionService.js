@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: sessionService - handles backend functionality
+ */
+
 const Redis = require('ioredis');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../../utils/logger');

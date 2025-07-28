@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: webhooks - handles backend functionality
+ */
+
 const express = require('express');
 const crypto = require('crypto');
 const { sequelize } = require('../utils/database');

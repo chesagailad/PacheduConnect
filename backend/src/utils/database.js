@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: database - handles backend functionality
+ */
+
+/**
  * Database Connection Manager
  * 
  * This module manages PostgreSQL database connections for the PacheduConnect backend.

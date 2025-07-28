@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: LoadingSpinner - handles frontend functionality
+ */
+
+/**
  * Loading Spinner Component
  * 
  * A reusable loading spinner component for the PacheduConnect platform.

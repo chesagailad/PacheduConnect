@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: notifications - handles backend functionality
+ */
+
 const express = require('express');
 const router = express.Router();
 const smsService = require('../services/smsService');

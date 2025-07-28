@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-sms-validation - test file for backend functionality
+ */
+
+/**
  * Test Script for SMS Service Input Validation
  * This script tests the new validation methods added to smsService.js
  */

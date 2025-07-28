@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-xe-live-rates - test file for backend functionality
+ */
+
+/**
  * Focused test for XE API live rates
  * Tests the actual API response structure and rates for ZAR → USD
  */

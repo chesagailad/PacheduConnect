@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Beneficiary - handles backend functionality
+ */
+
 const { DataTypes } = require('sequelize');
 
 const createBeneficiaryModel = (sequelize) => {

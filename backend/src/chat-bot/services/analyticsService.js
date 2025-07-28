@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: analyticsService - handles backend functionality
+ */
+
 const logger = require('../../utils/logger');
 const Redis = require('ioredis');
 

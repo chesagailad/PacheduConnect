@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Button - handles frontend functionality
+ */
+
+/**
  * Button Component
  * 
  * A comprehensive, accessible button component for the PacheduConnect platform.

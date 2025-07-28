@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: nlpService - handles backend functionality
+ */
+
 // Simple NLP service for intent recognition and entity extraction
 // In production, this could integrate with services like OpenAI, Dialogflow, or Rasa
 

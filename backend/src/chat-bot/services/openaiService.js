@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: openaiService - handles backend functionality
+ */
+
 const OpenAI = require('openai');
 const logger = require('../../utils/logger');
 

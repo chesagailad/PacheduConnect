@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: feeCalculator - handles backend functionality
+ */
+
+/**
  * Fee calculation utility for PacheduConnect
  * Flat 3% fee on sending amount across all currencies
  */

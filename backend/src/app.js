@@ -1,18 +1,7 @@
 /**
- * Application Entry Point for Testing
- * 
- * This file serves as the entry point for testing the Express application.
- * It imports the configured Express app from server.js and exports it for
- * use in test suites and external testing frameworks.
- * 
- * The separation of app configuration from server startup allows for:
- * - Clean testing without starting the actual server
- * - Integration testing with supertest
- * - Modular testing of middleware and routes
- * 
- * @author PacheduConnect Development Team
- * @version 1.0.0
- * @since 2024-01-01
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Application entry point for testing - exports configured Express app for test suites
  */
 
 // Import the configured Express app from server.js

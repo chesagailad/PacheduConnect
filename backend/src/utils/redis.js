@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: redis - handles backend functionality
+ */
+
+/**
  * Redis Connection Manager
  * 
  * This module manages Redis connections for the PacheduConnect backend application.

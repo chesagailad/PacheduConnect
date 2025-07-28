@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: healthcheck - handles backend functionality
+ */
+
 const http = require('http');
 
 const options = {

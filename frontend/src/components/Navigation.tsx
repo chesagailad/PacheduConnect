@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Navigation - handles frontend functionality
+ */
+
+/**
  * Navigation Component
  * 
  * A responsive navigation header component for the PacheduConnect platform.

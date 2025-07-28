@@ -1,46 +1,7 @@
 /**
- * Authentication Middleware
- * 
- * This middleware provides JWT-based authentication for the PacheduConnect
- * platform. It validates JWT tokens from request headers and attaches
- * user information to the request object for downstream middleware and routes.
- * 
- * Features:
- * - JWT token validation using jsonwebtoken
- * - Bearer token extraction from Authorization header
- * - User information attachment to request object
- * - Comprehensive error handling for invalid tokens
- * - Secure token verification with environment secret
- * 
- * Security Features:
- * - Bearer token authentication scheme
- * - JWT signature verification
- * - Token expiration validation
- * - Secure secret key management
- * - Proper error responses without information leakage
- * 
- * Request Flow:
- * 1. Extract Authorization header
- * 2. Validate Bearer token format
- * 3. Verify JWT signature and expiration
- * 4. Attach user data to request object
- * 5. Continue to next middleware/route
- * 
- * Error Handling:
- * - Missing Authorization header
- * - Invalid Bearer token format
- * - Expired or invalid JWT tokens
- * - Malformed token structure
- * 
- * Usage:
- * - Apply to protected routes
- * - Ensures user authentication
- * - Provides user context to routes
- * - Enables role-based access control
- * 
- * @author PacheduConnect Development Team
- * @version 1.0.0
- * @since 2024-01-01
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: JWT authentication middleware - validates tokens and attaches user data to requests
  */
 
 const jwt = require('jsonwebtoken');

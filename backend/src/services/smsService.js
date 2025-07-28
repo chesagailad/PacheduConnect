@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: smsService - handles backend functionality
+ */
+
+/**
  * SMS Service
  * 
  * This module provides comprehensive SMS functionality for the PacheduConnect

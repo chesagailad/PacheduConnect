@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-sms - test file for backend functionality
+ */
+
 require('dotenv').config();
 const smsService = require('./src/services/smsService');
 

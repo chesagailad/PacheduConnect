@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: fraudDetection - handles backend functionality
+ */
+
+/**
  * Fraud Detection Service
  * 
  * This service provides comprehensive fraud detection capabilities for the

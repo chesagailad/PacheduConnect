@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: fix-database - handles backend functionality
+ */
+
 const { connectDB, getSequelize } = require('../src/utils/database');
 const createUserModel = require('../src/models/User');
 const createKYCModel = require('../src/models/KYC');

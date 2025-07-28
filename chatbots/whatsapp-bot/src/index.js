@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: index - handles backend functionality
+ */
+
 require('dotenv').config();
 const express = require('express');
 const winston = require('winston');
