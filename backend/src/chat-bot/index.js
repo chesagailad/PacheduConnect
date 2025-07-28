@@ -6,6 +6,10 @@ const { getTransactionStatus } = require('./services/transactionService');
 const { getUserByEmail } = require('./services/userService');
 const auth = require('./middleware/auth');
 const analyticsService = require('./services/analyticsService');
+const openaiService = require('./services/openaiService');
+const languageService = require('./services/languageService');
+const mediaService = require('./services/mediaService');
+const authService = require('./services/authService');
 const logger = require('../../utils/logger');
 
 const router = express.Router();
@@ -16,7 +20,7 @@ router.post('/message', async (req, res) => {
   let session = null;
   
   try {
-    const { message, userId, platform = 'web' } = req.body;
+    const { message, userId, platform = 'web', language = 'en' } = req.body;
 
     // Input validation
     if (!message || typeof message !== 'string') {
@@ -58,8 +62,34 @@ router.post('/message', async (req, res) => {
       });
     }
 
-    // Process message with NLP
-    const nlpResult = await processMessage(message, session.context);
+    // Detect language if not provided
+    let detectedLanguage = language;
+    if (language === 'auto') {
+      const languageResult = languageService.detectLanguage(message);
+      detectedLanguage = languageResult.language;
+    }
+
+    // Process message with OpenAI if available, otherwise use basic NLP
+    let nlpResult;
+    const openaiAvailable = await openaiService.isAvailable();
+    
+    if (openaiAvailable) {
+      // Use OpenAI for advanced NLP
+      const intentResult = await openaiService.analyzeIntent(message, session.context);
+      const entities = await openaiService.extractEntities(message);
+      const sentiment = await openaiService.analyzeSentiment(message);
+      
+      nlpResult = {
+        intent: intentResult.intent,
+        confidence: intentResult.confidence,
+        entities,
+        sentiment: sentiment.sentiment,
+        model: 'openai'
+      };
+    } else {
+      // Fallback to basic NLP
+      nlpResult = await processMessage(message, session.context);
+    }
     
     // Track NLP processing
     await analyticsService.trackEvent({
@@ -70,13 +100,35 @@ router.post('/message', async (req, res) => {
       intent: nlpResult.intent,
       confidence: nlpResult.confidence,
       entities: nlpResult.entities,
+      language: detectedLanguage,
+      sentiment: nlpResult.sentiment,
+      model: nlpResult.model,
       message,
       responseTime: Date.now() - startTime
     });
 
-    // Generate response
-    const response = await generateResponse(nlpResult, session, userId);
-    
+    // Generate response using OpenAI if available
+    let response;
+    if (openaiAvailable) {
+      response = await openaiService.generateResponse(
+        message, 
+        session.context, 
+        nlpResult.intent, 
+        nlpResult.entities
+      );
+    } else {
+      // Generate response using language service
+      response = {
+        text: languageService.getContextualResponse(nlpResult.intent, detectedLanguage, session.context),
+        type: 'text'
+      };
+    }
+
+    // Translate response if needed
+    if (detectedLanguage !== 'en') {
+      response.text = languageService.translate(response.text, detectedLanguage, nlpResult.intent);
+    }
+
     // Add messages to session
     await sessionService.addMessage(session.id, {
       role: 'user',
@@ -94,6 +146,7 @@ router.post('/message', async (req, res) => {
     await sessionService.updateContext(session.id, {
       lastIntent: nlpResult.intent,
       lastEntities: nlpResult.entities,
+      language: detectedLanguage,
       lastActivity: new Date().toISOString()
     });
 
@@ -108,6 +161,8 @@ router.post('/message', async (req, res) => {
       intent: nlpResult.intent,
       confidence: nlpResult.confidence,
       entities: nlpResult.entities,
+      language: detectedLanguage,
+      sentiment: nlpResult.sentiment,
       message,
       response: response.text,
       responseTime: totalResponseTime
@@ -117,16 +172,20 @@ router.post('/message', async (req, res) => {
       sessionId: session.id,
       userId,
       platform,
+      language: detectedLanguage,
       intent: nlpResult.intent,
       confidence: nlpResult.confidence,
       responseTime: totalResponseTime,
-      messageLength: message.length
+      messageLength: message.length,
+      model: nlpResult.model
     });
 
     res.json({
       success: true,
       response,
-      sessionId: session.id
+      sessionId: session.id,
+      language: detectedLanguage,
+      sentiment: nlpResult.sentiment
     });
 
   } catch (error) {
@@ -163,168 +222,202 @@ router.post('/message', async (req, res) => {
   }
 });
 
-// Generate contextual response based on intent
-async function generateResponse(nlpResult, session, userId) {
-  const { intent, entities, confidence } = nlpResult;
-  
-  // Low confidence fallback
-  if (confidence < 0.5) {
-    return {
-      text: "I'm not sure I understand. Could you please rephrase your question? You can ask me about exchange rates, transaction tracking, sending money, or KYC verification.",
-      type: 'quick_reply',
-      options: ['Check exchange rates', 'Track transaction', 'Send money', 'Help with KYC']
-    };
-  }
-  
-  switch (intent) {
-    case 'greeting':
-      return {
-        text: "Hello! Welcome to Pachedu. I'm here to help you with money transfers, checking exchange rates, tracking transactions, and answering questions about our services. How can I assist you today?",
-        type: 'quick_reply',
-        options: ['Send money', 'Check rates', 'Track transaction', 'Account help']
-      };
-      
-    case 'exchange_rate':
-      return await handleExchangeRateIntent(entities);
-      
-    case 'send_money':
-      return await handleSendMoneyIntent(userId);
-      
-    case 'track_transaction':
-      return await handleTrackTransactionIntent(entities, userId);
-      
-    case 'kyc_help':
-      return handleKYCHelp();
-      
-    case 'fees_info':
-      return handleFeesInfo();
-      
-    case 'support':
-      return handleSupport();
-      
-    case 'goodbye':
-      return {
-        text: "Thank you for using Pachedu! Have a great day and feel free to reach out if you need any assistance with your money transfers.",
-        type: 'text'
-      };
-      
-    default:
-      return {
-        text: "I understand you're asking about our services. I can help you with:\n\n• Sending money to Zimbabwe\n• Checking current exchange rates\n• Tracking your transactions\n• KYC verification process\n• Fee information\n\nWhat would you like to know more about?",
-        type: 'quick_reply',
-        options: ['Send money', 'Exchange rates', 'Track transaction', 'KYC help']
-      };
-  }
-}
-
-async function handleExchangeRateIntent(entities) {
+// Media upload endpoint
+router.post('/media/upload', mediaService.getUploadMiddleware().single('media'), async (req, res) => {
   try {
-    const fromCurrency = entities.find(e => e.entity === 'from_currency')?.value || 'ZAR';
-    const toCurrency = entities.find(e => e.entity === 'to_currency')?.value || 'USD';
-    
-    const rate = await getExchangeRate(fromCurrency, toCurrency);
-    
-    return {
-      text: `Current exchange rate: 1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}\n\nThis rate is updated every hour. Would you like to send money or check other currency pairs?`,
-      type: 'quick_reply',
-      options: ['Send money now', 'Check other rates', 'View fees', 'Main menu']
-    };
-  } catch (error) {
-    return {
-      text: "I'm having trouble fetching the current exchange rates. Please try again in a moment or visit our website for the latest rates.",
-      type: 'text'
-    };
-  }
-}
-
-async function handleSendMoneyIntent(userId) {
-  if (!userId) {
-    return {
-      text: "To send money, you'll need to log in to your account first. Once logged in, I can guide you through the process.\n\nHere's what you'll need:\n• Recipient's details\n• Amount to send\n• Delivery method (EcoCash, Bank, Cash pickup)",
-      type: 'quick_reply',
-      options: ['Login/Register', 'Learn more', 'View fees', 'Main menu']
-    };
-  }
-  
-  return {
-    text: "Great! I can help you send money to Zimbabwe. You can choose from several delivery options:\n\n🏦 Bank Transfer - Direct to recipient's account\n📱 EcoCash - Instant mobile wallet transfer\n💵 Cash Pickup - USD cash at agent locations\n🏠 Home Delivery - Selected areas only\n\nWould you like to start a transfer or learn more about delivery options?",
-    type: 'quick_reply',
-    options: ['Start transfer', 'Delivery options', 'Check fees', 'Exchange rates']
-  };
-}
-
-async function handleTrackTransactionIntent(entities, userId) {
-  if (!userId) {
-    return {
-      text: "To track your transaction, please log in to your account. Once logged in, I can help you check the status of your transfers.",
-      type: 'quick_reply',
-      options: ['Login/Register', 'Transaction help', 'Main menu']
-    };
-  }
-  
-  const transactionId = entities.find(e => e.entity === 'transaction_id')?.value;
-  
-  if (transactionId) {
-    try {
-      const status = await getTransactionStatus(transactionId, userId);
-      return {
-        text: `Transaction ${transactionId}:\nStatus: ${status.status}\nAmount: ${status.amount} ${status.currency}\nRecipient: ${status.recipientName}\nDelivery: ${status.deliveryMethod}\n\n${getStatusMessage(status.status)}`,
-        type: 'quick_reply',
-        options: ['View details', 'Send again', 'Get receipt', 'Main menu']
-      };
-    } catch (error) {
-      return {
-        text: "I couldn't find that transaction. Please check the transaction ID and try again, or browse your recent transactions in your account.",
-        type: 'text'
-      };
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No media file provided'
+      });
     }
+
+    const { userId, sessionId } = req.body;
+    const mediaInfo = await mediaService.processMediaFile(req.file, userId, sessionId);
+
+    res.json({
+      success: true,
+      media: mediaInfo
+    });
+  } catch (error) {
+    logger.error('Media upload failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to upload media file'
+    });
   }
-  
-  return {
-    text: "I can help you track your transaction. Please provide your transaction ID (it starts with 'PC' followed by numbers), or you can view all your recent transactions in your account dashboard.",
-    type: 'quick_reply',
-    options: ['View recent transactions', 'Enter transaction ID', 'Main menu']
-  };
-}
+});
 
-function handleKYCHelp() {
-  return {
-    text: "KYC (Know Your Customer) verification helps us keep transfers secure. Here's what you need:\n\n📄 Valid ID Document (Passport/ID/Driver's License)\n📱 Selfie with your ID\n🏠 Proof of Address (Utility bill/Bank statement)\n\nThe process usually takes 2-4 hours. Need help with a specific step?",
-    type: 'quick_reply',
-    options: ['Upload documents', 'Check KYC status', 'Document requirements', 'Contact support']
-  };
-}
-
-function handleFeesInfo() {
-  return {
-    text: "Our competitive fees vary by amount and delivery method:\n\n💰 R0-R1000: 2.5% + R15\n💰 R1000-R5000: 2% + R25\n💰 R5000+: 1.5% + R35\n\n📱 EcoCash: Additional R10\n🏦 Bank Transfer: No extra fee\n💵 Cash Pickup: Additional R20\n\nExact fees are shown before you confirm any transfer.",
-    type: 'quick_reply',
-    options: ['Calculate fees', 'Send money', 'Compare methods', 'Main menu']
-  };
-}
-
-function handleSupport() {
-  return {
-    text: "I'm here to help! For additional support:\n\n📞 Call: +27 11 123 4567\n📧 Email: support@pachedu.com\n💬 WhatsApp: +27 81 123 4567\n\nOur support team is available:\nMon-Fri: 8AM-6PM\nSat: 9AM-2PM\nSun: Closed",
-    type: 'quick_reply',
-    options: ['Common questions', 'Report issue', 'Account help', 'Main menu']
-  };
-}
-
-function getStatusMessage(status) {
-  switch (status) {
-    case 'pending':
-      return "Your transaction is being processed. This usually takes a few minutes.";
-    case 'processing':
-      return "Your money is on its way! We're coordinating with our delivery partners.";
-    case 'completed':
-      return "✅ Transaction completed successfully! Your recipient should have received the money.";
-    case 'failed':
-      return "❌ Transaction failed. Your money has been refunded. Contact support if you need assistance.";
-    default:
-      return "Transaction status updated.";
+// Media file serving endpoint
+router.get('/media/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const mediaFile = await mediaService.getMediaFile(filename);
+    
+    res.sendFile(mediaFile.path);
+  } catch (error) {
+    logger.error('Media file serving failed:', error);
+    res.status(404).json({
+      success: false,
+      error: 'Media file not found'
+    });
   }
-}
+});
+
+// Authentication endpoints
+router.post('/auth/anonymous', async (req, res) => {
+  try {
+    const { platform, deviceInfo } = req.body;
+    const authResult = authService.createAnonymousUser(platform, deviceInfo);
+    
+    res.json({
+      success: true,
+      ...authResult
+    });
+  } catch (error) {
+    logger.error('Anonymous authentication failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create anonymous session'
+    });
+  }
+});
+
+router.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password, platform } = req.body;
+    const authResult = await authService.authenticateUser(email, password, platform);
+    
+    res.json({
+      success: true,
+      ...authResult
+    });
+  } catch (error) {
+    logger.error('User authentication failed:', error);
+    res.status(401).json({
+      success: false,
+      error: 'Authentication failed'
+    });
+  }
+});
+
+// User profile endpoints
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const profile = await authService.getUserProfile(userId);
+    
+    res.json({
+      success: true,
+      profile
+    });
+  } catch (error) {
+    logger.error('Failed to get user profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve user profile'
+    });
+  }
+});
+
+router.put('/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const updates = req.body;
+    const profile = await authService.updateUserProfile(userId, updates);
+    
+    res.json({
+      success: true,
+      profile
+    });
+  } catch (error) {
+    logger.error('Failed to update user profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user profile'
+    });
+  }
+});
+
+// Language endpoints
+router.get('/languages', (req, res) => {
+  try {
+    const languages = languageService.getSupportedLanguages();
+    const stats = languageService.getTranslationStats();
+    
+    res.json({
+      success: true,
+      languages,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to get languages:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve language information'
+    });
+  }
+});
+
+router.post('/translate', (req, res) => {
+  try {
+    const { text, targetLang, category, params } = req.body;
+    const translatedText = languageService.translate(text, targetLang, category, params);
+    
+    res.json({
+      success: true,
+      original: text,
+      translated: translatedText,
+      language: targetLang
+    });
+  } catch (error) {
+    logger.error('Translation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to translate text'
+    });
+  }
+});
+
+// OpenAI service endpoints
+router.get('/openai/status', async (req, res) => {
+  try {
+    const isAvailable = await openaiService.isAvailable();
+    const stats = openaiService.getStats();
+    
+    res.json({
+      success: true,
+      available: isAvailable,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to check OpenAI status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check service status'
+    });
+  }
+});
+
+// Media service endpoints
+router.get('/media/stats', async (req, res) => {
+  try {
+    const stats = await mediaService.getMediaStats();
+    const supportedTypes = mediaService.getSupportedTypes();
+    
+    res.json({
+      success: true,
+      stats,
+      supportedTypes
+    });
+  } catch (error) {
+    logger.error('Failed to get media stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve media statistics'
+    });
+  }
+});
 
 // Analytics endpoints
 router.get('/analytics', async (req, res) => {
