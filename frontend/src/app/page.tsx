@@ -1,3 +1,40 @@
+/**
+ * PacheduConnect Home Page
+ * 
+ * This is the main landing page for the PacheduConnect remittance platform.
+ * It showcases the platform's features, benefits, and provides a clear
+ * call-to-action for users to start sending money to Zimbabwe.
+ * 
+ * Page Sections:
+ * - Header: Navigation and branding
+ * - Hero: Main value proposition and CTA
+ * - Exchange Rate Calculator: Real-time rate display
+ * - Trust Indicators: Security and reliability badges
+ * - Customer Testimonials: Social proof and reviews
+ * - Fee Transparency: Clear pricing structure
+ * - Step-by-Step Process: How the service works
+ * - Security Trust Indicators: Safety and compliance
+ * 
+ * Features:
+ * - Responsive design for all devices
+ * - Smooth animations with Framer Motion
+ * - SEO-optimized content structure
+ * - Accessibility-compliant markup
+ * - Performance-optimized components
+ * - Clear user journey and conversion funnel
+ * 
+ * User Experience:
+ * - Clear value proposition
+ * - Trust-building elements
+ * - Easy navigation and CTAs
+ * - Mobile-first responsive design
+ * - Fast loading and smooth interactions
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 'use client';
 
 import React from 'react';

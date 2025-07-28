@@ -1,22 +1,65 @@
+/**
+ * Button Component
+ * 
+ * A comprehensive, accessible button component for the PacheduConnect platform.
+ * Provides multiple variants, sizes, and states with smooth animations and
+ * proper accessibility features.
+ * 
+ * Features:
+ * - Multiple visual variants (primary, secondary, ghost, danger)
+ * - Three size options (sm, md, lg)
+ * - Loading state with spinner animation
+ * - Disabled state with proper styling
+ * - Icon support with positioning options
+ * - Full-width option for responsive design
+ * - Link functionality with href prop
+ * - Smooth animations with Framer Motion
+ * - Comprehensive accessibility support
+ * - Test-friendly with data-testid support
+ * 
+ * Accessibility Features:
+ * - Proper focus management with visible focus rings
+ * - ARIA attributes for screen readers
+ * - Keyboard navigation support
+ * - Disabled state handling
+ * - Loading state announcements
+ * 
+ * Animation Features:
+ * - Hover and tap animations
+ * - Icon animations
+ * - Loading state transitions
+ * - Smooth color transitions
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from './LoadingSpinner';
 
+/**
+ * Button Component Props Interface
+ * 
+ * Defines all available props for the Button component with proper
+ * TypeScript typing and default values.
+ */
 interface ButtonProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
-  disabled?: boolean;
-  fullWidth?: boolean;
-  onClick?: () => void;
-  href?: string;
-  className?: string;
-  icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
-  'data-testid'?: string;
+  children: React.ReactNode;                    // Button content
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';  // Visual style variant
+  size?: 'sm' | 'md' | 'lg';                   // Button size
+  loading?: boolean;                            // Loading state with spinner
+  disabled?: boolean;                           // Disabled state
+  fullWidth?: boolean;                          // Full width option
+  onClick?: () => void;                         // Click handler function
+  href?: string;                                // Link URL (renders as anchor)
+  className?: string;                           // Additional CSS classes
+  icon?: React.ReactNode;                       // Icon component
+  iconPosition?: 'left' | 'right';             // Icon positioning
+  'data-testid'?: string;                      // Test identifier
 }
 
 export default function Button({

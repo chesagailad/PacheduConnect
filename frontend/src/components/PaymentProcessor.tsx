@@ -1,3 +1,37 @@
+/**
+ * PaymentProcessor Component
+ * 
+ * This component handles the complete payment processing workflow for the
+ * PacheduConnect money transfer platform. It provides a secure, user-friendly
+ * interface for processing payments through multiple payment gateways.
+ * 
+ * Key Features:
+ * - Multi-gateway payment processing (Stripe, Ozow, PayFast, Stitch)
+ * - Real-time fee calculation and transparency
+ * - Secure card and bank account input handling
+ * - Form validation and error handling
+ * - PCI-DSS compliant payment processing
+ * - Fraud detection integration
+ * - Responsive design for all devices
+ * 
+ * Security Implementations:
+ * - Client-side input validation and sanitization
+ * - Secure token-based authentication
+ * - PCI-DSS compliant payment form handling
+ * - Real-time fraud screening integration
+ * - Encrypted data transmission
+ * 
+ * Payment Gateways Supported:
+ * - Stripe: Global payment processor for card payments
+ * - Ozow: South African EFT payment processor
+ * - PayFast: South African multi-payment processor
+ * - Stitch: South African open banking processor
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,26 +42,47 @@ import Button from './Button';
 
 const API_URL = API_CONFIG.BASE_URL;
 
+/**
+ * Payment Gateway Interface
+ * 
+ * Defines the structure for payment gateway configuration and capabilities.
+ * Each gateway has specific features, supported currencies, and fee structures.
+ */
 interface PaymentGateway {
-  name: string;
-  description: string;
-  currencies: string[];
-  fees: { percentage: number; fixed: number };
-  supported: boolean;
+  name: string;                    // Gateway display name
+  description: string;             // Gateway description for users
+  currencies: string[];            // Supported currencies (USD, ZAR, etc.)
+  fees: { 
+    percentage: number;            // Percentage fee (e.g., 2.9%)
+    fixed: number;                 // Fixed fee amount (e.g., 0.30)
+  };
+  supported: boolean;              // Whether gateway is currently available
 }
 
+/**
+ * Payment Gateways Collection Interface
+ * 
+ * Maps gateway keys to their configuration objects for easy access
+ * and management of multiple payment gateways.
+ */
 interface PaymentGateways {
-  [key: string]: PaymentGateway;
+  [key: string]: PaymentGateway;   // Gateway key to configuration mapping
 }
 
+/**
+ * PaymentProcessor Component Props Interface
+ * 
+ * Defines the required and optional properties for the PaymentProcessor component.
+ * These props control the payment amount, currency, recipient, and callback functions.
+ */
 interface PaymentProcessorProps {
-  amount: number;
-  currency: string;
-  recipientEmail: string;
-  description?: string;
-  onSuccess?: (payment: any) => void;
-  onError?: (error: string) => void;
-  onCancel?: () => void;
+  amount: number;                  // Payment amount in specified currency
+  currency: string;                // Currency code (USD, ZAR, etc.)
+  recipientEmail: string;          // Recipient's email address
+  description?: string;            // Optional payment description
+  onSuccess?: (payment: any) => void;  // Success callback function
+  onError?: (error: string) => void;    // Error callback function
+  onCancel?: () => void;          // Cancel callback function
 }
 
 export default function PaymentProcessor({

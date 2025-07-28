@@ -3,6 +3,25 @@
   "version": "1.0.0",
   "description": "Cross-border remittance platform for Zimbabwean expatriates in South Africa",
   "private": true,
+  "author": "PacheduConnect Development Team",
+  "license": "MIT",
+  "homepage": "https://pacheduconnect.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacheduconnect/remittance-platform"
+  },
+  "keywords": [
+    "remittance",
+    "money-transfer",
+    "zimbabwe",
+    "south-africa",
+    "fintech",
+    "payment-processing",
+    "fraud-prevention",
+    "kyc",
+    "blockchain",
+    "mobile-app"
+  ],
   "workspaces": [
     "backend",
     "frontend",

@@ -1,3 +1,52 @@
+/**
+ * Authentication Routes
+ * 
+ * This module handles all authentication-related endpoints for the PacheduConnect
+ * platform, including user registration, login, password management, and
+ * multi-factor authentication (MFA) with SMS verification.
+ * 
+ * Features:
+ * - User registration with email and phone verification
+ * - Secure login with JWT token generation
+ * - Password hashing with bcrypt
+ * - SMS-based OTP verification
+ * - Password reset functionality
+ * - Account verification and activation
+ * - Session management and token refresh
+ * - KYC integration for new users
+ * 
+ * Security Features:
+ * - Password hashing with salt rounds
+ * - JWT token authentication
+ * - Rate limiting for OTP requests
+ * - Input validation and sanitization
+ * - Phone number format validation
+ * - Email uniqueness validation
+ * - Secure token generation and storage
+ * 
+ * Endpoints:
+ * - POST /register: User registration
+ * - POST /login: User authentication
+ * - POST /verify-otp: OTP verification
+ * - POST /resend-otp: OTP resend
+ * - POST /forgot-password: Password reset request
+ * - POST /reset-password: Password reset
+ * - POST /logout: User logout
+ * - GET /verify-email: Email verification
+ * - POST /refresh-token: Token refresh
+ * 
+ * Dependencies:
+ * - bcrypt: Password hashing
+ * - jsonwebtoken: JWT token management
+ * - crypto: Secure random generation
+ * - axios: HTTP client for external services
+ * - smsService: SMS delivery service
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -10,7 +59,13 @@ const router = express.Router();
 
 const axios = require('axios');
 
-// In-memory storage for OTP (in production, use Redis)
+/**
+ * OTP Storage
+ * 
+ * In-memory storage for OTP codes during development and testing.
+ * In production, this should be replaced with Redis for persistence
+ * and better scalability across multiple server instances.
+ */
 const otpStore = new Map();
 
 // Register

@@ -1,3 +1,43 @@
+/**
+ * Navigation Component
+ * 
+ * A responsive navigation header component for the PacheduConnect platform.
+ * Provides consistent navigation across all pages with user information,
+ * notification access, and logout functionality.
+ * 
+ * Features:
+ * - Responsive design with mobile-friendly layout
+ * - Dynamic title display
+ * - Optional back button with custom routing
+ * - User information display
+ * - Notification bell integration
+ * - Logout functionality with token cleanup
+ * - Smooth transitions and hover effects
+ * 
+ * Navigation Elements:
+ * - Back button (optional) with custom URL routing
+ * - Page title with consistent styling
+ * - User welcome message
+ * - Notification bell component
+ * - Logout button with proper cleanup
+ * 
+ * User Experience:
+ * - Clear visual hierarchy
+ * - Intuitive navigation patterns
+ * - Consistent branding and styling
+ * - Accessible keyboard navigation
+ * - Mobile-responsive design
+ * 
+ * Security Features:
+ * - Secure logout with token removal
+ * - Proper session cleanup
+ * - Redirect to authentication page
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 'use client';
 
 import React from 'react';
@@ -5,13 +45,19 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import NotificationBell from './NotificationBell';
 
+/**
+ * Navigation Component Props Interface
+ * 
+ * Defines the props for the Navigation component with proper
+ * TypeScript typing and default values.
+ */
 interface NavigationProps {
-  title: string;
-  showBackButton?: boolean;
-  backUrl?: string;
-  user?: {
-    name: string;
-    email: string;
+  title: string;                              // Page title to display
+  showBackButton?: boolean;                   // Whether to show back button
+  backUrl?: string;                           // URL for back button navigation
+  user?: {                                    // User information object
+    name: string;                             // User's display name
+    email: string;                            // User's email address
   } | null;
 }
 
