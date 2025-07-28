@@ -31,6 +31,13 @@ describe('PaymentProcessor Component', () => {
       fees: { percentage: 2.9, fixed: 0.30 },
       supported: true,
     },
+    stitch: {
+      name: 'Stitch',
+      description: 'Bank Transfer',
+      currencies: ['ZAR'],
+      fees: { percentage: 1.5, fixed: 0.00 },
+      supported: true,
+    },
   };
 
   beforeEach(() => {
@@ -57,7 +64,23 @@ describe('PaymentProcessor Component', () => {
       render(<PaymentProcessor {...defaultProps} />);
 
       expect(screen.getByText('Payment Details')).toBeInTheDocument();
-      expect(screen.getAllByText(/ZAR 1000.00/)).toHaveLength(3); // Amount, Total, and Pay button
+      
+      // Test specific amount display elements using test IDs
+      const amountValue = screen.getByTestId('amount-value');
+      expect(amountValue).toHaveTextContent('ZAR 1000.00');
+      
+      const feeValue = screen.getByTestId('fee-value');
+      expect(feeValue).toHaveTextContent('ZAR 0.00'); // No fee in this case
+      
+      const totalValue = screen.getByTestId('total-value');
+      expect(totalValue).toHaveTextContent('ZAR 1000.00');
+      
+      const payButton = screen.getByTestId('pay-button');
+      expect(payButton).toHaveTextContent('Pay ZAR 1000.00');
+      
+      // Test that the button is disabled when no gateway is selected
+      expect(payButton).toBeDisabled();
+      
       // Note: recipient email is not displayed in the component UI
 
       // Wait for gateways to load
@@ -223,10 +246,40 @@ describe('PaymentProcessor Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Stripe')).toBeInTheDocument();
+        expect(screen.getByText('Stitch')).toBeInTheDocument();
       });
 
       const stripeOption = screen.getByLabelText(/stripe/i);
       expect(stripeOption).toBeChecked(); // Should be auto-selected
+    });
+
+    test('calculates fees correctly for different gateways', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      });
+
+      render(<PaymentProcessor {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+        expect(screen.getByText('Stitch')).toBeInTheDocument();
+      });
+
+      // Initially Stripe should be selected (auto-selected)
+      const feeValue = screen.getByTestId('fee-value');
+      expect(feeValue).toHaveTextContent('ZAR 29.30'); // 2.9% of 1000 + 0.30 fixed fee
+      
+      const totalValue = screen.getByTestId('total-value');
+      expect(totalValue).toHaveTextContent('ZAR 1029.30'); // 1000 + 29.30
+
+      // Select Stitch gateway
+      const stitchOption = screen.getByLabelText(/stitch/i);
+      fireEvent.click(stitchOption);
+
+      // Fee should update to Stitch's fee structure
+      expect(feeValue).toHaveTextContent('ZAR 15.00'); // 1.5% of 1000
+      expect(totalValue).toHaveTextContent('ZAR 1015.00'); // 1000 + 15.00
     });
   });
 });

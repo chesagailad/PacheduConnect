@@ -16,6 +16,7 @@ interface ButtonProps {
   className?: string;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
+  'data-testid'?: string;
 }
 
 export default function Button({
@@ -29,7 +30,8 @@ export default function Button({
   href,
   className = '',
   icon,
-  iconPosition = 'left'
+  iconPosition = 'left',
+  'data-testid': dataTestId
 }: ButtonProps) {
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
@@ -102,6 +104,7 @@ export default function Button({
         initial="initial"
         whileHover="hover"
         whileTap="tap"
+        data-testid={dataTestId}
       >
         {content}
       </motion.a>
@@ -118,6 +121,7 @@ export default function Button({
       whileHover="hover"
       whileTap="tap"
       whileInView="initial"
+      data-testid={dataTestId}
     >
       {content}
     </motion.button>

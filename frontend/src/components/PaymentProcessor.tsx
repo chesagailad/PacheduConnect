@@ -215,17 +215,17 @@ export default function PaymentProcessor({
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Details</h2>
         <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex justify-between mb-2">
+          <div className="flex justify-between mb-2" data-testid="amount-row">
             <span className="text-gray-600">Amount:</span>
-            <span className="font-semibold">{currency} {amount.toFixed(2)}</span>
+            <span className="font-semibold" data-testid="amount-value">{currency} {amount.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between mb-2">
+          <div className="flex justify-between mb-2" data-testid="fee-row">
             <span className="text-gray-600">Fee:</span>
-            <span className="font-semibold">{currency} {fee.toFixed(2)}</span>
+            <span className="font-semibold" data-testid="fee-value">{currency} {fee.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-200">
+          <div className="flex justify-between pt-2 border-t border-gray-200" data-testid="total-row">
             <span className="text-gray-900 font-bold">Total:</span>
-            <span className="text-gray-900 font-bold">{currency} {total.toFixed(2)}</span>
+            <span className="text-gray-900 font-bold" data-testid="total-value">{currency} {total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -362,6 +362,7 @@ export default function PaymentProcessor({
           loading={loading}
           disabled={loading || !selectedGateway}
           className="flex-1"
+          data-testid="pay-button"
         >
           Pay {currency} {total.toFixed(2)}
         </Button>
