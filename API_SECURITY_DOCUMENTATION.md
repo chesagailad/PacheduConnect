@@ -122,7 +122,7 @@ const validationSchemas = {
     password: Joi.string()
       .min(8)
       .max(128)
-      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/)
       .required(),
     phoneNumber: Joi.string()
       .pattern(/^\+[1-9]\d{1,14}$/)

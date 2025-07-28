@@ -122,17 +122,5 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  },
-  "keywords": [
-    "remittance",
-    "money-transfer",
-    "zimbabwe",
-    "south-africa",
-    "fintech",
-    "mobile-app",
-    "web-app",
-    "chatbot"
-  ],
-  "author": "Pachedu Team",
-  "license": "MIT"
+  }
 }
