@@ -22,22 +22,18 @@ export default function ExchangeRateCalculator({ className = '' }: ExchangeRateC
     'EUR-ZWD': 0.00018,
   };
 
-  const fees = {
-    'ZAR-ZWD': 25,
-    'USD-ZWD': 2,
-    'EUR-ZWD': 2.5,
-  };
-
   useEffect(() => {
     const rateKey = `${fromCurrency}-${toCurrency}`;
     const currentRate = rates[rateKey as keyof typeof rates] || 0.0025;
-    const currentFee = fees[rateKey as keyof typeof fees] || 25;
     
     setExchangeRate(currentRate);
-    setFee(currentFee);
     
     const numAmount = parseFloat(amount) || 0;
-    const calculatedTotal = (numAmount * currentRate) - currentFee;
+    // Flat 3% fee on sending amount
+    const currentFee = numAmount * 0.03;
+    setFee(currentFee);
+    
+    const calculatedTotal = (numAmount * currentRate);
     setTotal(Math.max(0, calculatedTotal));
   }, [amount, fromCurrency, toCurrency]);
 
@@ -135,7 +131,7 @@ export default function ExchangeRateCalculator({ className = '' }: ExchangeRateC
             </div>
             
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Transfer Fee:</span>
+              <span className="text-gray-600">Transfer Fee (3%):</span>
               <span className="font-semibold text-warning-600">
                 {fee.toFixed(2)} {fromCurrency}
               </span>
@@ -160,7 +156,7 @@ export default function ExchangeRateCalculator({ className = '' }: ExchangeRateC
             <svg className="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <span>Rates updated every 5 minutes • Delivery in 2-4 hours</span>
+            <span>Simple 3% flat fee • Rates updated every 5 minutes • Delivery in 2-4 hours</span>
           </div>
         </motion.div>
       </div>

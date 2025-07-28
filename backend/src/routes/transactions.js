@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const { getSequelize, getModels } = require('../utils/database');
 const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
-const { convertCurrency, getExchangeRate, getAllRates, calculateCommission, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
+const { convertCurrency, getExchangeRate, getAllRates, calculateTransferFee, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');
 
 const router = express.Router();
 
@@ -35,11 +35,11 @@ router.get('/fee-structure', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching fee structure:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to fetch fee structure' });
   }
 });
 
-// Convert currency with commission calculation
+// Convert currency with transfer fee
 router.post('/convert-currency', async (req, res) => {
   try {
     const { amount, fromCurrency, toCurrency } = req.body;
@@ -65,9 +65,9 @@ router.post('/convert-currency', async (req, res) => {
     res.json({
       conversion,
       message: 'Currency converted successfully with XE real-time rates',
-      note: conversion.commission.commissionAmount > 0 ? 
-        `Commission of ${conversion.commission.commissionRate * 100}% applied to ZAR amount` : 
-        'No commission applied'
+      note: conversion.transferFee.transferFeeAmount > 0 ? 
+        `Transfer fee of ${conversion.transferFee.transferFeeRate * 100}% applied to sending amount` : 
+        'No transfer fee applied'
     });
   } catch (error) {
     console.error('Error converting currency:', error);
@@ -75,8 +75,8 @@ router.post('/convert-currency', async (req, res) => {
   }
 });
 
-// Calculate commission for ZAR transactions
-router.post('/calculate-commission', async (req, res) => {
+// Calculate transfer fee for transactions
+router.post('/calculate-transfer-fee', async (req, res) => {
   try {
     const { amount, currency } = req.body;
     
@@ -88,16 +88,16 @@ router.post('/calculate-commission', async (req, res) => {
       return res.status(400).json({ error: 'Currency is required' });
     }
     
-    const commission = calculateCommission(parseFloat(amount), currency.toUpperCase());
+    const transferFee = calculateTransferFee(parseFloat(amount), currency.toUpperCase());
     
     res.json({
-      commission,
-      message: commission.commissionAmount > 0 ? 
-        'Commission calculated for ZAR transaction' : 
-        'No commission applicable for this currency'
+      transferFee,
+      message: transferFee.transferFeeAmount > 0 ? 
+        'Transfer fee calculated for transaction' : 
+        'No transfer fee applicable for this currency'
     });
   } catch (error) {
-    console.error('Error calculating commission:', error);
+    console.error('Error calculating transfer fee:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -131,38 +131,31 @@ router.get('/exchange-rate/:from/:to', async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { User, Transaction } = getModels();
+    const userId = req.user.id;
+    const { page = 1, limit = 10, status, type, startDate, endDate } = req.query;
     
-    const {
-      type,
-      status,
-      startDate,
-      endDate,
-      minAmount,
-      maxAmount,
-      limit = 20,
-      offset = 0
-    } = req.query;
+    const offset = (page - 1) * limit;
+    const whereClause = { userId };
     
-    const where = { userId: req.user.id };
-    
-    if (type) where.type = type;
-    if (status) where.status = status;
-    if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
-    if (endDate) where.createdAt = { ...where.createdAt, [Op.lte]: new Date(endDate) };
-    if (minAmount) where.amount = { [Op.gte]: parseFloat(minAmount) };
-    if (maxAmount) where.amount = { ...where.amount, [Op.lte]: parseFloat(maxAmount) };
+    if (status) whereClause.status = status;
+    if (type) whereClause.type = type;
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) whereClause.createdAt[Op.gte] = new Date(startDate);
+      if (endDate) whereClause.createdAt[Op.lte] = new Date(endDate);
+    }
     
     const transactions = await Transaction.findAndCountAll({
-      where,
+      where: whereClause,
       include: [
         {
           model: User,
-          as: 'sender',
+          as: 'recipient',
           attributes: ['id', 'name', 'email']
         },
         {
           model: User,
-          as: 'recipient',
+          as: 'sender',
           attributes: ['id', 'name', 'email']
         }
       ],
@@ -174,7 +167,9 @@ router.get('/', auth, async (req, res) => {
     res.json({
       transactions: transactions.rows,
       total: transactions.count,
-      hasMore: transactions.count > parseInt(offset) + parseInt(limit)
+      page: parseInt(page),
+      totalPages: Math.ceil(transactions.count / limit),
+      message: 'Transactions retrieved successfully'
     });
   } catch (error) {
     console.error('Error fetching transactions:', error);
@@ -182,8 +177,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Calculate fee for a transaction
-router.post('/calculate-fee', auth, async (req, res) => {
+// Calculate fee for transaction
+router.post('/calculate-fee', async (req, res) => {
   try {
     const { amount, currency = 'USD' } = req.body;
     
@@ -206,147 +201,99 @@ router.post('/calculate-fee', auth, async (req, res) => {
 // Send money
 router.post('/', auth, async (req, res) => {
   try {
-    const { recipientEmail, amount, currency = 'USD', description } = req.body;
+    const { User, Transaction } = getModels();
+    const userId = req.user.id;
+    const { recipientId, amount, currency, description, deliveryMethod } = req.body;
     
-    if (!recipientEmail || !amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid input data' });
+    if (!recipientId || !amount || !currency) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const { User, Transaction, Notification, KYC } = getModels();
-    
-    // Check KYC status and limits
-    const kyc = await KYC.findOne({ where: { userId: req.user.id } });
-    if (!kyc) {
-      return res.status(400).json({ error: 'KYC verification required' });
+    if (amount <= 0) {
+      return res.status(400).json({ error: 'Amount must be positive' });
     }
     
-    if (kyc.status !== 'approved') {
-      return res.status(400).json({ 
-        error: 'KYC verification pending or rejected',
-        kycStatus: kyc.status,
-        kycLevel: kyc.level
-      });
-    }
-    
-    // Check if user can send this amount
-    if (!kyc.canSendAmount(parseFloat(amount))) {
-      const remainingLimit = kyc.monthlySendLimit - kyc.currentMonthSent;
-      return res.status(400).json({ 
-        error: 'Monthly send limit exceeded',
-        monthlyLimit: kyc.monthlySendLimit,
-        currentMonthSent: kyc.currentMonthSent,
-        remainingLimit: Math.max(0, remainingLimit),
-        kycLevel: kyc.level
-      });
-    }
-    
-    // Find recipient
-    const recipient = await User.findOne({ where: { email: recipientEmail } });
+    // Check if recipient exists
+    const recipient = await User.findByPk(recipientId);
     if (!recipient) {
       return res.status(404).json({ error: 'Recipient not found' });
     }
     
-    if (recipient.id === req.user.id) {
-      return res.status(400).json({ error: 'Cannot send money to yourself' });
-    }
+    // Calculate transfer fee
+    const transferFee = calculateTransferFee(parseFloat(amount), currency);
+    const totalAmount = transferFee.totalAmount;
     
-    // Calculate fee
-    const feeInfo = calculateFee(parseFloat(amount), currency);
-    const totalAmount = feeInfo.totalAmount;
-    
-    // Check sender's balance including fees
-    const sentAmount = await Transaction.sum('amount', {
-      where: {
-        userId: req.user.id,
-        type: 'send',
-        status: 'completed'
-      }
-    });
-    
-    const receivedAmount = await Transaction.sum('amount', {
-      where: {
-        userId: req.user.id,
-        type: 'receive',
-        status: 'completed'
-      }
-    });
-    
-    const balance = (receivedAmount || 0) - (sentAmount || 0);
-    
-    if (balance < totalAmount) {
+    // Check user balance
+    const user = await User.findByPk(userId);
+    if (user.balance < totalAmount) {
       return res.status(400).json({ 
         error: 'Insufficient balance',
-        balance: balance.toFixed(2),
-        required: totalAmount.toFixed(2),
-        shortfall: (totalAmount - balance).toFixed(2)
+        required: totalAmount,
+        available: user.balance
       });
     }
     
-    // Create transaction with fee information
+    // Create transaction
     const transaction = await Transaction.create({
-      userId: req.user.id,
+      userId,
+      recipientId,
+      senderId: userId,
       type: 'send',
-      amount: feeInfo.amount, // Original amount (without fee)
+      amount: parseFloat(amount),
       currency,
-      recipientId: recipient.id,
-      senderId: req.user.id,
-      status: 'completed',
-      description: description || `Transfer to ${recipient.name}`,
-      fee: feeInfo.fee, // Store fee amount
-      totalAmount: feeInfo.totalAmount // Store total amount including fee
+      status: 'pending',
+      description: description || 'Money transfer',
+      deliveryMethod: deliveryMethod || 'bank_transfer',
+      fees: transferFee.transferFeeAmount
     });
     
-    // Update KYC monthly sent amount
-    kyc.addToMonthlySent(parseFloat(amount));
-    await kyc.save();
-    
-    // Create notification for sender
-    await Notification.create({
-      userId: req.user.id,
-      type: 'transaction',
-      title: 'Money Sent',
-      message: `You sent ${currency} ${feeInfo.amount} to ${recipient.name}. Fee: ${currency} ${feeInfo.fee}`,
-      data: { 
-        transactionId: transaction.id, 
-        type: 'send',
-        fee: feeInfo.fee,
-        totalAmount: feeInfo.totalAmount
-      }
-    });
-    
-    // Create notification for recipient
-    await Notification.create({
-      userId: recipient.id,
-      type: 'transaction',
-      title: 'Money Received',
-      message: `You received ${currency} ${feeInfo.amount} from ${req.user.name}.`,
-      data: { 
-        transactionId: transaction.id, 
-        type: 'receive',
-        amount: feeInfo.amount
-      }
-    });
+    // Update user balance
+    await user.update({ balance: user.balance - totalAmount });
     
     res.status(201).json({
-      message: 'Transaction completed successfully',
-      transaction: {
-        id: transaction.id,
-        amount: feeInfo.amount,
-        fee: feeInfo.fee,
-        totalAmount: feeInfo.totalAmount,
-        currency,
-        recipient: {
-          id: recipient.id,
-          name: recipient.name,
-          email: recipient.email
-        },
-        status: transaction.status,
-        createdAt: transaction.createdAt
-      },
-      feeBreakdown: feeInfo
+      transaction,
+      transferFee,
+      message: 'Transaction created successfully'
     });
   } catch (error) {
     console.error('Error creating transaction:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get transaction by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const { User, Transaction } = getModels();
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const transaction = await Transaction.findOne({
+      where: { id, userId },
+      include: [
+        {
+          model: User,
+          as: 'recipient',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: User,
+          as: 'sender',
+          attributes: ['id', 'name', 'email']
+        }
+      ]
+    });
+    
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    
+    res.json({
+      transaction,
+      message: 'Transaction retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Error fetching transaction:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
