@@ -203,7 +203,7 @@ const apiEncryption = {
     );
     
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-gcm', key);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     cipher.setAAD(Buffer.from(purpose, 'utf8'));
     
     let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
@@ -230,7 +230,7 @@ const apiEncryption = {
       'sha512'
     );
     
-    const decipher = crypto.createDecipher('aes-256-gcm', key);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(encryptedData.iv, 'hex'));
     decipher.setAAD(Buffer.from(encryptedData.purpose, 'utf8'));
     decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
     
