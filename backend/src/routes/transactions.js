@@ -272,17 +272,43 @@ router.post('/', auth, async (req, res) => {
       });
     }
     
+    // Validate delivery method
+    const supportedDeliveryMethods = ['bank_transfer', 'mobile_money', 'cash_pickup', 'home_delivery'];
+    let validatedDeliveryMethod = 'bank_transfer'; // Default value
+    
+    if (deliveryMethod !== null && deliveryMethod !== undefined) {
+      if (typeof deliveryMethod !== 'string' || deliveryMethod.trim() === '') {
+        return res.status(400).json({ 
+          error: 'Invalid delivery method format. Delivery method must be a non-empty string.',
+          field: 'deliveryMethod',
+          received: deliveryMethod,
+          supportedMethods: supportedDeliveryMethods
+        });
+      }
+      
+      const normalizedDeliveryMethod = deliveryMethod.toLowerCase().trim();
+      if (!supportedDeliveryMethods.includes(normalizedDeliveryMethod)) {
+        return res.status(400).json({ 
+          error: `Unsupported delivery method '${deliveryMethod}'. Please use one of the supported delivery methods.`,
+          field: 'deliveryMethod',
+          supportedMethods: supportedDeliveryMethods,
+          received: deliveryMethod
+        });
+      }
+      
+      validatedDeliveryMethod = normalizedDeliveryMethod;
+    }
+    
     // Create transaction
     const transaction = await Transaction.create({
       userId,
       recipientId,
-      senderId: userId,
       type: 'send',
       amount: parseFloat(amount),
       currency: normalizedCurrency,
       status: 'pending',
       description: description || 'Money transfer',
-      deliveryMethod: deliveryMethod || 'bank_transfer',
+      deliveryMethod: validatedDeliveryMethod,
       fees: transferFee.transferFeeAmount
     });
     
