@@ -89,19 +89,52 @@ describe('PaymentProcessor Component', () => {
       });
     });
 
-    test('shows loading state initially', () => {
+    test('shows initial state and resolves gateway loading', async () => {
       // Mock delayed API response
-      (global.fetch as jest.Mock).mockImplementationOnce(() => 
-        new Promise(resolve => setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({ gateways: mockGateways }),
-        }), 100))
-      );
+      const fetchPromise = new Promise(resolve => setTimeout(() => resolve({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      }), 100));
+      
+      (global.fetch as jest.Mock).mockImplementationOnce(() => fetchPromise);
 
       render(<PaymentProcessor {...defaultProps} />);
       
-      // Component should show payment details even while loading
+      // Initial state: Payment details should be shown immediately
       expect(screen.getByText('Payment Details')).toBeInTheDocument();
+      expect(screen.getByTestId('amount-value')).toHaveTextContent('ZAR 1000.00');
+      expect(screen.getByTestId('total-value')).toHaveTextContent('ZAR 1000.00');
+      
+      // Initial state: No gateways loaded yet, so payment method section should be empty
+      expect(screen.getByText('Payment Method')).toBeInTheDocument();
+      expect(screen.queryByText('Stripe')).not.toBeInTheDocument();
+      expect(screen.queryByText('Stitch')).not.toBeInTheDocument();
+      
+      // Pay button should be disabled initially (no gateway selected)
+      const payButton = screen.getByTestId('pay-button');
+      expect(payButton).toBeDisabled();
+      
+      // Wait for the fetch to complete
+      await fetchPromise;
+      
+      // After loading: Gateways should be available
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+        expect(screen.getByText('Stitch')).toBeInTheDocument();
+      });
+      
+      // After loading: Pay button should be enabled (gateway auto-selected)
+      expect(payButton).not.toBeDisabled();
+      
+      // Verify the component is fully functional after loading
+      const stripeOption = screen.getByLabelText(/stripe/i);
+      expect(stripeOption).toBeChecked(); // Should be auto-selected
+      
+      // Test switching to another gateway
+      const stitchOption = screen.getByLabelText(/stitch/i);
+      fireEvent.click(stitchOption);
+      expect(stitchOption).toBeChecked();
+      expect(stripeOption).not.toBeChecked();
     });
   });
 
@@ -144,6 +177,58 @@ describe('PaymentProcessor Component', () => {
       expect(expiryMonthInput).toHaveValue('12');
       expect(expiryYearInput).toHaveValue('2025');
       expect(cvvInput).toHaveValue('123');
+    });
+
+    test('shows loading state during payment processing', async () => {
+      // Mock successful gateway fetch
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ gateways: mockGateways }),
+      });
+
+      // Mock delayed payment processing
+      const paymentPromise = new Promise(resolve => setTimeout(() => resolve({
+        ok: true,
+        json: async () => ({ success: true, paymentId: 'pay_123' }),
+      }), 200));
+      
+      (global.fetch as jest.Mock).mockImplementationOnce(() => paymentPromise);
+
+      render(<PaymentProcessor {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByTestId('pay-button');
+      
+      // Before clicking: button should be enabled
+      expect(payButton).not.toBeDisabled();
+      
+      // Click the button to start payment processing
+      fireEvent.click(payButton);
+      
+      // During processing: button should be disabled and show loading
+      expect(payButton).toBeDisabled();
+      
+      // Wait for payment processing to complete
+      await paymentPromise;
+      
+      // After processing: button should be enabled again
+      await waitFor(() => {
+        expect(payButton).not.toBeDisabled();
+      });
     });
 
     test('handles payment failure', async () => {
