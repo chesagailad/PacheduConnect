@@ -11,6 +11,10 @@ const languageService = require('./services/languageService');
 const mediaService = require('./services/mediaService');
 const authService = require('./services/authService');
 const feeService = require('./services/feeService');
+const voiceService = require('./services/voiceService');
+const learningService = require('./services/learningService');
+const advancedAnalyticsService = require('./services/advancedAnalyticsService');
+const integrationService = require('./services/integrationService');
 const logger = require('../../utils/logger');
 
 const router = express.Router();
@@ -547,6 +551,541 @@ router.get('/fees/stats', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve fee statistics'
+    });
+  }
+});
+
+// Voice service endpoints
+router.post('/voice/speech-to-text', async (req, res) => {
+  try {
+    const { audioData, language } = req.body;
+    
+    if (!audioData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Audio data is required'
+      });
+    }
+
+    const audioBuffer = Buffer.from(audioData, 'base64');
+    const validation = voiceService.validateAudioFile(audioBuffer);
+    
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.error
+      });
+    }
+
+    const result = await voiceService.speechToText(audioBuffer, language || 'en');
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Speech-to-text failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to convert speech to text'
+    });
+  }
+});
+
+router.post('/voice/text-to-speech', async (req, res) => {
+  try {
+    const { text, language, options } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        error: 'Text is required'
+      });
+    }
+
+    const result = await voiceService.textToSpeech(text, language || 'en', options);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Text-to-speech failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to convert text to speech'
+    });
+  }
+});
+
+router.get('/voice/audio/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const audioFile = await voiceService.getMediaFile(filename);
+    
+    if (!audioFile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Audio file not found'
+      });
+    }
+
+    res.setHeader('Content-Type', 'audio/wav');
+    res.send(audioFile);
+  } catch (error) {
+    logger.error('Audio file retrieval failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve audio file'
+    });
+  }
+});
+
+router.get('/voice/voices', (req, res) => {
+  try {
+    const { language } = req.query;
+    const voices = voiceService.getAvailableVoices(language || 'en');
+    
+    res.json({
+      success: true,
+      voices
+    });
+  } catch (error) {
+    logger.error('Failed to get available voices:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve available voices'
+    });
+  }
+});
+
+router.get('/voice/stats', async (req, res) => {
+  try {
+    const stats = await voiceService.getVoiceStats();
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to get voice stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve voice statistics'
+    });
+  }
+});
+
+// Learning service endpoints
+router.post('/learning/learn', async (req, res) => {
+  try {
+    const conversationData = req.body;
+    const result = await learningService.learnFromConversation(conversationData);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Learning from conversation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to learn from conversation'
+    });
+  }
+});
+
+router.get('/learning/personalized-response', async (req, res) => {
+  try {
+    const { userId, intent, context } = req.query;
+    const result = await learningService.getPersonalizedResponse(userId, intent, JSON.parse(context || '{}'));
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Personalized response generation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate personalized response'
+    });
+  }
+});
+
+router.get('/learning/stats', (req, res) => {
+  try {
+    const stats = learningService.getLearningStats();
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to get learning stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve learning statistics'
+    });
+  }
+});
+
+router.get('/learning/export', (req, res) => {
+  try {
+    const data = learningService.exportLearningData();
+    
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Failed to export learning data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export learning data'
+    });
+  }
+});
+
+// Advanced analytics endpoints
+router.post('/analytics/sentiment', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    const result = await advancedAnalyticsService.analyzeSentiment(message, context);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Sentiment analysis failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze sentiment'
+    });
+  }
+});
+
+router.post('/analytics/journey', async (req, res) => {
+  try {
+    const { userId, sessionId, event } = req.body;
+    const result = await advancedAnalyticsService.trackUserJourney(userId, sessionId, event);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('User journey tracking failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track user journey'
+    });
+  }
+});
+
+router.post('/analytics/performance', async (req, res) => {
+  try {
+    const { sessionId, messages } = req.body;
+    const result = await advancedAnalyticsService.analyzeConversationPerformance(sessionId, messages);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Performance analysis failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze conversation performance'
+    });
+  }
+});
+
+router.post('/analytics/abandonment', async (req, res) => {
+  try {
+    const { sessionId, abandonmentData } = req.body;
+    const result = await advancedAnalyticsService.trackAbandonment(sessionId, abandonmentData);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Abandonment tracking failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track abandonment'
+    });
+  }
+});
+
+router.get('/analytics/sentiment-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const analytics = advancedAnalyticsService.getSentimentAnalytics(period || 'day');
+    
+    res.json({
+      success: true,
+      analytics
+    });
+  } catch (error) {
+    logger.error('Failed to get sentiment analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve sentiment analytics'
+    });
+  }
+});
+
+router.get('/analytics/journey-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const analytics = advancedAnalyticsService.getUserJourneyAnalytics(period || 'day');
+    
+    res.json({
+      success: true,
+      analytics
+    });
+  } catch (error) {
+    logger.error('Failed to get journey analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve journey analytics'
+    });
+  }
+});
+
+router.get('/analytics/performance-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const analytics = advancedAnalyticsService.getPerformanceAnalytics(period || 'day');
+    
+    res.json({
+      success: true,
+      analytics
+    });
+  } catch (error) {
+    logger.error('Failed to get performance analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve performance analytics'
+    });
+  }
+});
+
+router.get('/analytics/abandonment-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const analytics = advancedAnalyticsService.getAbandonmentAnalytics(period || 'day');
+    
+    res.json({
+      success: true,
+      analytics
+    });
+  } catch (error) {
+    logger.error('Failed to get abandonment analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve abandonment analytics'
+    });
+  }
+});
+
+router.get('/analytics/export', (req, res) => {
+  try {
+    const { period } = req.query;
+    const data = advancedAnalyticsService.exportAnalyticsData(period || 'day');
+    
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    logger.error('Failed to export analytics data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export analytics data'
+    });
+  }
+});
+
+// Integration service endpoints
+router.post('/integration/banking/balance', async (req, res) => {
+  try {
+    const { provider, accountId, credentials } = req.body;
+    const result = await integrationService.checkBankingBalance(provider, accountId, credentials);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Banking balance check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check banking balance'
+    });
+  }
+});
+
+router.post('/integration/banking/transfer', async (req, res) => {
+  try {
+    const { provider, transferData } = req.body;
+    const result = await integrationService.initiateBankingTransfer(provider, transferData);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Banking transfer failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initiate banking transfer'
+    });
+  }
+});
+
+router.get('/integration/banking/status/:provider/:transactionId', async (req, res) => {
+  try {
+    const { provider, transactionId } = req.params;
+    const result = await integrationService.checkTransactionStatus(provider, transactionId);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Transaction status check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check transaction status'
+    });
+  }
+});
+
+router.post('/integration/compliance/kyc', async (req, res) => {
+  try {
+    const kycData = req.body;
+    const result = await integrationService.verifyKYC(kycData);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('KYC verification failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to verify KYC'
+    });
+  }
+});
+
+router.post('/integration/compliance/aml', async (req, res) => {
+  try {
+    const screeningData = req.body;
+    const result = await integrationService.performAMLScreening(screeningData);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('AML screening failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform AML screening'
+    });
+  }
+});
+
+router.get('/integration/exchange-rates', async (req, res) => {
+  try {
+    const { fromCurrency, toCurrency } = req.query;
+    const result = await integrationService.getExchangeRates(fromCurrency, toCurrency);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Exchange rates retrieval failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve exchange rates'
+    });
+  }
+});
+
+router.post('/integration/sms/send', async (req, res) => {
+  try {
+    const { phoneNumber, message } = req.body;
+    const result = await integrationService.sendSMS(phoneNumber, message);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('SMS sending failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send SMS'
+    });
+  }
+});
+
+router.post('/integration/webhook/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    const data = req.body;
+    const result = await integrationService.sendWebhook(type, data);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    logger.error('Webhook sending failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send webhook'
+    });
+  }
+});
+
+router.get('/integration/status', async (req, res) => {
+  try {
+    const status = await integrationService.getIntegrationStatus();
+    
+    res.json({
+      success: true,
+      status
+    });
+  } catch (error) {
+    logger.error('Integration status check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check integration status'
+    });
+  }
+});
+
+router.get('/integration/stats', (req, res) => {
+  try {
+    const stats = integrationService.getIntegrationStats();
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Failed to get integration stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve integration statistics'
     });
   }
 });
