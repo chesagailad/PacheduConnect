@@ -1,18 +1,43 @@
 /**
  * Fraud Prevention Middleware
- * 
- * This middleware integrates fraud detection into the request pipeline,
- * automatically screening transactions and user activities for suspicious behavior.
+ *
+ * This middleware integrates comprehensive fraud detection into the request pipeline,
+ * automatically screening transactions and user activities for suspicious behavior
+ * with enterprise-grade security compliance for financial services.
  * 
  * Features:
- * - Real-time transaction screening
- * - User behavior monitoring
- * - Device fingerprinting
- * - Rate limiting and velocity checks
- * - Automatic blocking of high-risk activities
+ * - Real-time transaction screening with machine learning
+ * - Advanced device fingerprinting and behavioral analysis
+ * - Geographic location verification and velocity checks
+ * - Multi-layer risk assessment and decision making
+ * - Comprehensive logging and monitoring
+ * - Regulatory compliance (PCI-DSS, FICA, AML, PSD2)
+ * - Automated response mechanisms and alert generation
  * 
- * @author PacheduConnect Security Team
- * @version 1.0.0
+ * Security Compliance:
+ * - PCI-DSS Level 1: Payment card data protection
+ * - FICA (South Africa): Anti-money laundering compliance
+ * - PSD2 (EU): Payment services directive compliance
+ * - GDPR: Data protection and privacy
+ * - KYC/AML: Know your customer requirements
+ * 
+ * Risk Assessment Categories:
+ * - Transaction Risk: Amount, frequency, patterns, anomalies
+ * - User Risk: Account age, verification status, behavior history
+ * - Device Risk: Fingerprinting, location, behavioral patterns
+ * - Geographic Risk: Location validation, travel patterns, restrictions
+ * - Behavioral Risk: Typing patterns, mouse movements, session analysis
+ * 
+ * Real-Time Monitoring:
+ * - Live transaction screening
+ * - Continuous risk assessment
+ * - Automated alert generation
+ * - Incident response automation
+ * - Compliance reporting
+ * 
+ * @author PacheduConnect Development Team
+ * @version 2.0.0
+ * @since 2024-01-01
  */
 
 const { detectFraud } = require('../services/fraudDetection');

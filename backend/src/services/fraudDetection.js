@@ -1,15 +1,45 @@
 /**
  * Fraud Detection Service
  * 
- * This service implements comprehensive fraud prevention mechanisms including:
- * - Transaction pattern analysis
- * - User behavior monitoring
- * - Risk scoring algorithms
- * - Real-time fraud detection
- * - Machine learning-based anomaly detection
+ * This service provides comprehensive fraud detection capabilities for the
+ * PacheduConnect platform, including real-time risk assessment, device
+ * fingerprinting, and behavioral analysis with enterprise-grade security
+ * compliance for financial services.
  * 
- * @author PacheduConnect Security Team
- * @version 1.0.0
+ * Features:
+ * - Real-time transaction risk assessment with machine learning
+ * - Advanced device fingerprinting and behavioral analysis
+ * - Geographic validation and velocity checks
+ * - Multi-layer fraud detection strategies
+ * - Comprehensive risk scoring algorithms
+ * - Regulatory compliance (PCI-DSS, FICA, AML, PSD2)
+ * - Real-time monitoring and alert generation
+ * - Automated risk mitigation and response
+ * 
+ * Risk Assessment Categories:
+ * - Transaction Risk: Amount, frequency, patterns, anomalies
+ * - User Risk: Account age, verification status, behavior history
+ * - Device Risk: Fingerprinting, location, behavioral patterns
+ * - Geographic Risk: Location validation, travel patterns, restrictions
+ * - Behavioral Risk: Typing patterns, mouse movements, session analysis
+ * 
+ * Security Compliance:
+ * - PCI-DSS Level 1: Payment card data protection
+ * - FICA (South Africa): Anti-money laundering compliance
+ * - PSD2 (EU): Payment services directive compliance
+ * - GDPR: Data protection and privacy
+ * - KYC/AML: Know your customer requirements
+ * 
+ * Real-Time Monitoring:
+ * - Live transaction screening
+ * - Continuous risk assessment
+ * - Automated alert generation
+ * - Incident response automation
+ * - Compliance reporting
+ * 
+ * @author PacheduConnect Development Team
+ * @version 2.0.0
+ * @since 2024-01-01
  */
 
 const crypto = require('crypto');
