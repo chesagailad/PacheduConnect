@@ -882,7 +882,28 @@ router.post('/learning/learn', async (req, res) => {
 router.get('/learning/personalized-response', async (req, res) => {
   try {
     const { userId, intent, context } = req.query;
-    const result = await learningService.getPersonalizedResponse(userId, intent, JSON.parse(context || '{}'));
+    
+    // Safely parse context JSON with error handling
+    let parsedContext = {};
+    if (context) {
+      try {
+        parsedContext = JSON.parse(context);
+        // Validate that parsed result is an object
+        if (typeof parsedContext !== 'object' || parsedContext === null) {
+          logger.warn('Invalid context format, using empty object', { context, userId });
+          parsedContext = {};
+        }
+      } catch (parseError) {
+        logger.warn('Failed to parse context JSON, using empty object', { 
+          context, 
+          userId, 
+          error: parseError.message 
+        });
+        parsedContext = {};
+      }
+    }
+    
+    const result = await learningService.getPersonalizedResponse(userId, intent, parsedContext);
     
     res.json({
       success: true,
