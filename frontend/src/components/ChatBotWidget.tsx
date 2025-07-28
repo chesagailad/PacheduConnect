@@ -36,7 +36,9 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -120,6 +122,7 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
       {/* Chat Button */}
       <motion.button
         data-testid="chat-toggle"
+        aria-label={isOpen ? 'Close chat' : 'Open chat'}
         className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-colors ${
           isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
         }`}

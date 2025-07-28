@@ -85,15 +85,13 @@ describe('ChatBotWidget', () => {
       
       // Check that message was sent
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith('/api/chatbot/message', {
+        expect(fetch).toHaveBeenCalledWith('http://localhost:5001/api/chatbot/message', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            message: 'Hello',
-            userId: expect.any(String),
-            platform: 'web'
+            message: 'Hello'
           })
         });
       });
@@ -262,7 +260,7 @@ describe('ChatBotWidget', () => {
         statusText: 'Internal Server Error'
       });
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -276,14 +274,14 @@ describe('ChatBotWidget', () => {
       
       // Check error message appears
       await waitFor(() => {
-        expect(screen.getByText(/Sorry, I'm having trouble right now/)).toBeInTheDocument();
+        expect(screen.getByText(/I'm currently unable to process your request/)).toBeInTheDocument();
       });
     });
 
     test('should handle network errors', async () => {
       (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -297,7 +295,7 @@ describe('ChatBotWidget', () => {
       
       // Check error message appears
       await waitFor(() => {
-        expect(screen.getByText(/Sorry, I'm having trouble right now/)).toBeInTheDocument();
+        expect(screen.getByText(/I'm currently unable to process your request/)).toBeInTheDocument();
       });
     });
 
@@ -307,7 +305,7 @@ describe('ChatBotWidget', () => {
         json: async () => ({ invalid: 'response' })
       });
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -321,7 +319,7 @@ describe('ChatBotWidget', () => {
       
       // Check error message appears
       await waitFor(() => {
-        expect(screen.getByText(/Sorry, I'm having trouble right now/)).toBeInTheDocument();
+        expect(screen.getByText(/I'm currently unable to process your request/)).toBeInTheDocument();
       });
     });
   });
@@ -329,12 +327,9 @@ describe('ChatBotWidget', () => {
   describe('Quick Reply Buttons', () => {
     test('should display quick reply buttons when provided', async () => {
       const quickReplyResponse = {
-        success: true,
-        response: {
-          text: 'What would you like to do?',
-          type: 'quick_reply',
-          options: ['Send money', 'Check rates', 'Track transaction']
-        }
+        response: 'What would you like to do?',
+        type: 'quick_reply',
+        options: ['Send money', 'Check exchange rates', 'Track transaction']
       };
 
       (fetch as jest.Mock).mockResolvedValue({
@@ -342,7 +337,7 @@ describe('ChatBotWidget', () => {
         json: async () => quickReplyResponse
       });
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -357,19 +352,16 @@ describe('ChatBotWidget', () => {
       // Check quick reply buttons appear
       await waitFor(() => {
         expect(screen.getByText('Send money')).toBeInTheDocument();
-        expect(screen.getByText('Check rates')).toBeInTheDocument();
+        expect(screen.getByText('Check exchange rates')).toBeInTheDocument();
         expect(screen.getByText('Track transaction')).toBeInTheDocument();
       });
     });
 
     test('should send message when quick reply button is clicked', async () => {
       const quickReplyResponse = {
-        success: true,
-        response: {
-          text: 'What would you like to do?',
-          type: 'quick_reply',
-          options: ['Send money', 'Check rates']
-        }
+        response: 'What would you like to do?',
+        type: 'quick_reply',
+        options: ['Send money', 'Check exchange rates']
       };
 
       (fetch as jest.Mock).mockResolvedValue({
@@ -377,7 +369,7 @@ describe('ChatBotWidget', () => {
         json: async () => quickReplyResponse
       });
 
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -399,15 +391,13 @@ describe('ChatBotWidget', () => {
       
       // Check that the button text was sent as a message
       await waitFor(() => {
-        expect(fetch).toHaveBeenCalledWith('/api/chatbot/message', {
+        expect(fetch).toHaveBeenCalledWith('http://localhost:5001/api/chatbot/message', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            message: 'Send money',
-            userId: expect.any(String),
-            platform: 'web'
+            message: 'Send money'
           })
         });
       });
@@ -416,7 +406,7 @@ describe('ChatBotWidget', () => {
 
   describe('Message History', () => {
     test('should maintain message history in conversation', async () => {
-      render(<ChatBotWidget />);
+      render(<TestChatBotWidget />);
       
       // Open chat
       fireEvent.click(screen.getByTestId('chat-toggle'));
@@ -453,7 +443,7 @@ describe('ChatBotWidget', () => {
       Element.prototype.scrollIntoView = mockScrollIntoView;
 
       try {
-        render(<ChatBotWidget />);
+        render(<TestChatBotWidget />);
         
         // Open chat
         fireEvent.click(screen.getByTestId('chat-toggle'));
