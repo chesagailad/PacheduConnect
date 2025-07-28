@@ -328,14 +328,127 @@ router.post('/media/upload', mediaService.getUploadMiddleware().single('media'),
 router.get('/media/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    const mediaFile = await mediaService.getMediaFile(filename);
-    
+    const { userId, sessionId, token } = req.query;
+
+    // Authorization check: Verify required parameters
+    if (!userId || !sessionId) {
+      logger.warn('Unauthorized media access attempt - missing credentials', {
+        filename,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to access media files'
+      });
+    }
+
+    // Validate user authentication
+    let userAuth = null;
+    try {
+      if (token) {
+        userAuth = await authService.verifyToken(token);
+      } else {
+        // For anonymous users, verify session ownership
+        userAuth = { userId, isAnonymous: true };
+      }
+    } catch (authError) {
+      logger.warn('Invalid authentication token for media access', {
+        filename,
+        userId,
+        sessionId,
+        error: authError.message
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid authentication token'
+      });
+    }
+
+    // Verify session exists and belongs to user
+    let session = null;
+    try {
+      session = await sessionService.getSession(sessionId);
+      if (!session) {
+        logger.warn('Media access attempt with invalid session', {
+          filename,
+          userId,
+          sessionId
+        });
+        return res.status(403).json({
+          success: false,
+          error: 'Invalid session'
+        });
+      }
+
+      if (session.userId !== userId) {
+        logger.warn('Media access attempt - session does not belong to user', {
+          filename,
+          userId,
+          sessionId,
+          sessionUserId: session.userId
+        });
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied: session does not belong to user'
+        });
+      }
+    } catch (sessionError) {
+      logger.error('Session validation failed for media access:', sessionError);
+      return res.status(500).json({
+        success: false,
+        error: 'Unable to verify session'
+      });
+    }
+
+    // Verify media file exists and user has access
+    let mediaFile = null;
+    try {
+      mediaFile = await mediaService.getMediaFile(filename);
+    } catch (fileError) {
+      logger.warn('Media file not found or access denied', {
+        filename,
+        userId,
+        sessionId,
+        error: fileError.message
+      });
+      return res.status(404).json({
+        success: false,
+        error: 'Media file not found'
+      });
+    }
+
+    // Additional security check: Verify file belongs to user's session
+    // This assumes mediaService.getMediaFile returns metadata including sessionId
+    if (mediaFile.sessionId && mediaFile.sessionId !== sessionId) {
+      logger.warn('Media access attempt - file does not belong to session', {
+        filename,
+        userId,
+        sessionId,
+        fileSessionId: mediaFile.sessionId
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: file does not belong to your session'
+      });
+    }
+
+    // Log successful media access
+    logger.info('Media file accessed successfully', {
+      filename,
+      userId,
+      sessionId,
+      fileSize: mediaFile.size,
+      ip: req.ip
+    });
+
+    // Serve the file
     res.sendFile(mediaFile.path);
   } catch (error) {
     logger.error('Media file serving failed:', error);
-    res.status(404).json({
+    res.status(500).json({
       success: false,
-      error: 'Media file not found'
+      error: 'Failed to serve media file'
     });
   }
 });
