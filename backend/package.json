@@ -1,9 +1,3 @@
-/**
- * Author: Gailad Chesa
- * Created: 2025-07-28
- * Description: package - package configuration for backend dependencies
- */
-
 {
   "name": "pachedu-backend",
   "version": "1.0.0",

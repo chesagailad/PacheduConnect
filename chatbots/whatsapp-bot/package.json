@@ -1,9 +1,3 @@
-/**
- * Author: Gailad Chesa
- * Created: 2025-07-28
- * Description: package - package configuration for root dependencies
- */
-
 {
   "name": "pachedu-whatsapp-bot",
   "version": "1.0.0",
