@@ -563,18 +563,153 @@ describe('PaymentProcessor Component', () => {
   });
 
   describe('Error Handling', () => {
-    test('handles network errors gracefully', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+    test('displays payment processing network errors', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ gateways: mockGateways }),
+        })
+        .mockRejectedValueOnce(new Error('Network connection failed'));
 
-      render(<PaymentProcessor {...defaultProps} />);
+      const onError = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onError={onError} />);
 
-      // Component should handle error gracefully without crashing
       await waitFor(() => {
-        expect(screen.getByText('Payment Details')).toBeInTheDocument();
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByTestId('pay-button');
+      fireEvent.click(payButton);
+
+      // Should display network error message to user
+      await waitFor(() => {
+        expect(screen.getByText('Network connection failed')).toBeInTheDocument();
+      });
+
+      // Should also call onError callback
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith('Network connection failed');
       });
     });
 
-    test('handles invalid API responses', async () => {
+    test('displays payment processing API errors', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ gateways: mockGateways }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          json: async () => ({ message: 'Invalid payment method configuration' }),
+        });
+
+      const onError = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onError={onError} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByTestId('pay-button');
+      fireEvent.click(payButton);
+
+      // Should display API error message to user
+      await waitFor(() => {
+        expect(screen.getByText('Invalid payment method configuration')).toBeInTheDocument();
+      });
+
+      // Should also call onError callback
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith('Invalid payment method configuration');
+      });
+    });
+
+    test('displays generic payment error when API response lacks message', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ gateways: mockGateways }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({}), // No message property
+        });
+
+      const onError = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onError={onError} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByTestId('pay-button');
+      fireEvent.click(payButton);
+
+      // Should display generic error message when API doesn't provide specific message
+      await waitFor(() => {
+        expect(screen.getByText('Payment failed')).toBeInTheDocument();
+      });
+
+      // Should also call onError callback
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith('Payment failed');
+      });
+    });
+
+    test('handles gateway fetch errors gracefully without crashing', async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Gateway fetch failed'));
+
+      render(<PaymentProcessor {...defaultProps} />);
+
+      // Component should handle gateway fetch error gracefully without crashing
+      await waitFor(() => {
+        expect(screen.getByText('Payment Details')).toBeInTheDocument();
+      });
+
+      // Should not display error message for gateway fetch (current implementation only logs)
+      expect(screen.queryByText('Gateway fetch failed')).not.toBeInTheDocument();
+      
+      // Should show payment details even when gateways fail to load
+      expect(screen.getByTestId('amount-value')).toHaveTextContent('ZAR 1000.00');
+      expect(screen.getByTestId('total-value')).toHaveTextContent('ZAR 1000.00');
+    });
+
+    test('handles invalid gateway API responses gracefully', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -583,10 +718,17 @@ describe('PaymentProcessor Component', () => {
 
       render(<PaymentProcessor {...defaultProps} />);
 
-      // Component should handle error gracefully without crashing
+      // Component should handle invalid gateway API response gracefully without crashing
       await waitFor(() => {
         expect(screen.getByText('Payment Details')).toBeInTheDocument();
       });
+
+      // Should not display error message for gateway API errors (current implementation only logs)
+      expect(screen.queryByText('Internal Server Error')).not.toBeInTheDocument();
+      
+      // Should show payment details even when gateway API fails
+      expect(screen.getByTestId('amount-value')).toHaveTextContent('ZAR 1000.00');
+      expect(screen.getByTestId('total-value')).toHaveTextContent('ZAR 1000.00');
     });
   });
 
