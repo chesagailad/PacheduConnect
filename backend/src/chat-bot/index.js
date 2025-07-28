@@ -268,6 +268,47 @@ router.post('/media/upload', mediaService.getUploadMiddleware().single('media'),
     }
 
     const { userId, sessionId } = req.body;
+
+    // Validate userId
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid userId is required'
+      });
+    }
+
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid sessionId is required'
+      });
+    }
+
+    // Additional validation: Check if session exists and belongs to user
+    try {
+      const session = await sessionService.getSession(sessionId);
+      if (!session) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid sessionId: session not found'
+        });
+      }
+
+      if (session.userId !== userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid sessionId: session does not belong to user'
+        });
+      }
+    } catch (sessionError) {
+      logger.error('Session validation failed:', sessionError);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid sessionId: unable to validate session'
+      });
+    }
+
     const mediaInfo = await mediaService.processMediaFile(req.file, userId, sessionId);
 
     res.json({
