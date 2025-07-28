@@ -20,7 +20,27 @@ class VoiceService {
     this.maxAudioDuration = 300; // 5 minutes max
     this.audioCacheDir = 'uploads/voice';
     
-    this.setupAudioDirectory();
+    // Initialize flag to track setup completion
+    this.initialized = false;
+  }
+
+  /**
+   * Initialize the voice service
+   * This method must be called after instantiation to setup directories
+   */
+  async initialize() {
+    if (this.initialized) {
+      return;
+    }
+    
+    try {
+      await this.setupAudioDirectory();
+      this.initialized = true;
+      logger.info('Voice service initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize voice service:', error);
+      throw error;
+    }
   }
 
   /**
@@ -32,6 +52,7 @@ class VoiceService {
       logger.info('Voice service audio directory created');
     } catch (error) {
       logger.error('Failed to create audio directory:', error);
+      throw error;
     }
   }
 
@@ -43,6 +64,11 @@ class VoiceService {
    */
   async speechToText(audioBuffer, language = 'en') {
     try {
+      // Ensure service is initialized
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       // In a real implementation, you would use a service like:
       // - Google Cloud Speech-to-Text
       // - Amazon Transcribe
@@ -83,6 +109,11 @@ class VoiceService {
    */
   async textToSpeech(text, language = 'en', options = {}) {
     try {
+      // Ensure service is initialized
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       const voiceSettings = {
         ...this.voiceSettings,
         ...options
@@ -192,13 +223,29 @@ class VoiceService {
    * @returns {string} Filename
    */
   async saveAudioFile(audioData, text, language) {
-    const timestamp = Date.now();
-    const filename = `tts_${language}_${timestamp}.wav`;
-    const filepath = path.join(this.audioCacheDir, filename);
-    
-    await fs.writeFile(filepath, audioData);
-    
-    return filename;
+    try {
+      // Ensure service is initialized
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
+      const timestamp = Date.now();
+      const filename = `voice-${timestamp}-${Math.random().toString(36).substr(2, 9)}.mp3`;
+      const filePath = path.join(this.audioCacheDir, filename);
+      
+      await fs.writeFile(filePath, audioData);
+      
+      logger.info('Audio file saved', {
+        filename,
+        size: audioData.length,
+        language
+      });
+      
+      return filename;
+    } catch (error) {
+      logger.error('Failed to save audio file:', error);
+      throw error;
+    }
   }
 
   /**
@@ -339,6 +386,11 @@ class VoiceService {
    */
   async cleanupOldAudioFiles(maxAge = 24) {
     try {
+      // Ensure service is initialized
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       const files = await fs.readdir(this.audioCacheDir);
       const cutoffTime = Date.now() - (maxAge * 60 * 60 * 1000);
       let cleanedCount = 0;
@@ -442,4 +494,8 @@ class VoiceService {
   }
 }
 
-module.exports = new VoiceService(); 
+// Create singleton instance
+const voiceService = new VoiceService();
+
+// Export the service with initialization promise
+module.exports = voiceService; 
