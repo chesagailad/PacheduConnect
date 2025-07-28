@@ -150,31 +150,7 @@ router.post('/sms/escalation-alert', validatePhoneNumber, async (req, res) => {
   }
 });
 
-// Send chatbot follow-up message
-router.post('/sms/followup', validatePhoneNumber, async (req, res) => {
-  try {
-    const { phoneNumber, followUpData } = req.body;
-    
-    const result = await smsService.sendChatbotFollowUp(phoneNumber, followUpData);
-    
-    logger.info(`Follow-up SMS sent to ${phoneNumber}`, {
-      messageId: result.messageId,
-      query: followUpData.query
-    });
-    
-    res.json({
-      success: true,
-      message: 'Follow-up SMS sent successfully',
-      messageId: result.messageId
-    });
-  } catch (error) {
-    logger.error('Failed to send follow-up SMS:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to send SMS notification' 
-    });
-  }
-});
+
 
 // Send promotional alert
 router.post('/sms/promo-alert', validatePhoneNumber, async (req, res) => {

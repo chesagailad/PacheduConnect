@@ -269,19 +269,7 @@ class SMSService {
     return this.sendSMS(phoneNumber, message);
   }
 
-  async sendChatbotFollowUp(phoneNumber, followUpData) {
-    // Input validation
-    this.validatePhoneNumber(phoneNumber);
-    this.validateRequiredFields(followUpData, ['query', 'suggestedAction', 'helpUrl'], 'followUpData');
-    
-    const { query, suggestedAction, helpUrl } = followUpData;
-    const message = `Follow-up: You asked about "${query}". Suggested next step: ${suggestedAction}. Need help? ${helpUrl} or reply HELP.`;
-    
-    // Check message length
-    this.validateMessageLength(message);
-    
-    return this.sendSMS(phoneNumber, message);
-  }
+
 
   // Test authentication
   async testAuth() {
