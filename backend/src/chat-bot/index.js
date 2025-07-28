@@ -1,6 +1,7 @@
 const express = require('express');
 const { processMessage } = require('./services/nlpService');
 const { getSessionById, createSession, updateSession, getSessionsByUserId } = require('./services/sessionService');
+const sessionService = require('./services/sessionService');
 const { getExchangeRate } = require('./services/rateService');
 const { getTransactionStatus } = require('./services/transactionService');
 const { getUserByEmail } = require('./services/userService');
