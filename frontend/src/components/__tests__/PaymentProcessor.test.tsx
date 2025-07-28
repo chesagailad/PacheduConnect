@@ -147,7 +147,11 @@ describe('PaymentProcessor Component', () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ success: true, paymentId: 'pay_123' }),
+          json: async () => ({ 
+            success: true, 
+            paymentId: 'pay_123',
+            payment: {} // Empty payment object so it doesn't have redirectUrl or formData
+          }),
         });
 
       const onSuccess = jest.fn();
@@ -171,8 +175,16 @@ describe('PaymentProcessor Component', () => {
       const payButton = screen.getByText(/Pay ZAR/);
       fireEvent.click(payButton);
 
-      // The component might not call onSuccess immediately due to async processing
-      // Just verify the button was clicked and form was filled
+      // Wait for the onSuccess callback to be called with the expected payment data
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledWith({
+          success: true,
+          paymentId: 'pay_123',
+          payment: {}
+        });
+      });
+
+      // Verify the form data was correctly filled
       expect(cardNumberInput).toHaveValue('4242424242424242');
       expect(expiryMonthInput).toHaveValue('12');
       expect(expiryYearInput).toHaveValue('2025');
@@ -260,8 +272,48 @@ describe('PaymentProcessor Component', () => {
       const payButton = screen.getByText(/Pay ZAR/);
       fireEvent.click(payButton);
 
+      // Wait for the onError callback to be called with the expected error message
       await waitFor(() => {
-        expect(onError).toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith('Payment failed');
+      });
+    });
+
+    test('handles payment API error response', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ gateways: mockGateways }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          json: async () => ({ message: 'Invalid payment method' }),
+        });
+
+      const onError = jest.fn();
+      render(<PaymentProcessor {...defaultProps} onError={onError} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Stripe')).toBeInTheDocument();
+      });
+
+      // Fill in required fields
+      const cardNumberInput = screen.getByPlaceholderText('1234 5678 9012 3456');
+      const expiryMonthInput = screen.getByPlaceholderText('MM');
+      const expiryYearInput = screen.getByPlaceholderText('YYYY');
+      const cvvInput = screen.getByPlaceholderText('123');
+
+      fireEvent.change(cardNumberInput, { target: { value: '4242424242424242' } });
+      fireEvent.change(expiryMonthInput, { target: { value: '12' } });
+      fireEvent.change(expiryYearInput, { target: { value: '2025' } });
+      fireEvent.change(cvvInput, { target: { value: '123' } });
+
+      const payButton = screen.getByText(/Pay ZAR/);
+      fireEvent.click(payButton);
+
+      // Wait for the onError callback to be called with the API error message
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith('Invalid payment method');
       });
     });
   });
