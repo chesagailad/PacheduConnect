@@ -109,8 +109,8 @@ class EncryptionService {
       // Generate IV
       const iv = crypto.randomBytes(this.ivLength);
       
-      // Create cipher
-      const cipher = crypto.createCipher(this.algorithm, key);
+      // Create cipher using secure createCipheriv method
+      const cipher = crypto.createCipheriv(this.algorithm, key, iv);
       cipher.setAAD(Buffer.from(purpose, 'utf8'));
       
       // Encrypt data
@@ -167,8 +167,8 @@ class EncryptionService {
       // Derive key
       const key = this.deriveKey(Buffer.from(salt, 'hex'), purpose);
       
-      // Create decipher
-      const decipher = crypto.createDecipher(this.algorithm, key);
+      // Create decipher using secure createDecipheriv method
+      const decipher = crypto.createDecipheriv(this.algorithm, key, Buffer.from(iv, 'hex'));
       decipher.setAAD(Buffer.from(purpose, 'utf8'));
       decipher.setAuthTag(Buffer.from(tag, 'hex'));
       

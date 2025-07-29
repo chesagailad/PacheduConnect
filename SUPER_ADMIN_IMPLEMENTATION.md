@@ -361,7 +361,20 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/pachedu
 REDIS_URL=redis://localhost:6379
 
 # JWT
-JWT_SECRET=your-secret-key
+# ⚠️  SECURITY WARNING: Replace with cryptographically secure secret!
+# Generate secure JWT secret using one of these methods:
+#
+# Method 1: Using OpenSSL (Recommended)
+# JWT_SECRET=$(openssl rand -hex 64)
+#
+# Method 2: Using Node.js crypto module
+# JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+#
+# Method 3: Using Python
+# JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(64))")
+#
+# Example of generated secret (DO NOT USE IN PRODUCTION):
+JWT_SECRET=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
 # API
 API_BASE_URL=http://localhost:5000

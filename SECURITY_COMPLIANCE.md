@@ -161,7 +161,20 @@ auditLogger.logSecurityAlert(
 #### Required Security Variables
 ```bash
 # Encryption
-ENCRYPTION_MASTER_KEY=your_64_character_encryption_master_key
+# ⚠️  SECURITY WARNING: Replace with cryptographically secure master key!
+# Generate secure master key using one of these methods:
+#
+# Method 1: Using OpenSSL (Recommended)
+# ENCRYPTION_MASTER_KEY=$(openssl rand -hex 64)
+#
+# Method 2: Using Node.js crypto module
+# ENCRYPTION_MASTER_KEY=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+#
+# Method 3: Using Python
+# ENCRYPTION_MASTER_KEY=$(python3 -c "import secrets; print(secrets.token_hex(64))")
+#
+# Example of generated master key (DO NOT USE IN PRODUCTION):
+ENCRYPTION_MASTER_KEY=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
 # Security Configuration
 MIN_PASSWORD_LENGTH=12

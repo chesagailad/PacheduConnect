@@ -1,8 +1,8 @@
-/**
+<!--
  * Author: Gailad Chesa
  * Created: 2025-07-28
- * Description: SECURITY_IMPLEMENTATION_SUMMARY - handles application functionality
- */
+ * Description: High-level summary of security controls in PacheduConnect
+ -->
 
 # Security Implementation Summary
 

@@ -286,6 +286,23 @@ sudo systemctl start redis-server
 
 **Backend Environment Variables** (`backend/.env`):
 ```bash
+# ⚠️  SECURITY WARNING: This application handles sensitive financial data!
+# 
+# IMPORTANT SECURITY NOTES:
+# 1. NEVER use the example keys/secrets in production
+# 2. Generate cryptographically secure keys for all secrets
+# 3. Store production secrets in secure secret management systems
+# 4. Rotate keys regularly (recommended: every 90 days)
+# 5. Use different keys for each environment (dev/staging/prod)
+# 6. Never commit .env files to version control
+#
+# For production deployment, consider using:
+# - AWS Secrets Manager
+# - Azure Key Vault
+# - Google Cloud Secret Manager
+# - HashiCorp Vault
+# - Environment-specific secret injection
+
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
@@ -299,14 +316,46 @@ REDIS_PORT=6379
 REDIS_PASSWORD=
 
 # JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_REFRESH_SECRET=your_super_secret_refresh_key_here
+# ⚠️  SECURITY WARNING: Replace these with cryptographically secure secrets!
+# Generate secure JWT secrets using one of these methods:
+
+# Method 1: Using OpenSSL (Recommended)
+# JWT_SECRET=$(openssl rand -hex 64)
+# JWT_REFRESH_SECRET=$(openssl rand -hex 64)
+
+# Method 2: Using Node.js crypto module
+# JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+# JWT_REFRESH_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+
+# Method 3: Using Python
+# JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(64))")
+# JWT_REFRESH_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(64))")
+
+# Example of generated secrets (DO NOT USE THESE IN PRODUCTION):
+JWT_SECRET=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+JWT_REFRESH_SECRET=fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321
 JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Encryption Keys
-ENCRYPTION_KEY=your_32_character_encryption_key_here
-ENCRYPTION_IV=your_16_character_iv_here
+# ⚠️  SECURITY WARNING: Replace these with cryptographically secure keys!
+# Generate secure keys using one of these methods:
+
+# Method 1: Using OpenSSL (Recommended)
+# ENCRYPTION_KEY=$(openssl rand -hex 32)
+# ENCRYPTION_IV=$(openssl rand -hex 16)
+
+# Method 2: Using Node.js crypto module
+# ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+# ENCRYPTION_IV=$(node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")
+
+# Method 3: Using Python
+# ENCRYPTION_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+# ENCRYPTION_IV=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+
+# Example of generated keys (DO NOT USE THESE IN PRODUCTION):
+ENCRYPTION_KEY=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
+ENCRYPTION_IV=fedcba0987654321
 
 # SMSPortal Configuration
 SMSPORTAL_CLIENT_ID=your_smsportal_client_id
