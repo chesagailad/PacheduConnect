@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: tailwind.config - configuration file for frontend settings
+ */
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [

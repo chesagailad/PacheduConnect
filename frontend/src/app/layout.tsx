@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: layout - handles frontend functionality
+ */
+
 import './globals.css';
 import { Inter, Poppins } from 'next/font/google';
 import { Metadata } from 'next';

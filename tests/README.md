@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: README - handles application functionality
+ */
+
 # PacheduConnect End-to-End Test Suite
 
 This directory contains comprehensive end-to-end tests for the PacheduConnect remittance platform using Playwright.

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: validation.test - test file for backend functionality
+ */
+
 const { SUPPORTED_CURRENCIES } = require('../../src/utils/exchangeRate');
 
 // Validation functions extracted from the route

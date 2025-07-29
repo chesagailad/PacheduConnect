@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: sessionService.test - test file for backend functionality
+ */
+
 const sessionService = require('../../../src/chat-bot/services/sessionService');
 
 describe('Session Service', () => {

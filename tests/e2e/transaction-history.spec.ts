@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: transaction-history.spec - handles backend functionality
+ */
+
 import { test, expect } from '@playwright/test';
 
 test.describe('Transaction History & Tracking', () => {

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: TESTING - handles application functionality
+ */
+
 # Testing Guide for PacheduConnect
 
 This document outlines the comprehensive testing strategy implemented for the PacheduConnect monorepo.

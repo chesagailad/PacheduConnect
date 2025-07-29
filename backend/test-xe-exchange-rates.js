@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-xe-exchange-rates - test file for backend functionality
+ */
+
+/**
  * Test script for XE Currency Data API integration
  * Tests real-time exchange rates with margin and commission for Pachedu platform
  */

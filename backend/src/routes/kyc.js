@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: kyc - handles backend functionality
+ */
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: FeeTransparency.test - test file for React components
+ */
+
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import FeeTransparency from '../FeeTransparency';

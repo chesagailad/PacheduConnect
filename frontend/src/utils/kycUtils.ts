@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: kycUtils - handles frontend functionality
+ */
+
 import { KYCData } from '../services/kycService';
 
 export const formatCurrency = (amount: number): string => {

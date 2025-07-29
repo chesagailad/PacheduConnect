@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: chatbot - handles backend functionality
+ */
+
 const express = require('express');
 const { optionalAuth, extractUserContext, rateLimitMessages } = require('../chat-bot/middleware/auth');
 const chatbotRouter = require('../chat-bot/index');

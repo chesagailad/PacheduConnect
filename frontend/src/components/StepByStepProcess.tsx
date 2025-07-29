@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: StepByStepProcess - handles frontend functionality
+ */
+
 'use client';
 
 import React from 'react';

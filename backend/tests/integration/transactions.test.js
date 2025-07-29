@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: transactions.test - test file for backend functionality
+ */
+
 const request = require('supertest');
 const app = require('../../src/app');
 const { getModels } = require('../../src/models');

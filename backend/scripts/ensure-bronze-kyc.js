@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: ensure-bronze-kyc - handles backend functionality
+ */
+
+/**
  * Script to ensure all users have Bronze level KYC records
  * Run this script to fix any users who don't have KYC records
  */

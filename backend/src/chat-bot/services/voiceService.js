@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: voiceService - handles backend functionality
+ */
+
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../../utils/logger');

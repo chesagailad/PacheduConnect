@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: FRONTEND_DOCKER_TROUBLESHOOTING - handles application functionality
+ */
+
 # Frontend & Docker Issues - Troubleshooting Guide
 
 ## Issues Identified & Resolved

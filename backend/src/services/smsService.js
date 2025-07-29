@@ -1,15 +1,83 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: smsService - handles backend functionality
+ */
+
+/**
+ * SMS Service
+ * 
+ * This module provides comprehensive SMS functionality for the PacheduConnect
+ * platform using the SMSPortal API. It handles authentication, message sending,
+ * OTP delivery, and various notification types with proper error handling.
+ * 
+ * Features:
+ * - OAuth 2.0 and API key authentication methods
+ * - Automatic token refresh and management
+ * - OTP delivery for user verification
+ * - Transaction alerts and notifications
+ * - Exchange rate alerts
+ * - Security and maintenance notifications
+ * - Phone number validation and formatting
+ * - Comprehensive error handling and logging
+ * - Development mode with simulated SMS
+ * 
+ * Authentication Methods:
+ * - OAuth 2.0 with client credentials flow
+ * - API key authentication for direct access
+ * - Automatic token refresh before expiry
+ * - Secure credential management
+ * 
+ * Message Types:
+ * - OTP verification codes
+ * - Transaction confirmations
+ * - Exchange rate updates
+ * - Security alerts
+ * - Maintenance notifications
+ * - Promotional messages
+ * - Document verification alerts
+ * 
+ * Error Handling:
+ * - Network error recovery
+ * - API error response parsing
+ * - Detailed error logging
+ * - Graceful degradation
+ * - Retry mechanisms
+ * 
+ * Development Features:
+ * - Simulated SMS in development mode
+ * - Detailed logging for debugging
+ * - Test authentication endpoints
+ * - Mock responses for testing
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 const axios = require('axios');
 const { logger } = require('../utils/logger');
 
+/**
+ * SMS Service Class
+ * 
+ * Manages all SMS-related operations including authentication,
+ * message sending, and various notification types.
+ */
 class SMSService {
   constructor() {
+    // SMSPortal API configuration
     this.clientId = process.env.SMSPORTAL_CLIENT_ID;
     this.clientSecret = process.env.SMSPORTAL_CLIENT_SECRET;
     this.apiKey = process.env.SMSPORTAL_API_KEY;
     this.baseURL = 'https://rest.smsportal.com/v1';
     this.tokenURL = 'https://rest.smsportal.com/Authentication';
+    
+    // Token management for OAuth authentication
     this.accessToken = null;
     this.tokenExpiry = null;
+    
+    // Authentication method selection
     this.authMethod = this.apiKey ? 'api_key' : 'oauth';
   }
 

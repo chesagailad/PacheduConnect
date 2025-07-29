@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: chatbot.test - test file for backend functionality
+ */
+
 const request = require('supertest');
 const app = require('../../src/app');
 const sessionService = require('../../src/chat-bot/services/sessionService');

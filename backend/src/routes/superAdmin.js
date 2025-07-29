@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: superAdmin - handles backend functionality
+ */
+
 const express = require('express');
 const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');

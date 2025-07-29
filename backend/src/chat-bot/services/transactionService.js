@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: transactionService - handles backend functionality
+ */
+
 const { getModels } = require('../../utils/database');
 
 /**

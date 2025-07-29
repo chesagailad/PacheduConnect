@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: analyticsService.test - test file for backend functionality
+ */
+
 const analyticsService = require('../../../src/chat-bot/services/analyticsService');
 
 // Mock Redis

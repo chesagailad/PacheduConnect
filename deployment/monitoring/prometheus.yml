@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: prometheus - Prometheus configuration for metrics collection and monitoring
+ */
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s

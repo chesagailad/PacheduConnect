@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: KYCUploadEnhanced - handles frontend functionality
+ */
+
 'use client';
 
 import React, { useState, useCallback } from 'react';

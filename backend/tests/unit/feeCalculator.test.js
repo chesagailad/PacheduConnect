@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: feeCalculator.test - test file for backend functionality
+ */
+
 const { calculateFee, getFeeBreakdown, validateTransferWithFees } = require('../../src/utils/feeCalculator');
 
 describe('Fee Calculator Tests', () => {

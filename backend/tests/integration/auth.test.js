@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: auth.test - test file for backend functionality
+ */
+
 const request = require('supertest');
 const { Sequelize } = require('sequelize');
 const bcrypt = require('bcrypt');

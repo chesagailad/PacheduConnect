@@ -1,5 +1,20 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: User model factory - defines user accounts with authentication and role-based access control
+ */
+
 const { DataTypes } = require('sequelize');
 
+/**
+ * Create User Model
+ * 
+ * Factory function that creates and configures the User model
+ * with all necessary attributes, validations, and associations.
+ * 
+ * @param {Sequelize} sequelize - Sequelize instance
+ * @returns {Model} Configured User model
+ */
 const createUserModel = (sequelize) => {
   const User = sequelize.define('User', {
     id: {

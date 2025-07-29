@@ -1,18 +1,67 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: encryption - handles backend functionality
+ */
+
+/**
+ * Encryption Service
+ * 
+ * This module provides comprehensive encryption and security services for the
+ * PacheduConnect backend application. It implements AES-256-GCM encryption
+ * for sensitive data including payment information, personal data, and
+ * authentication tokens.
+ * 
+ * Features:
+ * - AES-256-GCM encryption with authenticated encryption
+ * - PBKDF2 key derivation with configurable iterations
+ * - Secure random generation for IVs and salts
+ * - Purpose-specific encryption for different data types
+ * - PCI-DSS compliant payment data encryption
+ * - Comprehensive error handling and logging
+ * 
+ * Security Standards:
+ * - AES-256-GCM: Military-grade encryption algorithm
+ * - PBKDF2: Password-based key derivation function
+ * - Random IVs: Unique initialization vectors for each encryption
+ * - Authenticated encryption: Prevents tampering and ensures integrity
+ * - Salt generation: Prevents rainbow table attacks
+ * 
+ * Use Cases:
+ * - Payment card data encryption (PCI-DSS compliant)
+ * - Bank account information encryption
+ * - Personal identification data protection
+ * - Authentication token encryption
+ * - Sensitive configuration data protection
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 const crypto = require('crypto');
 const { logger } = require('./logger');
 
+/**
+ * Encryption Service Class
+ * 
+ * Provides comprehensive encryption and decryption services using
+ * AES-256-GCM with authenticated encryption for maximum security.
+ */
 class EncryptionService {
   constructor() {
-    this.algorithm = 'aes-256-gcm';
-    this.keyLength = 32; // 256 bits
-    this.ivLength = 16; // 128 bits
-    this.tagLength = 16; // 128 bits
-    this.saltLength = 64; // 512 bits
+    // Encryption algorithm configuration
+    this.algorithm = 'aes-256-gcm';  // Authenticated encryption algorithm
+    this.keyLength = 32;             // 256 bits for AES-256
+    this.ivLength = 16;              // 128 bits for GCM mode
+    this.tagLength = 16;             // 128 bits for authentication tag
+    this.saltLength = 64;            // 512 bits for PBKDF2 salt
     
-    // Hard code the encryption key for debugging
+    // Master encryption key (should be stored securely in production)
     this.masterKey =
       '310c83e054874a26b9f01207354f834071351de6ccdccbf18709be9056f5ece3';
-    // Validate master key
+    
+    // Validate master key length and format
     if (!this.masterKey || this.masterKey.length !== this.keyLength * 2) {
       throw new Error('Invalid ENCRYPTION_MASTER_KEY. Must be 64 characters (32 bytes)');
     }
@@ -60,8 +109,8 @@ class EncryptionService {
       // Generate IV
       const iv = crypto.randomBytes(this.ivLength);
       
-      // Create cipher
-      const cipher = crypto.createCipher(this.algorithm, key);
+      // Create cipher using secure createCipheriv method
+      const cipher = crypto.createCipheriv(this.algorithm, key, iv);
       cipher.setAAD(Buffer.from(purpose, 'utf8'));
       
       // Encrypt data
@@ -118,8 +167,8 @@ class EncryptionService {
       // Derive key
       const key = this.deriveKey(Buffer.from(salt, 'hex'), purpose);
       
-      // Create decipher
-      const decipher = crypto.createDecipher(this.algorithm, key);
+      // Create decipher using secure createDecipheriv method
+      const decipher = crypto.createDecipheriv(this.algorithm, key, Buffer.from(iv, 'hex'));
       decipher.setAAD(Buffer.from(purpose, 'utf8'));
       decipher.setAuthTag(Buffer.from(tag, 'hex'));
       

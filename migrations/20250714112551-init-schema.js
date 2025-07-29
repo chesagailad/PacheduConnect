@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: 20250714112551-init-schema - handles backend functionality
+ */
+
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */

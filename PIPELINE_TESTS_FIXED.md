@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: PIPELINE_TESTS_FIXED - handles application functionality
+ */
+
 # 🎉 Pipeline and E2E Tests - FIXED!
 
 ## ✅ SUMMARY

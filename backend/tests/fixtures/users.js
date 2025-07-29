@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: users - handles backend functionality
+ */
+
 const bcrypt = require('bcrypt');
 
 const hashPassword = async (password) => {

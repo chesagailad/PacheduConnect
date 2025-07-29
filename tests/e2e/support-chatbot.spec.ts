@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: support-chatbot.spec - handles backend functionality
+ */
+
 import { test, expect } from '@playwright/test';
 
 test.describe('Support and Chatbot Interaction', () => {

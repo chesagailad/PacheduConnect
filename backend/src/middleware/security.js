@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: security - handles backend functionality
+ */
+
 const crypto = require('crypto');
 const { logger } = require('../utils/logger');
 const auditLogger = require('../utils/auditLogger');

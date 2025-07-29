@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: playwright.config - configuration file for backend settings
+ */
+
 const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({

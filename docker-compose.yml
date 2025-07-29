@@ -1,3 +1,47 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: docker-compose - Docker configuration for containerized deployment
+ */
+
+
+# PacheduConnect Docker Compose Configuration
+# 
+# This file defines the complete containerized infrastructure for the
+# PacheduConnect remittance platform. It includes all necessary services
+# for development, testing, and production deployment.
+# 
+# Services Overview:
+# - postgres: PostgreSQL database for data persistence
+# - redis: Redis cache for session management and real-time data
+# - backend: Node.js API server with Express.js
+# - frontend: Next.js web application
+# - admin-dashboard: Admin panel for system management
+# - nginx: Reverse proxy and load balancer
+# - telegram-bot: Telegram chatbot for customer support
+# - whatsapp-bot: WhatsApp Business API integration
+# - prometheus: Monitoring and metrics collection
+# - grafana: Analytics and visualization dashboard
+# 
+# Network Configuration:
+# - pachedu-network: Isolated network for service communication
+# 
+# Volume Management:
+# - postgres_data: Persistent database storage
+# - redis_data: Persistent cache storage
+# - nginx_logs: Access and error logs
+# - prometheus_data: Metrics storage
+# - grafana_data: Dashboard configurations
+# 
+# Security Features:
+# - Environment variable configuration
+# - SSL/TLS termination at nginx
+# - Isolated network communication
+# - Secure credential management
+# 
+# @author PacheduConnect Development Team
+# @version 1.0.0
+# @since 2024-01-01
 
 services:
   # PostgreSQL Database

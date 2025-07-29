@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: test-send-money - test file for backend functionality
+ */
+
 const axios = require('axios');
 
 const API_URL = process.env.API_URL || 'http://localhost:5000';

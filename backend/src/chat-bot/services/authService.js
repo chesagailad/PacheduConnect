@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: authService - handles backend functionality
+ */
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const logger = require('../../utils/logger');

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: PAYMENT_GATEWAYS - handles application functionality
+ */
+
 # Payment Gateway Integration
 
 PacheduConnect now supports multiple payment gateways for secure and flexible payment processing. This document outlines the implemented payment gateways, their features, and how to use them.

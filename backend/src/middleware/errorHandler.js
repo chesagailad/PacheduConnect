@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Global error handling middleware - catches and formats all application errors
+ */
+
 const { logger } = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {

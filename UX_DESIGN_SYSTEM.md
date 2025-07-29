@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: UX_DESIGN_SYSTEM - handles application functionality
+ */
+
 # PacheduConnect UX Design System
 
 ## Table of Contents

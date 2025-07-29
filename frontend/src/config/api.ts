@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: api - handles frontend functionality
+ */
+
+/**
  * Centralized API Configuration
  * Eliminates hardcoded URLs throughout the application
  */

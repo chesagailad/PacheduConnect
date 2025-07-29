@@ -1,8 +1,59 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: PaymentProcessor.test - test file for React components
+ */
+
+/**
+ * PaymentProcessor Component Test Suite
+ * 
+ * Comprehensive test suite for the PaymentProcessor component that handles
+ * payment processing, gateway selection, form validation, and error handling.
+ * 
+ * Test Coverage:
+ * - Component rendering and initial state
+ * - Payment gateway loading and selection
+ * - Form validation for different payment methods
+ * - Payment processing with success and error scenarios
+ * - Loading states and user feedback
+ * - Error handling and user notifications
+ * - Fee calculation and display
+ * - Security features and data protection
+ * 
+ * Test Categories:
+ * - Rendering: Component display and initial state
+ * - Payment Processing: Success and failure scenarios
+ * - Form Validation: Input validation and error messages
+ * - Error Handling: Network errors and API failures
+ * - Gateway Selection: Payment method switching
+ * 
+ * Mocked Dependencies:
+ * - next/navigation: Router functionality
+ * - fetch: API calls to payment gateways
+ * - localStorage: Authentication tokens
+ * - window.scrollIntoView: DOM manipulation
+ * 
+ * Test Data:
+ * - Mock payment gateways (Stripe, Stitch)
+ * - Test payment amounts and currencies
+ * - Sample user credentials and tokens
+ * - Error scenarios and edge cases
+ * 
+ * @author PacheduConnect Development Team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import PaymentProcessor from '../PaymentProcessor';
 
-// Mock next/navigation
+/**
+ * Mock Next.js Navigation Router
+ * 
+ * Provides mock implementation of Next.js router for testing
+ * navigation functionality without actual routing.
+ */
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -12,7 +63,12 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock fetch
+/**
+ * Mock Global Fetch API
+ * 
+ * Provides mock implementation of the fetch API for testing
+ * HTTP requests to payment gateways and backend services.
+ */
 global.fetch = jest.fn();
 
 describe('PaymentProcessor Component', () => {

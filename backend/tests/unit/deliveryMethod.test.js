@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: deliveryMethod.test - test file for backend functionality
+ */
+
 // Validation function extracted from the route for testing
 function validateDeliveryMethod(deliveryMethod) {
   const supportedDeliveryMethods = ['bank_transfer', 'mobile_money', 'cash_pickup', 'home_delivery'];

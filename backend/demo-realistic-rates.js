@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: demo-realistic-rates - handles backend functionality
+ */
+
+/**
  * Demo with Realistic Exchange Rates
  * Shows how the system will work with real XE API data (non-trial)
  */

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: learningService - handles backend functionality
+ */
+
 const logger = require('../../utils/logger');
 
 class LearningService {

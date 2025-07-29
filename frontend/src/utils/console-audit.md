@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: console-audit - handles frontend functionality
+ */
+
 # Console Statement Audit and Production Safety
 
 ## Problem Solved

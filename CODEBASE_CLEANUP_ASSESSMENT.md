@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: CODEBASE_CLEANUP_ASSESSMENT - handles application functionality
+ */
+
 # 🧹 Codebase Cleanup & Assessment Report
 ## PacheduConnect Remittance Platform
 

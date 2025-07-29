@@ -1,4 +1,10 @@
 /**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: exchangeRate - handles backend functionality
+ */
+
+/**
  * Exchange rate utility for PacheduConnect
  * Fetches real-time rates from XE Currency Data API with margin and flat 3% fee
  */

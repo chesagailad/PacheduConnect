@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: index - handles backend functionality
+ */
+
 const { Telegraf, Markup } = require('telegraf');
 const axios = require('axios');
 require('dotenv').config();

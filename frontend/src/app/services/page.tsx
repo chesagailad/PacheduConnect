@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: page - handles frontend functionality
+ */
+
 import React from 'react';
 import Link from 'next/link';
 

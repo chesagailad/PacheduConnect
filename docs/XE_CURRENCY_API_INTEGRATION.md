@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2025-07-28
+ * Description: XE_CURRENCY_API_INTEGRATION - handles application functionality
+ */
+
 # XE Currency Data API Integration
 
 ## Overview

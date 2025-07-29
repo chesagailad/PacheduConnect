@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: jest.config - configuration file for frontend settings
+ */
+
 const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({

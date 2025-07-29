@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: transactions - handles backend functionality
+ */
+
 const express = require('express');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');

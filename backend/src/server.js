@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: Main Express server entry point - handles API routes, middleware, security, and database connections
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,7 +13,18 @@ const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 require('express-async-errors');
 
-// Load environment configuration based on NODE_ENV
+/**
+ * Environment Configuration Loading
+ * 
+ * Loads environment variables based on the current NODE_ENV setting.
+ * This allows for different configurations across development, testing,
+ * and production environments.
+ * 
+ * Environment Files:
+ * - .env: Default environment variables
+ * - .env.test: Test-specific environment variables
+ * - .env.production: Production environment variables
+ */
 const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
 require('dotenv').config({ path: envFile });
 
@@ -17,7 +34,27 @@ const { notFound } = require('./middleware/notFound');
 const { connectDB } = require('./utils/database');
 const { connectRedis } = require('./utils/redis');
 
-// Import routes
+/**
+ * Route Module Imports
+ * 
+ * Imports all API route modules that define the REST API endpoints.
+ * Each route module handles specific functionality and includes proper
+ * authentication, validation, and error handling.
+ * 
+ * Route Structure:
+ * - /api/auth: User authentication and authorization
+ * - /api/users: User management and profile operations
+ * - /api/transactions: Money transfer transaction processing
+ * - /api/recipients: Beneficiary management
+ * - /api/payments: Payment gateway integrations
+ * - /api/kyc: Know Your Customer verification
+ * - /api/admin: Administrative functions
+ * - /api/super-admin: Super administrator functions
+ * - /api/webhooks: External service webhook handling
+ * - /api/beneficiaries: Beneficiary management
+ * - /api/chatbot: AI chatbot integration
+ * - /api/notifications: User notification system
+ */
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const transactionRoutes = require('./routes/transactions');
@@ -34,7 +71,26 @@ const notificationRoutes = require('./routes/notifications');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Security middleware
+/**
+ * Security Middleware Configuration
+ * 
+ * Implements comprehensive security measures using Helmet.js to protect
+ * against common web vulnerabilities and attacks.
+ * 
+ * Security Headers:
+ * - Content Security Policy (CSP): Prevents XSS attacks
+ * - X-Frame-Options: Prevents clickjacking
+ * - X-Content-Type-Options: Prevents MIME type sniffing
+ * - X-XSS-Protection: Additional XSS protection
+ * - Strict-Transport-Security: Enforces HTTPS
+ * - Referrer-Policy: Controls referrer information
+ * 
+ * CSP Directives:
+ * - defaultSrc: Restricts resource loading to same origin
+ * - styleSrc: Allows inline styles for dynamic content
+ * - scriptSrc: Restricts script execution to same origin
+ * - imgSrc: Allows images from same origin and HTTPS sources
+ */
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {

@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: send-money.spec - handles backend functionality
+ */
+
 const { test, expect } = require('@playwright/test');
 
 test.describe('Send Money Flow', () => {

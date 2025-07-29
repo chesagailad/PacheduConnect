@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: index - handles backend functionality
+ */
+
 const express = require('express');
 const { processMessage } = require('./services/nlpService');
 const { getSessionById, createSession, updateSession, getSessionsByUserId } = require('./services/sessionService');

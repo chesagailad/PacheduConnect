@@ -1,3 +1,9 @@
+/**
+ * Author: Gailad Chesa
+ * Created: 2024-01-01
+ * Description: useKYC - handles frontend functionality
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { kycService, KYCData, SendLimitCheck } from '../services/kycService';
 
