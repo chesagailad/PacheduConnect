@@ -1,8 +1,8 @@
-/**
+<!--
  * Author: Gailad Chesa
  * Created: 2025-07-28
  * Description: IMPLEMENTATION_GUIDE - handles application functionality
- */
+ -->
 
 # PacheduConnect Implementation Guide
 

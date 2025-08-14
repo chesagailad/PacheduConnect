@@ -8,6 +8,27 @@
 require('dotenv').config({ path: '.env.test' });
 const { Sequelize } = require('sequelize');
 
+// Handle ES module compatibility
+jest.mock('winston', () => {
+  const originalModule = jest.requireActual('winston');
+  return {
+    ...originalModule,
+    createLogger: jest.fn(() => ({
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    }))
+  };
+});
+
+// Mock bcrypt to avoid ES module issues
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed-password'),
+  compare: jest.fn().mockResolvedValue(true),
+  genSalt: jest.fn().mockResolvedValue('salt')
+}));
+
 // Mock Redis for tests
 jest.mock('ioredis', () => {
   return class MockRedis {
@@ -46,24 +67,27 @@ jest.mock('ioredis', () => {
 // Global test database instance
 let testSequelize;
 
-beforeAll(async () => {
-  // Setup test database
-  testSequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: ':memory:',
-    logging: false,
-    sync: { force: true }
+// Only run database setup if Jest globals are available
+if (typeof beforeAll !== 'undefined') {
+  beforeAll(async () => {
+    // Setup test database
+    testSequelize = new Sequelize({
+      dialect: 'sqlite',
+      storage: ':memory:',
+      logging: false,
+      sync: { force: true }
+    });
+    
+    // Set global test DB
+    global.testDB = testSequelize;
   });
-  
-  // Set global test DB
-  global.testDB = testSequelize;
-});
 
-afterAll(async () => {
-  if (testSequelize) {
-    await testSequelize.close();
-  }
-});
+  afterAll(async () => {
+    if (testSequelize) {
+      await testSequelize.close();
+    }
+  });
+}
 
 // Mock external services
 jest.mock('../src/services/smsService', () => ({

@@ -28,6 +28,7 @@ interface Message {
     rate?: number;
     total?: number;
     escalationReason?: string;
+    ticketNumber?: string;
   };
 }
 
