@@ -74,7 +74,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50">
       {/* Header */}
       <motion.header 
         className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50"
@@ -85,7 +85,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <motion.div className="flex items-center space-x-2" variants={itemVariants}>
-              <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">P</span>
               </div>
               <span className="text-2xl font-bold text-gray-900">Pachedu</span>
@@ -129,7 +129,7 @@ export default function Home() {
               variants={itemVariants}
             >
               Send Money to{' '}
-              <span className="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
                 Zimbabwe
               </span>
               <br />

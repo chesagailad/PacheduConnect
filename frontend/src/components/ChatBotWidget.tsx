@@ -29,7 +29,7 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hello! I\'m Pachedu Assistant. How can I help you today?',
+      text: 'Hello! How can I help you today?',
       sender: 'bot',
       timestamp: new Date(),
       type: 'quick_reply',
@@ -98,7 +98,7 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
       setTimeout(() => {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: 'I\'m currently unable to process your request. Please try again later or contact our support team.',
+          text: 'I\'m currently unable to process your request.',
           sender: 'bot',
           timestamp: new Date()
         };
@@ -254,6 +254,7 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder="Type your message..."
+                  aria-label="Chat message input"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   disabled={isLoading}
                 />
@@ -261,6 +262,7 @@ export default function ChatBotWidget({ isOpen, onToggle }: ChatBotWidgetProps) 
                   type="submit"
                   disabled={!inputText.trim() || isLoading}
                   data-testid="send-button"
+                  aria-label="Send message"
                   className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

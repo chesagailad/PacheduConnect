@@ -55,7 +55,7 @@ import LoadingSpinner from './LoadingSpinner';
  */
 interface ButtonProps {
   children: React.ReactNode;                    // Button content
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';  // Visual style variant
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';  // Visual style variant
   size?: 'sm' | 'md' | 'lg';                   // Button size
   loading?: boolean;                            // Loading state with spinner
   disabled?: boolean;                           // Disabled state
@@ -65,6 +65,7 @@ interface ButtonProps {
   className?: string;                           // Additional CSS classes
   icon?: React.ReactNode;                       // Icon component
   iconPosition?: 'left' | 'right';             // Icon positioning
+  type?: 'button' | 'submit' | 'reset';        // Button type
   'data-testid'?: string;                      // Test identifier
 }
 
@@ -80,6 +81,7 @@ export default function Button({
   className = '',
   icon,
   iconPosition = 'left',
+  type = 'button',
   'data-testid': dataTestId
 }: ButtonProps) {
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -88,7 +90,8 @@ export default function Button({
     primary: 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-lg hover:shadow-xl',
     secondary: 'bg-white text-primary-600 border-2 border-primary-600 hover:bg-primary-50 hover:border-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md',
     ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500',
-    danger: 'bg-gradient-to-r from-error-600 to-error-700 text-white hover:from-error-700 hover:to-error-800 focus:ring-error-500 shadow-lg hover:shadow-xl'
+    danger: 'bg-gradient-to-r from-error-600 to-error-700 text-white hover:from-error-700 hover:to-error-800 focus:ring-error-500 shadow-lg hover:shadow-xl',
+    outline: 'bg-transparent text-primary-600 border-2 border-primary-600 hover:bg-primary-50 hover:border-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md'
   };
 
   const sizeClasses = {
@@ -162,6 +165,7 @@ export default function Button({
 
   return (
     <motion.button
+      type={type}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}

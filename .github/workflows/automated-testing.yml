@@ -1,0 +1,351 @@
+name: PacheduConnect Automated Testing
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  POSTGRES_VERSION: '13'
+
+jobs:
+  # Prerequisites and Setup
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql version: ${{ env.POSTGRES_VERSION }}
+          postgresql db: pachedu_test
+          postgresql user: test
+          postgresql password: test
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd backend && npm ci
+          cd ../frontend && npm ci
+          cd ../e2e && npm ci
+
+      - name: Setup test environment
+        run: |
+          cp backend/.env.example backend/.env.test
+          sed -i 's/DATABASE_URL=.*/DATABASE_URL=postgresql:\/\/test:test@localhost:5432\/pachedu_test/' backend/.env.test
+          sed -i 's/NODE_ENV=.*/NODE_ENV=test/' backend/.env.test
+
+  # Backend Tests
+  backend-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql version: ${{ env.POSTGRES_VERSION }}
+          postgresql db: pachedu_test
+          postgresql user: test
+          postgresql password: test
+
+      - name: Install backend dependencies
+        run: |
+          cd backend && npm ci
+
+      - name: Setup test environment
+        run: |
+          cp backend/.env.example backend/.env.test
+          sed -i 's/DATABASE_URL=.*/DATABASE_URL=postgresql:\/\/test:test@localhost:5432\/pachedu_test/' backend/.env.test
+          sed -i 's/NODE_ENV=.*/NODE_ENV=test/' backend/.env.test
+
+      - name: Run backend ${{ matrix.test-type }} tests
+        run: |
+          cd backend
+          npm test -- --testPathPattern="${{ matrix.test-type }}" --coverage --ci --watchAll=false
+
+      - name: Upload backend coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage/lcov.info
+          flags: backend-${{ matrix.test-type }}
+          name: backend-${{ matrix.test-type }}-coverage
+
+  # Frontend Tests
+  frontend-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend && npm ci
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test -- --coverage --ci --watchAll=false
+
+      - name: Upload frontend coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  # E2E Tests
+  e2e-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql version: ${{ env.POSTGRES_VERSION }}
+          postgresql db: pachedu_test
+          postgresql user: test
+          postgresql password: test
+
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci
+          cd ../frontend && npm ci
+          cd ../e2e && npm ci
+
+      - name: Setup test environment
+        run: |
+          cp backend/.env.example backend/.env.test
+          sed -i 's/DATABASE_URL=.*/DATABASE_URL=postgresql:\/\/test:test@localhost:5432\/pachedu_test/' backend/.env.test
+          sed -i 's/NODE_ENV=.*/NODE_ENV=test/' backend/.env.test
+
+      - name: Start backend server
+        run: |
+          cd backend
+          npm run start:test &
+          sleep 10
+
+      - name: Start frontend server
+        run: |
+          cd frontend
+          npm run dev &
+          sleep 10
+
+      - name: Run E2E tests on ${{ matrix.browser }}
+        run: |
+          cd e2e
+          npx playwright test --project=${{ matrix.browser }} --reporter=html
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-results-${{ matrix.browser }}
+          path: e2e/playwright-report/
+
+  # Performance Tests
+  performance-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci
+          cd ../frontend && npm ci
+
+      - name: Run performance tests
+        run: |
+          cd backend
+          npm run test:performance
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: backend/performance-results/
+
+  # Security Tests
+  security-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci
+          cd ../frontend && npm ci
+
+      - name: Run security audit
+        run: |
+          npm audit --audit-level=moderate
+          cd backend && npm audit --audit-level=moderate
+          cd ../frontend && npm audit --audit-level=moderate
+
+      - name: Run security tests
+        run: |
+          cd backend
+          npm run test:security
+
+  # Code Quality Tests
+  code-quality:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd backend && npm ci
+          cd ../frontend && npm ci
+
+      - name: Run ESLint
+        run: |
+          cd backend && npm run lint
+          cd ../frontend && npm run lint
+
+      - name: Run Prettier check
+        run: |
+          cd backend && npm run format:check
+          cd ../frontend && npm run format:check
+
+      - name: Run TypeScript check
+        run: |
+          cd frontend && npm run type-check
+
+  # Test Results Aggregation
+  test-results:
+    needs: [backend-tests, frontend-tests, e2e-tests, performance-tests, security-tests, code-quality]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download test artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: test-results/
+
+      - name: Generate test report
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Component Tests: ${{ needs.frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### E2E Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Browser Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Performance Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance: ${{ needs.performance-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ needs.security-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Code Quality" >> $GITHUB_STEP_SUMMARY
+          echo "- Quality: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload combined coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov.info
+          flags: combined
+          name: combined-coverage
+
+  # Deployment (on main branch)
+  deploy:
+    needs: [test-results]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.test-results.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Build application
+        run: |
+          cd backend && npm run build
+          cd ../frontend && npm run build
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add deployment commands here
+
+      - name: Notify deployment
+        run: |
+          echo "Deployment completed successfully!" 
