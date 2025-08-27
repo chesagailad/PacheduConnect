@@ -4,6 +4,7 @@
  */
 
 const Redis = require('ioredis');
+const crypto = require('crypto');
 const { logger } = require('../../utils/logger');
 
 class SessionService {
@@ -36,11 +37,21 @@ class SessionService {
   }
 
   /**
+   * Generate collision-safe session ID
+   * Uses timestamp + cryptographically secure random bytes to prevent collisions
+   */
+  generateSessionId(userId) {
+    const timestamp = Date.now();
+    const randomBytes = crypto.randomBytes(8).toString('hex'); // 16 character hex string
+    return `session:${userId}:${timestamp}:${randomBytes}`;
+  }
+
+  /**
    * Create or update user session
    */
   async createSession(userId, sessionData = {}) {
     try {
-      const sessionId = `session:${userId}:${Date.now()}`;
+      const sessionId = this.generateSessionId(userId);
       const session = {
         id: sessionId,
         userId,
@@ -112,6 +123,16 @@ class SessionService {
   }
 
   /**
+   * Generate collision-safe message ID
+   * Uses timestamp + cryptographically secure random bytes to prevent collisions
+   */
+  generateMessageId() {
+    const timestamp = Date.now();
+    const randomBytes = crypto.randomBytes(4).toString('hex'); // 8 character hex string for messages
+    return `msg_${timestamp}_${randomBytes}`;
+  }
+
+  /**
    * Add message to conversation history
    */
   async addMessage(sessionId, message) {
@@ -122,7 +143,7 @@ class SessionService {
       }
 
       const messageEntry = {
-        id: `msg_${Date.now()}`,
+        id: this.generateMessageId(),
         timestamp: new Date().toISOString(),
         type: message.type || 'user',
         content: message.content,
