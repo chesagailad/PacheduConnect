@@ -1,17 +1,31 @@
 /**
  * Author: Gailad Chesa
  * Created: 2024-01-01
- * Description: KYC - handles backend functionality
+ * Description: KYC model factory - defines KYC levels and verification status
  */
 
 const { DataTypes } = require('sequelize');
 
+/**
+ * Create KYC Model
+ * 
+ * Factory function that creates and configures the KYC model
+ * with all necessary attributes, validations, and associations.
+ * 
+ * @param {Sequelize} sequelize - Sequelize instance
+ * @returns {Model} Configured KYC model
+ */
 const createKYCModel = (sequelize) => {
+  if (!sequelize) {
+    throw new Error('Sequelize instance is required');
+  }
+
   const KYC = sequelize.define('KYC', {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+      allowNull: false,
     },
     userId: {
       type: DataTypes.UUID,
@@ -23,25 +37,21 @@ const createKYCModel = (sequelize) => {
     },
     level: {
       type: DataTypes.ENUM('bronze', 'silver', 'gold'),
-      defaultValue: 'bronze',
       allowNull: false,
+      defaultValue: 'bronze',
     },
     status: {
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      defaultValue: 'pending',
+      type: DataTypes.ENUM('pending', 'verified', 'rejected'),
       allowNull: false,
+      defaultValue: 'pending',
     },
     // Bronze level documents
     idDocument: {
       type: DataTypes.STRING, // File path/URL
       allowNull: true,
     },
-    selfieWithId: {
+    selfie: {
       type: DataTypes.STRING, // File path/URL
-      allowNull: true,
-    },
-    homeAddress: {
-      type: DataTypes.TEXT,
       allowNull: true,
     },
     // Silver level documents
@@ -110,33 +120,51 @@ const createKYCModel = (sequelize) => {
     }
   });
 
-  // Instance method to check if user can send amount
-  KYC.prototype.canSendAmount = function(amount) {
-    const now = new Date();
-    const resetDate = new Date(this.resetDate);
-    
-    // Check if we need to reset the monthly counter
-    if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
-      this.currentMonthSent = 0;
-      this.resetDate = now;
-    }
-    
-    return (this.currentMonthSent + amount) <= this.monthlySendLimit;
-  };
+  // Define associations only if KYC model is properly defined
+  if (KYC) {
+    // Instance method to check if user can send amount
+    KYC.prototype.canSendAmount = function(amount) {
+      const now = new Date();
+      const resetDate = new Date(this.resetDate);
+      
+      // Check if we need to reset the monthly counter
+      if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
+        this.currentMonthSent = 0;
+        this.resetDate = now;
+      }
+      
+      return (this.currentMonthSent + amount) <= this.monthlySendLimit;
+    };
 
-  // Instance method to add to monthly sent amount
-  KYC.prototype.addToMonthlySent = function(amount) {
-    const now = new Date();
-    const resetDate = new Date(this.resetDate);
-    
-    // Reset if it's a new month
-    if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
-      this.currentMonthSent = 0;
-      this.resetDate = now;
-    }
-    
-    this.currentMonthSent += amount;
-  };
+    // Instance method to add to monthly sent amount
+    KYC.prototype.addToMonthlySent = function(amount) {
+      const now = new Date();
+      const resetDate = new Date(this.resetDate);
+      
+      // Reset if it's a new month
+      if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
+        this.currentMonthSent = 0;
+        this.resetDate = now;
+      }
+      
+      this.currentMonthSent += amount;
+    };
+
+    KYC.associate = (models) => {
+      if (models.User) {
+        KYC.belongsTo(models.User, {
+          foreignKey: 'userId',
+          as: 'user'
+        });
+      }
+      if (models.User) {
+        KYC.belongsTo(models.User, {
+          foreignKey: 'verifiedBy',
+          as: 'verifier'
+        });
+      }
+    };
+  }
 
   return KYC;
 };

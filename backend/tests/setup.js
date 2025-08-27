@@ -34,7 +34,14 @@ jest.mock('winston', () => ({
   }
 }));
 
-// Mock bcrypt to avoid ES module issues
+// Mock bcryptjs to avoid ES module issues
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
+  compare: jest.fn().mockResolvedValue(true),
+  genSalt: jest.fn().mockResolvedValue('$2b$10$salt')
+}));
+
+// Also mock bcrypt for backward compatibility
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
   compare: jest.fn().mockResolvedValue(true),

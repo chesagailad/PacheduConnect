@@ -16,6 +16,10 @@ const { DataTypes } = require('sequelize');
  * @returns {Model} Configured User model
  */
 const createUserModel = (sequelize) => {
+  if (!sequelize) {
+    throw new Error('Sequelize instance is required');
+  }
+
   const User = sequelize.define('User', {
     id: {
       type: DataTypes.UUID,
@@ -70,21 +74,29 @@ const createUserModel = (sequelize) => {
     }
   });
 
-  // Define associations
-  User.associate = (models) => {
-    User.hasOne(models.KYC, {
-      foreignKey: 'userId',
-      as: 'kyc'
-    });
-    User.hasMany(models.Transaction, {
-      foreignKey: 'userId',
-      as: 'transactions'
-    });
-    User.hasMany(models.Beneficiary, {
-      foreignKey: 'userId',
-      as: 'beneficiaries'
-    });
-  };
+  // Define associations only if User model is properly defined
+  if (User) {
+    User.associate = (models) => {
+      if (models.KYC) {
+        User.hasOne(models.KYC, {
+          foreignKey: 'userId',
+          as: 'kyc'
+        });
+      }
+      if (models.Transaction) {
+        User.hasMany(models.Transaction, {
+          foreignKey: 'userId',
+          as: 'transactions'
+        });
+      }
+      if (models.Beneficiary) {
+        User.hasMany(models.Beneficiary, {
+          foreignKey: 'userId',
+          as: 'beneficiaries'
+        });
+      }
+    };
+  }
 
   return User;
 };

@@ -1,7 +1,7 @@
 /**
  * Author: Gailad Chesa
  * Created: 2024-01-01
- * Description: jest.config - configuration file for backend settings
+ * Description: jest.config - configuration file for mobile settings
  */
 
 module.exports = {
@@ -56,10 +56,5 @@ module.exports = {
   testTimeout: 30000,
   verbose: true,
   clearMocks: true,
-  restoreMocks: true,
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
+  restoreMocks: true
 };
