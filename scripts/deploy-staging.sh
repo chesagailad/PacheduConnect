@@ -211,7 +211,7 @@ cd ..
 print_status "Testing password hashing..."
 cd backend
 node -e "
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const password = 'TestPassword123!';
 bcrypt.hash(password, 12).then(hash => {
   console.log('✅ Password hashing: SUCCESS');

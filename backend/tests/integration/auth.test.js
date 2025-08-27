@@ -6,7 +6,7 @@
 
 const request = require('supertest');
 const { Sequelize } = require('sequelize');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 

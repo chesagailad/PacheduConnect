@@ -29,7 +29,7 @@ async function checkDatabase() {
     if (userCount === 0) {
       console.log('No users found. Creating a test user...');
       
-      const bcrypt = require('bcrypt');
+      const bcrypt = require('bcryptjs');
       const passwordHash = await bcrypt.hash('test123', 10);
       
       const testUser = await User.create({

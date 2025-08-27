@@ -23,7 +23,6 @@
     "kyc:ensure-bronze": "node scripts/ensure-bronze-kyc.js"
   },
   "dependencies": {
-    "bcrypt": "5.1.0",
     "bcryptjs": "2.4.3",
     "compression": "1.7.4",
     "cors": "2.8.5",
@@ -90,5 +89,12 @@
     "nodejs"
   ],
   "author": "Pachedu Team",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "strip-ansi": "6.0.1",
+    "string-width": "4.2.3",
+    "wide-align": "1.1.5",
+    "gauge": "4.0.4",
+    "npmlog": "7.0.1"
+  }
 }

@@ -31,7 +31,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const Joi = require('joi');
 const { getSequelize } = require('../utils/database');

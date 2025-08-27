@@ -1,10 +1,10 @@
 /**
  * Author: Gailad Chesa
  * Created: 2024-01-01
- * Description: users - handles backend functionality
+ * Description: Test user fixtures for authentication tests
  */
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const hashPassword = async (password) => {
   return await bcrypt.hash(password, 10);

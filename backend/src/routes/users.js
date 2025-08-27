@@ -5,7 +5,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');

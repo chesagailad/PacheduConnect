@@ -6,7 +6,7 @@
 
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { getSequelize } = require('../../src/utils/database');
 const createUserModel = require('../../src/models/User');
 const tokenService = require('../../src/services/tokenService');

@@ -90,8 +90,8 @@ run_test "JWT Token Expiration" "node -e \"const jwt = require('jsonwebtoken'); 
 # Test 2: Password Security
 echo ""
 echo "=== Password Security Tests ==="
-run_test "Password Hashing" "node -e \"const bcrypt = require('bcrypt'); bcrypt.hash('TestPassword123!', 12).then(hash => console.log('Password hashed successfully'));\""
-run_test "Password Verification" "node -e \"const bcrypt = require('bcrypt'); bcrypt.hash('TestPassword123!', 12).then(hash => bcrypt.compare('TestPassword123!', hash)).then(result => { if(result) console.log('Password verification working'); });\""
+run_test "Password Hashing" "node -e \"const bcrypt = require('bcryptjs'); bcrypt.hash('TestPassword123!', 12).then(hash => console.log('Password hashed successfully'));\""
+run_test "Password Verification" "node -e \"const bcrypt = require('bcryptjs'); bcrypt.hash('TestPassword123!', 12).then(hash => bcrypt.compare('TestPassword123!', hash)).then(result => { if(result) console.log('Password verification working'); });\""
 run_test "Password Strength Validation" "node -e \"const strongPassword = 'TestPassword123!'; const weakPassword = 'password'; const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$/; if(regex.test(strongPassword) && !regex.test(weakPassword)) console.log('Password strength validation working');\""
 
 # Test 3: Input Validation Security
