@@ -10,6 +10,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 
+// Mock bcryptjs for integration tests
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
+  compare: jest.fn().mockResolvedValue(true),
+  genSalt: jest.fn().mockResolvedValue('$2b$10$salt')
+}));
+
 // Mock external services
 jest.mock('../../src/services/smsService', () => ({
   sendSMS: jest.fn().mockResolvedValue(true)

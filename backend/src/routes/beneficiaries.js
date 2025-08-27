@@ -6,13 +6,13 @@
 
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
 const { getSequelize } = require('../utils/database');
-const { createBeneficiaryModel } = require('../models');
+const createBeneficiaryModel = require('../models/Beneficiary');
+const { auth } = require('../middleware/auth');
 const { logger } = require('../utils/logger');
 
 // Get all beneficiaries for the authenticated user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const Beneficiary = createBeneficiaryModel(getSequelize());
     const beneficiaries = await Beneficiary.findAll({
@@ -39,7 +39,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get a specific beneficiary by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     const Beneficiary = createBeneficiaryModel(getSequelize());
@@ -75,7 +75,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create a new beneficiary
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const {
       name,
@@ -131,7 +131,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update a beneficiary
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -197,7 +197,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete a beneficiary (soft delete)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
     const Beneficiary = createBeneficiaryModel(getSequelize());
@@ -235,7 +235,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Search beneficiaries
-router.get('/search/:query', authenticateToken, async (req, res) => {
+router.get('/search/:query', auth, async (req, res) => {
   try {
     const { query } = req.params;
     const Beneficiary = createBeneficiaryModel(getSequelize());
@@ -272,7 +272,7 @@ router.get('/search/:query', authenticateToken, async (req, res) => {
 });
 
 // Get beneficiaries by country
-router.get('/country/:country', authenticateToken, async (req, res) => {
+router.get('/country/:country', auth, async (req, res) => {
   try {
     const { country } = req.params;
     const Beneficiary = createBeneficiaryModel(getSequelize());
