@@ -7,6 +7,9 @@
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import SendMoneyScreen from '../transfer/SendMoneyScreen';
+import { Alert } from 'react-native';
+import { offlineTransactionService } from '../../services/offline/offlineTransactionService';
+jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
 
 // Mock dependencies
 const mockNavigate = jest.fn();
@@ -33,10 +36,10 @@ jest.mock('../../services/offline/offlineTransactionService', () => ({
 
 // Mock offline hook
 jest.mock('../../hooks/useOffline', () => ({
-  useOffline: () => ({
+  useOffline: jest.fn(() => ({
     isOffline: false,
     lastSyncTime: new Date(),
-  }),
+  })),
 }));
 
 // Mock components
@@ -162,8 +165,8 @@ describe('SendMoneyScreen', () => {
       
       const addRecipientButton = screen.getByText('Add New Recipient');
       fireEvent.press(addRecipientButton);
+      expect(mockNavigate).toHaveBeenCalled();
       
-      // The component might not be calling navigate yet, so we'll just test the button exists
       expect(addRecipientButton).toBeTruthy();
     });
   });
@@ -219,6 +222,116 @@ describe('SendMoneyScreen', () => {
           expect.any(Array)
         );
       }, { timeout: 3000 });
+    });
+  });
+});
+
+describe('Fee Calculation - Edge Cases', () => {
+  test('applies minimum fee of ZAR 0.30 for small amounts', () => {
+    render(<SendMoneyScreen />);
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.changeText(amountInput, '1');
+
+    // Minimum fee should apply (>= 0.30)
+    expect(screen.getByText('ZAR 0.30')).toBeTruthy();
+    expect(screen.getByText('ZAR 1.30')).toBeTruthy();
+  });
+
+  test('rounds fee to 2 decimals for fractional amounts (99.99 → fee 3.00, total 102.99)', () => {
+    render(<SendMoneyScreen />);
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.changeText(amountInput, '99.99');
+
+    // 3% of 99.99 = 2.9997 → rounds to 3.00
+    expect(screen.getByText('ZAR 3.00')).toBeTruthy();
+    expect(screen.getByText('ZAR 102.99')).toBeTruthy();
+  });
+});
+
+describe('Amount Input - Validation', () => {
+  test('rejects non-numeric input and alerts error', async () => {
+    render(<SendMoneyScreen />);
+
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.changeText(amountInput, 'abc'); // invalid characters
+
+    const sendButtons = screen.getAllByText('Send Money');
+    const sendButton = sendButtons[1];
+    fireEvent.press(sendButton);
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Error',
+        'Please enter a valid amount'
+      );
+    });
+  });
+});
+
+describe('Recipient Selection - Update', () => {
+  test('allows changing the selected recipient', () => {
+    render(<SendMoneyScreen />);
+
+    fireEvent.press(screen.getByText('Select recipient'));
+    fireEvent.press(screen.getByText('John Doe'));
+    expect(screen.getByText('John Doe')).toBeTruthy();
+
+    // Re-open and choose a different recipient
+    fireEvent.press(screen.getByText('Select recipient'));
+    fireEvent.press(screen.getByText('Jane Smith'));
+    expect(screen.getByText('Jane Smith')).toBeTruthy();
+  });
+});
+
+describe('Offline Mode', () => {
+  test('uses offline transaction service when offline and shows an alert', async () => {
+    const mockedUseOffline = require('../../hooks/useOffline').useOffline as jest.Mock;
+    mockedUseOffline.mockReturnValue({
+      isOffline: true,
+      lastSyncTime: new Date('2024-01-01'),
+    });
+
+    // Arrange: successful offline save
+    (offlineTransactionService.createTransaction as jest.Mock).mockResolvedValueOnce({ id: 'tx1' });
+
+    render(<SendMoneyScreen />);
+
+    // Fill out form and submit
+    fireEvent.press(screen.getByText('Select recipient'));
+    fireEvent.press(screen.getByText('John Doe'));
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.changeText(amountInput, '50');
+
+    const sendButton = screen.getAllByText('Send Money')[1];
+    fireEvent.press(sendButton);
+
+    await waitFor(() => {
+      expect(offlineTransactionService.createTransaction).toHaveBeenCalled();
+      expect(Alert.alert).toHaveBeenCalled(); // exact success message may vary
+    });
+  });
+
+  test('surfaces an error when offline transaction save fails', async () => {
+    const mockedUseOffline = require('../../hooks/useOffline').useOffline as jest.Mock;
+    mockedUseOffline.mockReturnValue({
+      isOffline: true,
+      lastSyncTime: new Date('2024-01-01'),
+    });
+
+    (offlineTransactionService.createTransaction as jest.Mock).mockRejectedValueOnce(new Error('Disk full'));
+
+    render(<SendMoneyScreen />);
+
+    fireEvent.press(screen.getByText('Select recipient'));
+    fireEvent.press(screen.getByText('John Doe'));
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.changeText(amountInput, '50');
+
+    const sendButton = screen.getAllByText('Send Money')[1];
+    fireEvent.press(sendButton);
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
     });
   });
 });
