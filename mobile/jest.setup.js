@@ -1,51 +1,79 @@
 /**
+ * Jest Setup File for PacheduConnect Mobile App
  * Author: Gailad Chesa
  * Created: 2024-01-01
- * Description: jest.setup - handles backend functionality
+ * Description: Global test setup and mocks
  */
 
-import 'react-native-gesture-handler/jestSetup';
-import '@testing-library/jest-native/extend-expect';
-
-// Mock React Native modules
-jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
-
 // Mock Expo modules
-jest.mock('expo-constants', () => ({
-  default: {
-    expoConfig: {
-      extra: {
-        apiUrl: 'http://localhost:5001',
-      },
-    },
-  },
-}));
-
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn(),
   deleteItemAsync: jest.fn(),
 }));
 
+jest.mock('expo-local-authentication', () => ({
+  hasHardwareAsync: jest.fn(() => Promise.resolve(true)),
+  isEnrolledAsync: jest.fn(() => Promise.resolve(true)),
+  authenticateAsync: jest.fn(() => Promise.resolve({ success: true })),
+  supportedAuthenticationTypesAsync: jest.fn(() => Promise.resolve([1, 2])),
+}));
+
 jest.mock('expo-notifications', () => ({
-  requestPermissionsAsync: jest.fn(),
-  getPermissionsAsync: jest.fn(),
-  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'mock-token' })),
   addNotificationReceivedListener: jest.fn(),
   addNotificationResponseReceivedListener: jest.fn(),
+  setNotificationHandler: jest.fn(),
 }));
 
-jest.mock('expo-camera', () => ({
-  Camera: {
-    requestCameraPermissionsAsync: jest.fn(),
-    getCameraPermissionsAsync: jest.fn(),
-  },
+jest.mock('expo-device', () => ({
+  isDevice: true,
+  brand: 'Apple',
+  manufacturer: 'Apple',
+  modelName: 'iPhone',
+  modelId: 'iPhone14,2',
+  designName: 'iPhone 14 Pro',
+  productName: 'iPhone',
+  deviceYearClass: 2022,
+  totalMemory: 8589934592,
+  supportedCpuArchitectures: ['arm64'],
+  osName: 'iOS',
+  osVersion: '16.0',
+  osBuildId: '20A357',
+  osInternalBuildId: '20A357',
+  deviceName: 'iPhone',
 }));
 
-jest.mock('expo-local-authentication', () => ({
-  authenticateAsync: jest.fn(),
-  hasHardwareAsync: jest.fn(),
-  isEnrolledAsync: jest.fn(),
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(() => Promise.resolve({
+    type: 'success',
+    uri: 'file://mock-document.pdf',
+    name: 'mock-document.pdf',
+    size: 1024,
+  })),
+}));
+
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(() => Promise.resolve({
+    canceled: false,
+    assets: [{
+      uri: 'file://mock-image.jpg',
+      width: 1920,
+      height: 1080,
+      type: 'image',
+    }],
+  })),
+  launchCameraAsync: jest.fn(() => Promise.resolve({
+    canceled: false,
+    assets: [{
+      uri: 'file://mock-photo.jpg',
+      width: 1920,
+      height: 1080,
+      type: 'image',
+    }],
+  })),
 }));
 
 // Mock React Navigation
@@ -53,14 +81,16 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),
     goBack: jest.fn(),
-    dispatch: jest.fn(),
+    push: jest.fn(),
+    pop: jest.fn(),
+    reset: jest.fn(),
+    setOptions: jest.fn(),
   }),
   useRoute: () => ({
     params: {},
-    name: 'MockedScreen',
   }),
   useFocusEffect: jest.fn(),
-  NavigationContainer: ({ children }) => children,
+  useIsFocused: () => true,
 }));
 
 jest.mock('@react-navigation/stack', () => ({
@@ -77,17 +107,27 @@ jest.mock('@react-navigation/bottom-tabs', () => ({
   }),
 }));
 
-// Mock React Native Paper
-jest.mock('react-native-paper', () => ({
-  Portal: ({ children }) => children,
-  Dialog: ({ children }) => children,
-  Button: ({ children, onPress, ...props }) => 
-    require('react-native').TouchableOpacity({ onPress, ...props }, children),
-  TextInput: (props) => require('react-native').TextInput(props),
-  Card: ({ children }) => children,
-  Text: ({ children }) => children,
-  Provider: ({ children }) => children,
-}));
+// Mock React Native components
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+
+jest.mock('react-native/Libraries/Components/Touchable/TouchableOpacity', () => 'TouchableOpacity');
+
+jest.mock('react-native/Libraries/Components/Touchable/TouchableHighlight', () => 'TouchableHighlight');
+
+// Mock React Native
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  return {
+    ...RN,
+    Alert: {
+      alert: jest.fn(),
+    },
+    Settings: {
+      get: jest.fn(),
+      set: jest.fn(),
+    },
+  };
+});
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -105,122 +145,227 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true, type: 'wifi' })),
   addEventListener: jest.fn(),
-  useNetInfo: () => ({ isConnected: true, type: 'wifi' }),
+  removeEventListener: jest.fn(),
 }));
-
-// Mock React Native Reanimated
-jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
-  return {
-    Value: jest.fn(),
-    event: jest.fn(),
-    add: jest.fn(),
-    eq: jest.fn(),
-    set: jest.fn(),
-    cond: jest.fn(),
-    interpolate: jest.fn(),
-    View: View,
-    Extrapolate: { CLAMP: jest.fn() },
-    Transition: {
-      Together: 'Together',
-      Out: 'Out',
-      In: 'In',
-    },
-    Easing: {
-      in: jest.fn(),
-      out: jest.fn(),
-      inOut: jest.fn(),
-    },
-  };
-});
-
-// Mock Gesture Handler
-jest.mock('react-native-gesture-handler', () => {
-  const View = require('react-native').View;
-  return {
-    Swipeable: View,
-    DrawerLayout: View,
-    State: {},
-    ScrollView: View,
-    Slider: View,
-    Switch: View,
-    TextInput: View,
-    ToolbarAndroid: View,
-    ViewPagerAndroid: View,
-    DrawerLayoutAndroid: View,
-    WebView: View,
-    NativeViewGestureHandler: View,
-    TapGestureHandler: View,
-    FlingGestureHandler: View,
-    ForceTouchGestureHandler: View,
-    LongPressGestureHandler: View,
-    PanGestureHandler: View,
-    PinchGestureHandler: View,
-    RotationGestureHandler: View,
-    RawButton: View,
-    BaseButton: View,
-    RectButton: View,
-    BorderlessButton: View,
-    FlatList: View,
-    gestureHandlerRootHOC: jest.fn(),
-    Directions: {},
-  };
-});
 
 // Mock React Query
 jest.mock('react-query', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
-  useQueryClient: jest.fn(),
-  QueryClient: jest.fn(),
-  QueryClientProvider: ({ children }) => children,
+  useQueryClient: jest.fn(() => ({
+    invalidateQueries: jest.fn(),
+    setQueryData: jest.fn(),
+    getQueryData: jest.fn(),
+  })),
+  QueryClient: jest.fn(() => ({
+    invalidateQueries: jest.fn(),
+    setQueryData: jest.fn(),
+    getQueryData: jest.fn(),
+  })),
 }));
 
-// Mock Axios
-jest.mock('axios', () => ({
-  create: jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    patch: jest.fn(),
-    interceptors: {
-      request: { use: jest.fn() },
-      response: { use: jest.fn() },
+// Mock Zustand
+jest.mock('zustand', () => ({
+  create: jest.fn(),
+  subscribeWithSelector: jest.fn(),
+}));
+
+// Mock React Hook Form
+jest.mock('react-hook-form', () => ({
+  useForm: jest.fn(() => ({
+    control: {},
+    handleSubmit: jest.fn(),
+    formState: { errors: {} },
+    watch: jest.fn(),
+    setValue: jest.fn(),
+    getValues: jest.fn(),
+    reset: jest.fn(),
+  })),
+  Controller: ({ render }) => render({ field: { onChange: jest.fn(), value: '' } }),
+}));
+
+// Mock Linear Gradient
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: 'LinearGradient',
+}));
+
+// Mock Vector Icons
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: 'Ionicons',
+  MaterialIcons: 'MaterialIcons',
+  FontAwesome: 'FontAwesome',
+}));
+
+// Mock Flash Message
+jest.mock('react-native-flash-message', () => ({
+  showMessage: jest.fn(),
+  hideMessage: jest.fn(),
+}));
+
+// Mock Toast Message
+jest.mock('react-native-toast-message', () => ({
+  show: jest.fn(),
+  hide: jest.fn(),
+}));
+
+// Mock Modal
+jest.mock('react-native-modal', () => 'Modal');
+
+// Mock Animatable
+jest.mock('react-native-animatable', () => ({
+  View: 'AnimatableView',
+  Text: 'AnimatableText',
+  TouchableOpacity: 'AnimatableTouchableOpacity',
+}));
+
+// Mock Phone Number Input
+jest.mock('react-native-phone-number-input', () => 'PhoneNumberInput');
+
+// Mock WebView
+jest.mock('react-native-webview', () => 'WebView');
+
+// Mock Keyboard Aware Scroll View
+jest.mock('react-native-keyboard-aware-scroll-view', () => ({
+  KeyboardAwareScrollView: 'KeyboardAwareScrollView',
+}));
+
+// Mock SVG
+jest.mock('react-native-svg', () => ({
+  Svg: 'Svg',
+  Path: 'Path',
+  Circle: 'Circle',
+  Rect: 'Rect',
+}));
+
+// Mock Paper Components
+jest.mock('react-native-paper', () => ({
+  Button: 'Button',
+  TextInput: 'TextInput',
+  Card: 'Card',
+  Title: 'Title',
+  Paragraph: 'Paragraph',
+  Avatar: 'Avatar',
+  Badge: 'Badge',
+  Chip: 'Chip',
+  Divider: 'Divider',
+  List: 'List',
+  FAB: 'FAB',
+  Portal: 'Portal',
+  Modal: 'Modal',
+  Provider: 'Provider',
+}));
+
+// Mock Elements Components
+jest.mock('react-native-elements', () => ({
+  Button: 'Button',
+  Input: 'Input',
+  Card: 'Card',
+  Text: 'Text',
+  Avatar: 'Avatar',
+  Badge: 'Badge',
+  Chip: 'Chip',
+  Divider: 'Divider',
+  ListItem: 'ListItem',
+  FAB: 'FAB',
+  Overlay: 'Overlay',
+  ThemeProvider: 'ThemeProvider',
+}));
+
+// Global test utilities
+global.testUtils = {
+  mockUser: {
+    id: 'user-123',
+    email: 'test@example.com',
+    name: 'Test User',
+    kycStatus: 'approved',
+    balance: 1000,
+  },
+  mockTransaction: {
+    id: 'txn-123',
+    type: 'send',
+    amount: 100,
+    currency: 'USD',
+    status: 'completed',
+    recipientName: 'John Doe',
+    createdAt: new Date().toISOString(),
+  },
+  mockRecipient: {
+    id: 'recipient-123',
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '+1234567890',
+  },
+  mockKYCData: {
+    status: 'pending',
+    documents: [],
+    personalInfo: {
+      firstName: 'John',
+      lastName: 'Doe',
+      dateOfBirth: '1990-01-01',
+      nationality: 'US',
     },
-  })),
-  get: jest.fn(),
-  post: jest.fn(),
-  put: jest.fn(),
-  delete: jest.fn(),
-  patch: jest.fn(),
-}));
-
-// Mock Socket.IO
-jest.mock('socket.io-client', () => ({
-  io: jest.fn(() => ({
-    on: jest.fn(),
-    off: jest.fn(),
-    emit: jest.fn(),
-    connect: jest.fn(),
-    disconnect: jest.fn(),
-  })),
-}));
-
-// Silence the warning: Animated: `useNativeDriver` is not supported
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
-
-// Mock react-native-phone-number-input
-jest.mock('react-native-phone-number-input', () => {
-  const MockedPhoneInput = () => null;
-  return MockedPhoneInput;
-});
-
-// Global test configuration
-global.console = {
-  ...console,
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  info: jest.fn(),
+  },
+  mockNetworkState: {
+    isConnected: true,
+    type: 'wifi',
+    isInternetReachable: true,
+  },
+  mockOfflineData: {
+    transactions: [],
+    userData: null,
+    kycData: null,
+    settings: null,
+    lastSyncTime: new Date().toISOString(),
+    syncVersion: 1,
+  },
 };
+
+// Performance monitoring for tests
+global.performance = {
+  now: () => Date.now(),
+  mark: jest.fn(),
+  measure: jest.fn(),
+  getEntriesByType: jest.fn(() => []),
+  clearMarks: jest.fn(),
+  clearMeasures: jest.fn(),
+};
+
+// Memory monitoring for tests
+global.memory = {
+  usedJSHeapSize: 1000000,
+  totalJSHeapSize: 2000000,
+  jsHeapSizeLimit: 4000000,
+};
+
+// Console error suppression for expected errors in tests
+const originalError = console.error;
+console.error = (...args) => {
+  if (
+    typeof args[0] === 'string' &&
+    (args[0].includes('Warning: ReactDOM.render is no longer supported') ||
+     args[0].includes('Warning: An invalid form control') ||
+     args[0].includes('Warning: Each child in a list should have a unique "key" prop'))
+  ) {
+    return;
+  }
+  originalError.call(console, ...args);
+};
+
+// Setup and teardown
+global.beforeEach = (fn) => {
+  if (typeof fn === 'function') {
+    fn();
+  }
+  jest.clearAllMocks();
+  jest.clearAllTimers();
+};
+
+global.afterEach = (fn) => {
+  if (typeof fn === 'function') {
+    fn();
+  }
+  jest.restoreAllMocks();
+};
+
+// Global test timeout
+jest.setTimeout(30000);

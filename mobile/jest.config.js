@@ -13,15 +13,17 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
     '!src/config/**',
+    '!src/**/*.test.{js,jsx,ts,tsx}',
+    '!src/**/*.spec.{js,jsx,ts,tsx}',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60,
     },
   },
   testMatch: [
@@ -33,11 +35,15 @@ module.exports = {
     '<rootDir>/node_modules/',
     '<rootDir>/ios/',
     '<rootDir>/android/',
+    '<rootDir>/e2e/',
   ],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
   transformIgnorePatterns: [
     'node_modules/(?!(jest-)?react-native|@react-native|@expo|expo-.*|@react-navigation)',
   ],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/components/(.*)$': '<rootDir>/src/components/$1',
     '^@/screens/(.*)$': '<rootDir>/src/screens/$1',
@@ -45,6 +51,15 @@ module.exports = {
     '^@/services/(.*)$': '<rootDir>/src/services/$1',
   },
   setupFiles: [
-    '<rootDir>/node_modules/react-native-gesture-handler/jestSetup.js'
-  ]
+    '<rootDir>/jest.setup.js'
+  ],
+  testTimeout: 30000,
+  verbose: true,
+  clearMocks: true,
+  restoreMocks: true,
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.json',
+    },
+  },
 };

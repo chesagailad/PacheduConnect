@@ -1,22 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface SendMoneyForm {
-  recipientEmail: string;
-  amount: string;
-  currency: string;
-  message?: string;
-}
-
-interface FeeBreakdown {
-  transferFee: number;
-  totalAmount: number;
-  exchangeRate?: number;
-}
 
 const SendMoney: React.FC = () => {
   const router = useRouter();
-  const [form, setForm] = useState<SendMoneyForm>({
+  const [form, setForm] = useState({
     recipientEmail: '',
     amount: '',
     currency: 'USD',
@@ -24,10 +11,6 @@ const SendMoney: React.FC = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdown>({
-    transferFee: 0,
-    totalAmount: 0
-  });
   const [recipientVerified, setRecipientVerified] = useState(false);
 
   const currencies = [
@@ -39,21 +22,25 @@ const SendMoney: React.FC = () => {
     { code: 'MZN', name: 'Mozambican Metical', symbol: 'MT' }
   ];
 
-  useEffect(() => {
-    calculateFees();
-  }, [form.amount, form.currency]);
+  const calculateFees = () => {
+    const amount = parseFloat(form.amount) || 0;
+    if (amount > 0) {
+      const transferFee = amount * 0.03;
+      const totalAmount = amount + transferFee;
+      return { transferFee, totalAmount };
+    }
+    return { transferFee: 0, totalAmount: 0 };
+  };
+
+  const feeBreakdown = calculateFees();
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Validate recipient email
     if (!form.recipientEmail.trim()) {
       newErrors.recipientEmail = 'Recipient email is required';
-    } else if (!isValidEmail(form.recipientEmail)) {
-      newErrors.recipientEmail = 'Please enter a valid email address';
     }
 
-    // Validate amount
     if (!form.amount.trim()) {
       newErrors.amount = 'Amount is required';
     } else {
@@ -74,18 +61,6 @@ const SendMoney: React.FC = () => {
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-  };
-
-  const calculateFees = () => {
-    const amount = parseFloat(form.amount) || 0;
-    if (amount > 0) {
-      const transferFee = amount * 0.03; // 3% fee
-      const totalAmount = amount + transferFee;
-      setFeeBreakdown({
-        transferFee,
-        totalAmount
-      });
-    }
   };
 
   const verifyRecipient = async () => {
@@ -150,13 +125,12 @@ const SendMoney: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof SendMoneyForm, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setForm(prev => ({
       ...prev,
       [field]: value
     }));
 
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
