@@ -1,10 +1,10 @@
+#!/usr/bin/env node
+
 /**
  * Author: Gailad Chesa
  * Created: 2024-01-01
  * Description: console-audit - handles frontend functionality
  */
-
-#!/usr/bin/env node
 
 /**
  * Console Statement Audit Script
