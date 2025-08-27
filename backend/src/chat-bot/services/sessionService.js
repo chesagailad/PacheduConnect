@@ -252,49 +252,6 @@ class SessionService {
   }
 
   /**
-   * Clean up expired sessions using non-blocking SCAN
-   */
-  async cleanupExpiredSessions() {
-    try {
-      const pattern = 'session:*';
-      let cleanedCount = 0;
-      let cursor = '0';
-      const count = 100; // Process 100 keys per scan iteration
-
-      do {
-        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
-        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
-        cursor = newCursor;
-
-        // Process each key found in this iteration
-        for (const key of keys) {
-          const sessionData = await this.redis.get(key);
-          if (sessionData) {
-            try {
-              const session = JSON.parse(sessionData);
-              const sessionAge = Date.now() - new Date(session.updatedAt).getTime();
-              
-              // Remove sessions older than 24 hours
-              if (sessionAge > 24 * 60 * 60 * 1000) {
-                await this.redis.del(key);
-                cleanedCount++;
-              }
-            } catch (parseError) {
-              logger.warn('Failed to parse session data during cleanup', { key, error: parseError.message });
-            }
-          }
-        }
-      } while (cursor !== '0'); // Continue until scan is complete
-
-      logger.info('Session cleanup completed', { cleanedCount });
-      return cleanedCount;
-    } catch (error) {
-      logger.error('Session cleanup failed', { error: error.message });
-      return 0;
-    }
-  }
-
-  /**
    * Get session statistics using non-blocking SCAN
    */
   async getSessionStats() {

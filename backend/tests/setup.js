@@ -167,7 +167,6 @@ jest.mock('../src/chat-bot/services/sessionService', () => ({
   updateContext: jest.fn((sessionId, context) => Promise.resolve(context)),
   endSession: jest.fn((sessionId) => Promise.resolve(true)),
   getUserSessions: jest.fn((userId) => Promise.resolve([])),
-  cleanupExpiredSessions: jest.fn(() => Promise.resolve(0)),
   getSessionStats: jest.fn(() => Promise.resolve({
     total: 0,
     active: 0,
