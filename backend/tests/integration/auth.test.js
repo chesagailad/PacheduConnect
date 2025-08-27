@@ -67,7 +67,7 @@ describe('Authentication API', () => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
-        passwordHash: await bcrypt.hash('SecurePassword123!', 10),
+        passwordHash: '$2b$10$hashedpasswordfor.testing',
         phoneNumber: '+27123456789'
       };
 
@@ -83,7 +83,7 @@ describe('Authentication API', () => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
-        passwordHash: await bcrypt.hash('SecurePassword123!', 10),
+        passwordHash: '$2b$10$hashedpasswordfor.testing',
         phoneNumber: '+27123456789'
       };
 
@@ -101,6 +101,7 @@ describe('Authentication API', () => {
       const hash = await bcrypt.hash(password, 10);
 
       expect(hash).toBeDefined();
+      expect(hash).toBe('$2b$10$hashedpasswordfor.testing');
       expect(hash).not.toBe(password);
       
       const isValid = await bcrypt.compare(password, hash);

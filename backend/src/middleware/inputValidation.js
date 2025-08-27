@@ -342,6 +342,31 @@ const endpointSchemas = {
       bankCode: Joi.string().length(3).optional(),
       accountName: Joi.string().max(100).optional()
     }).optional()
+  }),
+
+  // Token refresh
+  tokenRefresh: Joi.object({
+    refreshToken: Joi.string().required()
+  }),
+
+  // Password change
+  passwordChange: Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: commonSchemas.password,
+    confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required()
+  }),
+
+  // Profile update
+  profileUpdate: Joi.object({
+    name: Joi.string().min(2).max(100).optional(),
+    phoneNumber: commonSchemas.phoneNumber.optional(),
+    email: commonSchemas.email.optional()
+  }),
+
+  // MFA verification
+  mfaVerification: Joi.object({
+    token: Joi.string().length(6).required(),
+    type: Joi.string().valid('totp', 'backup').required()
   })
 };
 

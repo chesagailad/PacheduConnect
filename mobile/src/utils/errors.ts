@@ -221,6 +221,7 @@ export class ErrorHandler {
 // Error Messages for User Display
 export const ErrorMessages = {
   [ErrorCode.NETWORK_ERROR]: 'Please check your internet connection and try again',
+  [ErrorCode.CONNECTION_ERROR]: 'Connection lost. Please check your network and try again',
   [ErrorCode.TIMEOUT_ERROR]: 'Request timed out. Please try again',
   [ErrorCode.AUTHENTICATION_FAILED]: 'Please log in again',
   [ErrorCode.TOKEN_EXPIRED]: 'Your session has expired. Please log in again',
@@ -243,6 +244,7 @@ export const ErrorMessages = {
   [ErrorCode.NOT_FOUND]: 'Resource not found',
   [ErrorCode.STORAGE_ERROR]: 'Storage error occurred',
   [ErrorCode.STORAGE_FULL]: 'Storage is full. Please free up space',
+  [ErrorCode.PERFORMANCE_ERROR]: 'App is performing slowly. Please try again later or restart the app',
   [ErrorCode.UNKNOWN_ERROR]: 'An unexpected error occurred',
 };
 

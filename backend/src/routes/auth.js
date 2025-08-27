@@ -33,6 +33,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const Joi = require('joi');
 const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const { auth, requireRole } = require('../middleware/auth');
@@ -349,9 +350,7 @@ router.post('/login',
  */
 router.post('/refresh',
   preventSqlInjection,
-  validateBody(Joi.object({
-    refreshToken: Joi.string().required()
-  })),
+  validateBody(endpointSchemas.tokenRefresh),
   validateRateLimit(10, 15 * 60 * 1000), // 10 refresh attempts per 15 minutes
   async (req, res) => {
     try {
