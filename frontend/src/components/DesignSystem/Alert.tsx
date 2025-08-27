@@ -68,8 +68,24 @@ const Alert: React.FC<AlertProps> = ({
 
   const config = alertConfig[type];
 
+  // Determine ARIA attributes based on alert type
+  const ariaAttributes = type === 'error' 
+    ? {
+        role: 'alert' as const,
+        'aria-live': 'assertive' as const,
+        'aria-atomic': 'true' as const,
+      }
+    : {
+        role: 'status' as const,
+        'aria-live': 'polite' as const,
+        'aria-atomic': 'true' as const,
+      };
+
   return (
-    <div className={`border rounded-lg p-4 ${config.bgColor} ${config.borderColor} ${className}`}>
+    <div 
+      className={`border rounded-lg p-4 ${config.bgColor} ${config.borderColor} ${className}`}
+      {...ariaAttributes}
+    >
       <div className="flex">
         {showIcon && (
           <div className={`flex-shrink-0 ${config.iconColor}`}>
