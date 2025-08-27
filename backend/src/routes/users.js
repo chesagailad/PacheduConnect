@@ -10,7 +10,7 @@ const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createTransactionModel = require('../models/Transaction');
 const createNotificationModel = require('../models/Notification');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // Get user profile

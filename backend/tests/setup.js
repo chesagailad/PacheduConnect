@@ -35,18 +35,36 @@ jest.mock('winston', () => ({
 }));
 
 // Mock bcryptjs to avoid ES module issues
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
-  compare: jest.fn().mockResolvedValue(true),
-  genSalt: jest.fn().mockResolvedValue('$2b$10$salt')
-}));
+jest.mock('bcryptjs', () => {
+  const mockHash = jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing');
+  const mockCompare = jest.fn().mockResolvedValue(true);
+  const mockGenSalt = jest.fn().mockResolvedValue('$2b$10$salt');
+  
+  return {
+    hash: mockHash,
+    compare: mockCompare,
+    genSalt: mockGenSalt,
+    __mockHash: mockHash,
+    __mockCompare: mockCompare,
+    __mockGenSalt: mockGenSalt
+  };
+});
 
 // Also mock bcrypt for backward compatibility
-jest.mock('bcrypt', () => ({
-  hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
-  compare: jest.fn().mockResolvedValue(true),
-  genSalt: jest.fn().mockResolvedValue('$2b$10$salt')
-}));
+jest.mock('bcrypt', () => {
+  const mockHash = jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing');
+  const mockCompare = jest.fn().mockResolvedValue(true);
+  const mockGenSalt = jest.fn().mockResolvedValue('$2b$10$salt');
+  
+  return {
+    hash: mockHash,
+    compare: mockCompare,
+    genSalt: mockGenSalt,
+    __mockHash: mockHash,
+    __mockCompare: mockCompare,
+    __mockGenSalt: mockGenSalt
+  };
+});
 
 // Mock Redis for tests
 jest.mock('ioredis', () => {
