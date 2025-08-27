@@ -82,8 +82,9 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200" role="tablist" aria-label="Accessibility tabs">
           <button
+            id="tab-visual"
             onClick={() => setActiveTab('visual')}
             className={`flex-1 px-4 py-2 text-sm font-medium ${
               activeTab === 'visual'
@@ -91,11 +92,13 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
             aria-selected={activeTab === 'visual'}
+            aria-controls="tabpanel-visual"
             role="tab"
           >
             Visual
           </button>
           <button
+            id="tab-navigation"
             onClick={() => setActiveTab('navigation')}
             className={`flex-1 px-4 py-2 text-sm font-medium ${
               activeTab === 'navigation'
@@ -103,11 +106,13 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
             aria-selected={activeTab === 'navigation'}
+            aria-controls="tabpanel-navigation"
             role="tab"
           >
             Navigation
           </button>
           <button
+            id="tab-about"
             onClick={() => setActiveTab('about')}
             className={`flex-1 px-4 py-2 text-sm font-medium ${
               activeTab === 'about'
@@ -115,6 +120,7 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
             aria-selected={activeTab === 'about'}
+            aria-controls="tabpanel-about"
             role="tab"
           >
             About
@@ -122,7 +128,13 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-4" role="tabpanel">
+        <div 
+          id="tabpanel-visual"
+          className="p-4" 
+          role="tabpanel"
+          aria-labelledby="tab-visual"
+          hidden={activeTab !== 'visual'}
+        >
           {activeTab === 'visual' && (
             <div className="space-y-4">
               {/* High Contrast */}
@@ -176,7 +188,7 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
                   <label htmlFor="reduced-motion" className="text-sm font-medium text-gray-900">
                     Reduced Motion
                   </label>
-                  <p className="text-xs text-gray-500">Reduce animations and transitions</p>
+                  <p className="text-xs text-gray-500">Minimize animations and transitions</p>
                 </div>
                 <button
                   id="reduced-motion"
@@ -221,7 +233,15 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
               </div>
             </div>
           )}
+        </div>
 
+        <div 
+          id="tabpanel-navigation"
+          className="p-4" 
+          role="tabpanel"
+          aria-labelledby="tab-navigation"
+          hidden={activeTab !== 'navigation'}
+        >
           {activeTab === 'navigation' && (
             <div className="space-y-4">
               {/* Focus Indicators */}
@@ -294,7 +314,15 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
               </div>
             </div>
           )}
+        </div>
 
+        <div 
+          id="tabpanel-about"
+          className="p-4" 
+          role="tabpanel"
+          aria-labelledby="tab-about"
+          hidden={activeTab !== 'about'}
+        >
           {activeTab === 'about' && (
             <div className="space-y-4">
               <div className="p-3 bg-blue-50 rounded-lg">
