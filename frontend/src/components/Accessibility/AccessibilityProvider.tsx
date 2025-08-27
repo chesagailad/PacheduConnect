@@ -165,25 +165,33 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
       }
 
       switch (event.key) {
-        case 'Tab':
+        case 'Tab': {
           // Ensure focus indicators are visible when using keyboard
           if (!showFocusIndicators) {
             setShowFocusIndicators(true);
           }
           break;
-        case 'Escape':
+        }
+        case 'Escape': {
           // Close modals, dropdowns, etc.
           const escapeEvent = new CustomEvent('accessibility-escape');
           document.dispatchEvent(escapeEvent);
           break;
+        }
         case 'Enter':
         case ' ':
+        case 'Spacebar': {
           // Handle enter/space on focusable elements
           if (event.target instanceof HTMLElement && event.target.getAttribute('role') === 'button') {
             event.preventDefault();
             event.target.click();
           }
           break;
+        }
+        default: {
+          // Handle any other keys - do nothing
+          break;
+        }
       }
     };
 
