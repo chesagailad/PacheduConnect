@@ -154,7 +154,7 @@ describe('SendMoney Component Tests', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer null'
+        'Authorization': 'Bearer mock-token'
       },
       body: JSON.stringify({ email: 'test@example.com' })
     });
@@ -190,7 +190,7 @@ describe('SendMoney Component Tests', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer null'
+          'Authorization': 'Bearer mock-token'
         },
         body: JSON.stringify({
           recipientEmail: 'test@example.com',
