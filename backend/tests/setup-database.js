@@ -15,11 +15,17 @@ async function setupTestDatabase() {
   testSequelize = new Sequelize({
     dialect: 'sqlite',
     storage: ':memory:',
-    logging: false,
-    sync: { force: true }
+    logging: false
   });
 
   await testSequelize.authenticate();
+  
+  // Enable foreign key constraints for SQLite
+  await testSequelize.query('PRAGMA foreign_keys = ON');
+  
+  // Explicitly sync models with force: true to recreate tables
+  await testSequelize.sync({ force: true });
+  
   return testSequelize;
 }
 
