@@ -305,12 +305,12 @@ class SessionService {
   }
 
   /**
-   * Close Redis connection
+   * Close Redis connection gracefully
    */
   async close() {
     try {
-      await this.redis.disconnect();
-      logger.info('Session service Redis connection closed');
+      await this.redis.quit();
+      logger.info('Session service Redis connection closed gracefully');
     } catch (error) {
       logger.error('Session service close failed', { error: error.message });
     }
