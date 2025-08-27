@@ -214,23 +214,35 @@ class SessionService {
   }
 
   /**
-   * Get active sessions for user
+   * Get active sessions for user using non-blocking SCAN
    */
   async getUserSessions(userId) {
     try {
       const pattern = `session:${userId}:*`;
-      const keys = await this.redis.keys(pattern);
-      
       const sessions = [];
-      for (const key of keys) {
-        const sessionData = await this.redis.get(key);
-        if (sessionData) {
-          const session = JSON.parse(sessionData);
-          if (session.status === 'active') {
-            sessions.push(session);
+      let cursor = '0';
+      const count = 100; // Process 100 keys per scan iteration
+
+      do {
+        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+        cursor = newCursor;
+
+        // Fetch session data for each key found in this iteration
+        for (const key of keys) {
+          const sessionData = await this.redis.get(key);
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              if (session.status === 'active') {
+                sessions.push(session);
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse session data', { key, error: parseError.message });
+            }
           }
         }
-      }
+      } while (cursor !== '0'); // Continue until scan is complete
 
       return sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     } catch (error) {
@@ -240,27 +252,39 @@ class SessionService {
   }
 
   /**
-   * Clean up expired sessions
+   * Clean up expired sessions using non-blocking SCAN
    */
   async cleanupExpiredSessions() {
     try {
       const pattern = 'session:*';
-      const keys = await this.redis.keys(pattern);
-      
       let cleanedCount = 0;
-      for (const key of keys) {
-        const sessionData = await this.redis.get(key);
-        if (sessionData) {
-          const session = JSON.parse(sessionData);
-          const sessionAge = Date.now() - new Date(session.updatedAt).getTime();
-          
-          // Remove sessions older than 24 hours
-          if (sessionAge > 24 * 60 * 60 * 1000) {
-            await this.redis.del(key);
-            cleanedCount++;
+      let cursor = '0';
+      const count = 100; // Process 100 keys per scan iteration
+
+      do {
+        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+        cursor = newCursor;
+
+        // Process each key found in this iteration
+        for (const key of keys) {
+          const sessionData = await this.redis.get(key);
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              const sessionAge = Date.now() - new Date(session.updatedAt).getTime();
+              
+              // Remove sessions older than 24 hours
+              if (sessionAge > 24 * 60 * 60 * 1000) {
+                await this.redis.del(key);
+                cleanedCount++;
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse session data during cleanup', { key, error: parseError.message });
+            }
           }
         }
-      }
+      } while (cursor !== '0'); // Continue until scan is complete
 
       logger.info('Session cleanup completed', { cleanedCount });
       return cleanedCount;
@@ -271,38 +295,50 @@ class SessionService {
   }
 
   /**
-   * Get session statistics
+   * Get session statistics using non-blocking SCAN
    */
   async getSessionStats() {
     try {
       const pattern = 'session:*';
-      const keys = await this.redis.keys(pattern);
-      
       const stats = {
-        total: keys.length,
+        total: 0,
         active: 0,
         ended: 0,
         recent: 0
       };
 
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      let cursor = '0';
+      const count = 100; // Process 100 keys per scan iteration
 
-      for (const key of keys) {
-        const sessionData = await this.redis.get(key);
-        if (sessionData) {
-          const session = JSON.parse(sessionData);
-          
-          if (session.status === 'active') {
-            stats.active++;
-          } else if (session.status === 'ended') {
-            stats.ended++;
-          }
+      do {
+        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+        cursor = newCursor;
 
-          if (new Date(session.updatedAt).getTime() > oneHourAgo) {
-            stats.recent++;
+        // Process each key found in this iteration
+        for (const key of keys) {
+          const sessionData = await this.redis.get(key);
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              stats.total++;
+              
+              if (session.status === 'active') {
+                stats.active++;
+              } else if (session.status === 'ended') {
+                stats.ended++;
+              }
+
+              if (new Date(session.updatedAt).getTime() > oneHourAgo) {
+                stats.recent++;
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse session data during stats collection', { key, error: parseError.message });
+            }
           }
         }
-      }
+      } while (cursor !== '0'); // Continue until scan is complete
 
       return stats;
     } catch (error) {
