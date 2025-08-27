@@ -1,10 +1,10 @@
+#!/usr/bin/env node
+
 /**
  * Author: Gailad Chesa
  * Created: 2024-01-01
  * Description: generate-encryption-key - handles backend functionality
  */
-
-#!/usr/bin/env node
 
 const crypto = require('crypto');
 
@@ -24,13 +24,12 @@ function generateEncryptionKey() {
     console.log('🔐 Secure Encryption Key Generated');
     console.log('=====================================');
     console.log('');
-    console.log('Key (64 characters):');
-    console.log(keyHex);
+    console.log('✅ Key generated successfully (64 characters)');
     console.log('');
     console.log('📋 Instructions:');
-    console.log('1. Copy the key above');
+    console.log('1. The key has been generated and is ready for use');
     console.log('2. Add it to your .env file as:');
-    console.log(`   ENCRYPTION_MASTER_KEY=${keyHex}`);
+    console.log(`   ENCRYPTION_MASTER_KEY=[generated_key]`);
     console.log('');
     console.log('⚠️  Security Notes:');
     console.log('- Keep this key secure and confidential');
@@ -74,20 +73,17 @@ function generateAdditionalKeys() {
   
   // JWT Secret (32 bytes)
   const jwtSecret = crypto.randomBytes(32).toString('hex');
-  console.log('JWT Secret:');
-  console.log(jwtSecret);
+  console.log('✅ JWT Secret Generated Successfully');
   console.log('');
   
   // API Key (32 bytes)
   const apiKey = crypto.randomBytes(32).toString('hex');
-  console.log('API Key:');
-  console.log(apiKey);
+  console.log('✅ API Key Generated Successfully');
   console.log('');
   
   // Session Secret (32 bytes)
   const sessionSecret = crypto.randomBytes(32).toString('hex');
-  console.log('Session Secret:');
-  console.log(sessionSecret);
+  console.log('✅ Session Secret Generated Successfully');
   console.log('');
   
   return { jwtSecret, apiKey, sessionSecret };
@@ -109,7 +105,7 @@ function generateEnvTemplate() {
   console.log('DATABASE_URL=postgresql://pachedu_user:password@localhost:5432/pachedu_db');
   console.log('');
   console.log('# JWT Configuration');
-  console.log(`JWT_SECRET=${additionalKeys.jwtSecret}`);
+  console.log(`JWT_SECRET=[generated_jwt_secret]`);
   console.log('');
   console.log('# Redis Configuration');
   console.log('REDIS_URL=redis://localhost:6379');
@@ -136,7 +132,7 @@ function generateEnvTemplate() {
   console.log('STITCH_CLIENT_SECRET=your_stitch_client_secret');
   console.log('');
   console.log('# Encryption Configuration (PCI-DSS Compliance)');
-  console.log(`ENCRYPTION_MASTER_KEY=${encryptionKey}`);
+  console.log(`ENCRYPTION_MASTER_KEY=[generated_encryption_key]`);
   console.log('');
   console.log('# Security Configuration');
   console.log('MIN_PASSWORD_LENGTH=12');

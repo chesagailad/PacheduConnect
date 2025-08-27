@@ -12,39 +12,33 @@ console.log('🔐 Generating Strong Security Secrets for PacheduConnect\n');
 
 // Generate JWT Secret (64 bytes = 512 bits)
 const jwtSecret = crypto.randomBytes(64).toString('base64');
-console.log('✅ JWT Secret Generated:');
-console.log(`JWT_SECRET=${jwtSecret}\n`);
+console.log('✅ JWT Secret Generated Successfully');
 
 // Generate NextAuth Secret (32 bytes = 256 bits)
 const nextAuthSecret = crypto.randomBytes(32).toString('base64');
-console.log('✅ NextAuth Secret Generated:');
-console.log(`NEXTAUTH_SECRET=${nextAuthSecret}\n`);
+console.log('✅ NextAuth Secret Generated Successfully');
 
 // Generate API Keys
 const apiKey = crypto.randomBytes(32).toString('hex');
-console.log('✅ API Key Generated:');
-console.log(`API_KEY=${apiKey}\n`);
+console.log('✅ API Key Generated Successfully');
 
 // Generate Encryption Keys
 const encryptionKey = crypto.randomBytes(32).toString('base64');
-console.log('✅ Encryption Key Generated:');
-console.log(`ENCRYPTION_KEY=${encryptionKey}\n`);
+console.log('✅ Encryption Key Generated Successfully');
 
 // Generate Database Password
 const dbPassword = crypto.randomBytes(16).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-console.log('✅ Database Password Generated:');
-console.log(`POSTGRES_PASSWORD=${dbPassword}\n`);
+console.log('✅ Database Password Generated Successfully');
 
 // Generate Redis Password
 const redisPassword = crypto.randomBytes(16).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-console.log('✅ Redis Password Generated:');
-console.log(`REDIS_PASSWORD=${redisPassword}\n`);
+console.log('✅ Redis Password Generated Successfully');
 
 // Create .env.example with new secrets
 const envExamplePath = path.join(__dirname, '..', '..', 'env.example');
 const envPath = path.join(__dirname, '..', '..', '.env');
 
-console.log('📝 Updating environment files...\n');
+console.log('\n📝 Updating environment files...\n');
 
 // Read existing env.example
 let envContent = '';
