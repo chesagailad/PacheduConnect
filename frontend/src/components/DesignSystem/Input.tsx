@@ -78,7 +78,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
         <input
           ref={ref}
           id={inputId}
-          className={`${inputClasses} ${hasIcons ? (leftIcon ? 'pl-10' : '') + (rightIcon ? 'pr-10' : '') : ''}`}
+          className={`${inputClasses} ${hasIcons ? [
+            leftIcon ? 'pl-10' : '',
+            rightIcon ? 'pr-10' : ''
+          ].filter(Boolean).join(' ') : ''}`}
           {...props}
         />
         
