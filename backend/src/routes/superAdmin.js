@@ -11,7 +11,7 @@ const createKYCModel = require('../models/KYC');
 const createTransactionModel = require('../models/Transaction');
 const createPaymentModel = require('../models/Payment');
 const createBeneficiaryModel = require('../models/Beneficiary');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // Super Admin middleware - check if user is super admin

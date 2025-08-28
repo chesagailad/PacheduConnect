@@ -11,7 +11,7 @@ const fs = require('fs');
 const { getSequelize } = require('../utils/database');
 const createUserModel = require('../models/User');
 const createKYCModel = require('../models/KYC');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 // Configure multer for file uploads

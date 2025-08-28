@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -54,8 +56,29 @@ const SendMoney: React.FC = () => {
       }
     }
 
-    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const isFormValid = (): boolean => {
+    const trimmedEmail = form.recipientEmail.trim();
+    const trimmedAmount = form.amount.trim();
+    
+    // Validate email format
+    if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
+      return false;
+    }
+    
+    // Validate amount
+    if (!trimmedAmount) {
+      return false;
+    }
+    
+    const amountNum = parseFloat(trimmedAmount);
+    if (isNaN(amountNum) || amountNum < 10 || amountNum > 50000) {
+      return false;
+    }
+    
+    return true;
   };
 
   const isValidEmail = (email: string): boolean => {
@@ -90,7 +113,29 @@ const SendMoney: React.FC = () => {
   };
 
   const handleSendMoney = async () => {
-    if (!validateForm()) {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.recipientEmail.trim()) {
+      newErrors.recipientEmail = 'Recipient email is required';
+    } else if (!isValidEmail(form.recipientEmail)) {
+      newErrors.recipientEmail = 'Enter a valid email address';
+    }
+
+    if (!form.amount.trim()) {
+      newErrors.amount = 'Amount is required';
+    } else {
+      const amount = parseFloat(form.amount);
+      if (isNaN(amount) || amount <= 0) {
+        newErrors.amount = 'Amount must be positive';
+      } else if (amount < 10) {
+        newErrors.amount = 'Minimum amount is $10';
+      } else if (amount > 50000) {
+        newErrors.amount = 'Maximum amount is $50,000';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -139,6 +184,39 @@ const SendMoney: React.FC = () => {
     }
   };
 
+  const handleBlur = (field: string) => {
+    const newErrors: Record<string, string> = { ...errors };
+
+    if (field === 'recipientEmail') {
+      if (!form.recipientEmail.trim()) {
+        newErrors.recipientEmail = 'Recipient email is required';
+      } else if (!isValidEmail(form.recipientEmail)) {
+        newErrors.recipientEmail = 'Please enter a valid email address';
+      } else {
+        delete newErrors.recipientEmail;
+      }
+    }
+
+    if (field === 'amount') {
+      if (!form.amount.trim()) {
+        newErrors.amount = 'Amount is required';
+      } else {
+        const amount = parseFloat(form.amount);
+        if (isNaN(amount) || amount <= 0) {
+          newErrors.amount = 'Amount must be positive';
+        } else if (amount < 10) {
+          newErrors.amount = 'Minimum amount is $10';
+        } else if (amount > 50000) {
+          newErrors.amount = 'Maximum amount is $50,000';
+        } else {
+          delete newErrors.amount;
+        }
+      }
+    }
+
+    setErrors(newErrors);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
@@ -151,23 +229,24 @@ const SendMoney: React.FC = () => {
             
             {/* Recipient Email */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="recipient-email" className="block text-sm font-medium text-gray-700 mb-2">
                 Recipient Email
               </label>
               <div className="flex gap-2">
                 <input
+                  id="recipient-email"
                   type="email"
                   placeholder="Recipient email"
                   value={form.recipientEmail}
                   onChange={(e) => handleInputChange('recipientEmail', e.target.value)}
-                  onBlur={verifyRecipient}
+                  onBlur={() => handleBlur('recipientEmail')}
                   className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.recipientEmail ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 <button
                   onClick={verifyRecipient}
-                  disabled={loading || !form.recipientEmail}
+                  disabled={loading || !form.recipientEmail || !isValidEmail(form.recipientEmail)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   Verify
@@ -183,14 +262,16 @@ const SendMoney: React.FC = () => {
 
             {/* Amount */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
                 Amount
               </label>
               <input
+                id="amount"
                 type="number"
                 placeholder="Amount"
                 value={form.amount}
                 onChange={(e) => handleInputChange('amount', e.target.value)}
+                onBlur={() => handleBlur('amount')}
                 min="10"
                 max="50000"
                 step="0.01"
@@ -205,10 +286,11 @@ const SendMoney: React.FC = () => {
 
             {/* Currency */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
                 Currency
               </label>
               <select
+                id="currency"
                 value={form.currency}
                 onChange={(e) => handleInputChange('currency', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -223,10 +305,11 @@ const SendMoney: React.FC = () => {
 
             {/* Message */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
                 Message (Optional)
               </label>
               <textarea
+                id="message"
                 placeholder="Add a message for the recipient"
                 value={form.message}
                 onChange={(e) => handleInputChange('message', e.target.value)}
@@ -238,7 +321,7 @@ const SendMoney: React.FC = () => {
             {/* Send Button */}
             <button
               onClick={handleSendMoney}
-              disabled={loading || !validateForm()}
+              disabled={loading || !isFormValid()}
               className="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-semibold"
             >
               {loading ? 'Processing...' : 'Send'}

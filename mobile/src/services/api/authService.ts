@@ -213,13 +213,11 @@ export class AuthService {
     try {
       const refreshToken = await this.getRefreshToken();
       if (!refreshToken) {
-        throw AppError.fromAuthError({
-          code: ErrorCode.TOKEN_EXPIRED,
-          message: 'No refresh token available',
-          retryable: false,
-          userMessage: 'Please log in again',
-          timestamp: new Date(),
-        });
+        throw AppError.fromBusinessError(
+          ErrorCode.TOKEN_EXPIRED,
+          'No refresh token available',
+          'Please log in again'
+        );
       }
 
       const response = await apiClient.post<{ token: string; refreshToken: string }>('/auth/refresh-token', {

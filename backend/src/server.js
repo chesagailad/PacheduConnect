@@ -33,6 +33,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 const { connectDB } = require('./utils/database');
 const { connectRedis } = require('./utils/redis');
+const securityServicesIntegration = require('./services/securityServicesIntegration');
 
 /**
  * Route Module Imports
@@ -67,6 +68,7 @@ const webhookRoutes = require('./routes/webhooks');
 const beneficiaryRoutes = require('./routes/beneficiaries');
 const chatbotRoutes = require('./routes/chatbot');
 const notificationRoutes = require('./routes/notifications');
+const securityRoutes = require('./routes/security');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -198,6 +200,7 @@ app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/beneficiaries', beneficiaryRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/security', securityRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
@@ -247,6 +250,10 @@ const startServer = async () => {
     // Connect to Redis
     await connectRedis();
     logger.info('Redis connected successfully');
+
+    // Initialize security services
+    await securityServicesIntegration.initializeServices();
+    logger.info('Security services initialized successfully');
 
     // Start server
     app.listen(PORT, () => {

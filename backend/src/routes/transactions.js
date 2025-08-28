@@ -6,7 +6,7 @@
 
 const express = require('express');
 const { Op } = require('sequelize');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const { getSequelize, getModels } = require('../utils/database');
 const { calculateFee, validateTransferWithFees } = require('../utils/feeCalculator');
 const { convertCurrency, getExchangeRate, getAllRates, calculateTransferFee, getFeeStructure, SUPPORTED_CURRENCIES } = require('../utils/exchangeRate');

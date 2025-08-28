@@ -1,5 +1,5 @@
 const request = require('supertest');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getSequelize } = require('../../src/utils/database');
 const createUserModel = require('../../src/models/User');

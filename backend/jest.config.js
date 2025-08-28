@@ -32,7 +32,7 @@ module.exports = {
   resetMocks: true,
   restoreMocks: true,
   transformIgnorePatterns: [
-    'node_modules/(?!(winston|winston-daily-rotate-file|is-stream|strip-ansi|ansi-regex|wide-align|gauge|npmlog|@mapbox|bcrypt|string-width|wide-align|gauge|npmlog|@mapbox|node-pre-gyp|bcrypt)/)'
+    'node_modules/(?!(winston|winston-daily-rotate-file|is-stream|strip-ansi|ansi-regex|wide-align|gauge|npmlog|@mapbox|bcryptjs|string-width|speakeasy|qrcode|xss|axios|crypto|events|os|cluster)/)'
   ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'

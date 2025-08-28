@@ -84,7 +84,7 @@ run_tests() {
     print_status "Running $test_type tests..."
     
     local cmd="npx jest"
-    local args=""
+    local args="--config=./e2e/jest.config.js --rootDir=./e2e"
     
     # Add test pattern if specified
     if [ -n "$test_pattern" ]; then

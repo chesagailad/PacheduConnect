@@ -119,6 +119,13 @@
     "@typescript-eslint/parser": "^6.0.0",
     "playwright": "^1.54.1"
   },
+  "overrides": {
+    "strip-ansi": "6.0.1",
+    "string-width": "4.2.3",
+    "wide-align": "1.1.5",
+    "gauge": "4.0.4",
+    "npmlog": "7.0.1"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"

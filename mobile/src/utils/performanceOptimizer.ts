@@ -373,8 +373,9 @@ export class PerformanceOptimizer {
       this.clearUnusedObjects();
       
       const afterCleanup = this.getCurrentMemoryUsage();
-      const freedMemory = beforeCleanup - afterCleanup;
-      const cleanupEfficiency = (freedMemory / beforeCleanup) * 100;
+      const rawFreed = beforeCleanup - afterCleanup;
+      const freedMemory = Math.max(0, rawFreed);
+      const cleanupEfficiency = beforeCleanup > 0 ? (freedMemory / beforeCleanup) * 100 : 0;
 
       return {
         beforeCleanup,

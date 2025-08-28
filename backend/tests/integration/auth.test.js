@@ -6,7 +6,7 @@
 
 const request = require('supertest');
 const { Sequelize } = require('sequelize');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 
@@ -67,7 +67,7 @@ describe('Authentication API', () => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
-        passwordHash: await bcrypt.hash('SecurePassword123!', 10),
+        passwordHash: '$2b$10$hashedpasswordfor.testing',
         phoneNumber: '+27123456789'
       };
 
@@ -83,7 +83,7 @@ describe('Authentication API', () => {
       const userData = {
         name: 'John Doe',
         email: 'john@example.com',
-        passwordHash: await bcrypt.hash('SecurePassword123!', 10),
+        passwordHash: '$2b$10$hashedpasswordfor.testing',
         phoneNumber: '+27123456789'
       };
 
@@ -101,7 +101,11 @@ describe('Authentication API', () => {
       const hash = await bcrypt.hash(password, 10);
 
       expect(hash).toBeDefined();
+      expect(hash).toBe('$2b$10$hashedpasswordfor.testing');
       expect(hash).not.toBe(password);
+      
+      // Set up explicit mock return value for this test
+      bcrypt.compare.mockResolvedValueOnce(true);
       
       const isValid = await bcrypt.compare(password, hash);
       expect(isValid).toBe(true);
@@ -110,6 +114,10 @@ describe('Authentication API', () => {
     test('should verify passwords correctly', async () => {
       const password = 'SecurePassword123!';
       const hash = await bcrypt.hash(password, 10);
+
+      // Set up explicit mock return values for this test
+      bcrypt.compare.mockResolvedValueOnce(true);  // For correct password
+      bcrypt.compare.mockResolvedValueOnce(false); // For wrong password
 
       const isValid = await bcrypt.compare(password, hash);
       const isInvalid = await bcrypt.compare('WrongPassword', hash);

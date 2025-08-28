@@ -1,12 +1,11 @@
 /**
- * Author: Gailad Chesa
- * Created: 2024-01-01
- * Description: sessionService - handles backend functionality
+ * Chatbot Session Service
+ * Manages user sessions and conversation state
  */
 
 const Redis = require('ioredis');
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../../utils/logger');
+const crypto = require('crypto');
+const { logger } = require('../../utils/logger');
 
 class SessionService {
   constructor() {
@@ -16,13 +15,8 @@ class SessionService {
       password: process.env.REDIS_PASSWORD,
       db: process.env.REDIS_DB || 0,
       retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true
+      maxRetriesPerRequest: 3
     });
-
-    this.sessionPrefix = 'chatbot:session:';
-    this.userPrefix = 'chatbot:user:';
-    this.sessionTTL = 24 * 60 * 60; // 24 hours in seconds
 
     // Handle Redis connection events
     this.redis.on('connect', () => {
@@ -30,433 +24,295 @@ class SessionService {
     });
 
     this.redis.on('error', (error) => {
-      logger.error('Redis connection error:', error);
+      logger.error('Redis connection error', { error: error.message });
     });
 
     this.redis.on('close', () => {
       logger.warn('Redis connection closed');
     });
+
+    this.redis.on('reconnecting', () => {
+      logger.info('Redis reconnecting...');
+    });
   }
 
   /**
-   * Create a new session
-   * @param {string} userId - User identifier
-   * @param {string} platform - Platform (web, whatsapp, telegram)
-   * @returns {object} Session object
+   * Generate collision-safe session ID
+   * Uses timestamp + cryptographically secure random bytes to prevent collisions
    */
-  async createSession(userId, platform = 'web') {
-    if (!userId) {
-      throw new Error('Invalid user ID');
-    }
+  generateSessionId(userId) {
+    const timestamp = Date.now();
+    const randomBytes = crypto.randomBytes(8).toString('hex'); // 16 character hex string
+    return `session:${userId}:${timestamp}:${randomBytes}`;
+  }
 
-    const sessionId = uuidv4();
-    const session = {
-      id: sessionId,
-      userId,
-      platform,
-      createdAt: new Date().toISOString(),
-      lastActivity: new Date().toISOString(),
-      messages: [],
-      context: {}
-    };
-
+  /**
+   * Create or update user session
+   */
+  async createSession(userId, sessionData = {}) {
     try {
-      // Store session in Redis
-      await this.redis.setex(
-        `${this.sessionPrefix}${sessionId}`,
-        this.sessionTTL,
-        JSON.stringify(session)
-      );
+      const sessionId = this.generateSessionId(userId);
+      const session = {
+        id: sessionId,
+        userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        data: sessionData,
+        conversationHistory: [],
+        context: {}
+      };
 
-      // Add session to user's session list
-      await this.redis.sadd(`${this.userPrefix}${userId}`, sessionId);
-      await this.redis.expire(`${this.userPrefix}${userId}`, this.sessionTTL);
-
-      logger.info(`Session created: ${sessionId} for user: ${userId}`);
+      await this.redis.setex(sessionId, 3600, JSON.stringify(session)); // 1 hour TTL
+      
+      logger.info('Session created', { sessionId, userId });
       return session;
     } catch (error) {
-      logger.error('Failed to create session:', error);
+      logger.error('Session creation failed', { userId, error: error.message });
       throw new Error('Failed to create session');
     }
   }
 
   /**
-   * Get session by ID
-   * @param {string} sessionId - Session identifier
-   * @returns {object|null} Session object or null
+   * Get user session
    */
   async getSession(sessionId) {
-    if (!sessionId) {
-      throw new Error('Invalid session ID');
-    }
-
     try {
-      const sessionData = await this.redis.get(`${this.sessionPrefix}${sessionId}`);
+      const sessionData = await this.redis.get(sessionId);
       if (!sessionData) {
         return null;
       }
 
       const session = JSON.parse(sessionData);
+      session.updatedAt = new Date().toISOString();
       
-      // Update last activity
-      session.lastActivity = new Date().toISOString();
-      await this.redis.setex(
-        `${this.sessionPrefix}${sessionId}`,
-        this.sessionTTL,
-        JSON.stringify(session)
-      );
-
+      // Extend session TTL
+      await this.redis.expire(sessionId, 3600);
+      
       return session;
     } catch (error) {
-      logger.error('Failed to get session:', error);
-      throw new Error('Failed to retrieve session');
+      logger.error('Session retrieval failed', { sessionId, error: error.message });
+      return null;
     }
   }
 
   /**
-   * Get all sessions for a user
-   * @param {string} userId - User identifier
-   * @returns {array} Array of session objects
-   */
-  async getSessionsByUserId(userId) {
-    if (!userId) {
-      throw new Error('Invalid user ID');
-    }
-
-    try {
-      const sessionIds = await this.redis.smembers(`${this.userPrefix}${userId}`);
-      const sessions = [];
-
-      for (const sessionId of sessionIds) {
-        const session = await this.getSession(sessionId);
-        if (session) {
-          sessions.push(session);
-        }
-      }
-
-      return sessions;
-    } catch (error) {
-      logger.error('Failed to get user sessions:', error);
-      throw new Error('Failed to retrieve user sessions');
-    }
-  }
-
-  /**
-   * Add message to session
-   * @param {string} sessionId - Session identifier
-   * @param {object} message - Message object
-   */
-  async addMessage(sessionId, message) {
-    if (!sessionId) {
-      throw new Error('Invalid session ID');
-    }
-
-    if (!message || typeof message !== 'object') {
-      throw new Error('Invalid message format');
-    }
-
-    try {
-      const session = await this.getSession(sessionId);
-      if (!session) {
-        throw new Error('Session not found');
-      }
-
-      // Add timestamp if not provided
-      if (!message.timestamp) {
-        message.timestamp = new Date().toISOString();
-      }
-
-      session.messages.push(message);
-      session.lastActivity = new Date().toISOString();
-
-      // Store updated session
-      await this.redis.setex(
-        `${this.sessionPrefix}${sessionId}`,
-        this.sessionTTL,
-        JSON.stringify(session)
-      );
-
-      logger.debug(`Message added to session: ${sessionId}`);
-    } catch (error) {
-      logger.error('Failed to add message to session:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update session context
-   * @param {string} sessionId - Session identifier
-   * @param {object} context - Context object
-   * @returns {object} Updated session
-   */
-  async updateContext(sessionId, context) {
-    if (!sessionId) {
-      throw new Error('Invalid session ID');
-    }
-
-    if (!context || typeof context !== 'object') {
-      throw new Error('Invalid context format');
-    }
-
-    try {
-      const session = await this.getSession(sessionId);
-      if (!session) {
-        throw new Error('Session not found');
-      }
-
-      session.context = { ...session.context, ...context };
-      session.lastActivity = new Date().toISOString();
-
-      // Update session in Redis
-      await this.redis.setex(
-        `${this.sessionPrefix}${sessionId}`,
-        this.sessionTTL,
-        JSON.stringify(session)
-      );
-
-      logger.info(`Session context updated: ${sessionId}`);
-      return session;
-    } catch (error) {
-      logger.error('Failed to update session context:', error);
-      throw new Error('Failed to update session context');
-    }
-  }
-
-  /**
-   * Update session properties
-   * @param {string} sessionId - Session identifier
-   * @param {object} updates - Properties to update
-   * @returns {object} Updated session
+   * Update session data
    */
   async updateSession(sessionId, updates) {
-    if (!sessionId) {
-      throw new Error('Invalid session ID');
-    }
-
-    if (!updates || typeof updates !== 'object') {
-      throw new Error('Invalid updates format');
-    }
-
     try {
       const session = await this.getSession(sessionId);
       if (!session) {
         throw new Error('Session not found');
       }
 
-      // Update session properties
-      Object.assign(session, updates);
-      session.lastActivity = new Date().toISOString();
+      const updatedSession = {
+        ...session,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
 
-      // Update session in Redis
-      await this.redis.setex(
-        `${this.sessionPrefix}${sessionId}`,
-        this.sessionTTL,
-        JSON.stringify(session)
-      );
-
-      logger.info(`Session updated: ${sessionId}`);
-      return session;
+      await this.redis.setex(sessionId, 3600, JSON.stringify(updatedSession));
+      
+      logger.info('Session updated', { sessionId });
+      return updatedSession;
     } catch (error) {
-      logger.error('Failed to update session:', error);
+      logger.error('Session update failed', { sessionId, error: error.message });
       throw new Error('Failed to update session');
     }
   }
 
   /**
-   * Remove session
-   * @param {string} sessionId - Session identifier
+   * Generate collision-safe message ID
+   * Uses timestamp + cryptographically secure random bytes to prevent collisions
    */
-  async removeSession(sessionId) {
-    if (!sessionId) {
-      throw new Error('Invalid session ID');
-    }
+  generateMessageId() {
+    const timestamp = Date.now();
+    const randomBytes = crypto.randomBytes(4).toString('hex'); // 8 character hex string for messages
+    return `msg_${timestamp}_${randomBytes}`;
+  }
 
+  /**
+   * Add message to conversation history
+   */
+  async addMessage(sessionId, message) {
     try {
       const session = await this.getSession(sessionId);
-      if (session) {
-        // Remove session from user's session list
-        await this.redis.srem(`${this.userPrefix}${session.userId}`, sessionId);
+      if (!session) {
+        throw new Error('Session not found');
       }
 
-      // Remove session data
-      await this.redis.del(`${this.sessionPrefix}${sessionId}`);
+      const messageEntry = {
+        id: this.generateMessageId(),
+        timestamp: new Date().toISOString(),
+        type: message.type || 'user',
+        content: message.content,
+        metadata: message.metadata || {}
+      };
 
-      logger.info(`Session removed: ${sessionId}`);
+      session.conversationHistory.push(messageEntry);
+      
+      // Keep only last 50 messages
+      if (session.conversationHistory.length > 50) {
+        session.conversationHistory = session.conversationHistory.slice(-50);
+      }
+
+      await this.updateSession(sessionId, { conversationHistory: session.conversationHistory });
+      
+      return messageEntry;
     } catch (error) {
-      logger.error('Failed to remove session:', error);
-      throw new Error('Failed to remove session');
+      logger.error('Message addition failed', { sessionId, error: error.message });
+      throw new Error('Failed to add message');
     }
   }
 
   /**
-   * Remove expired sessions
+   * Update conversation context
    */
-  async removeExpiredSessions() {
+  async updateContext(sessionId, context) {
     try {
-      const pattern = `${this.sessionPrefix}*`;
-      const keys = await this.redis.keys(pattern);
-      let removedCount = 0;
+      const session = await this.getSession(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
 
-      for (const key of keys) {
-        const sessionData = await this.redis.get(key);
-        if (sessionData) {
-          const session = JSON.parse(sessionData);
-          const lastActivity = new Date(session.lastActivity);
-          const hoursSinceActivity = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);
+      const updatedContext = {
+        ...session.context,
+        ...context
+      };
 
-          if (hoursSinceActivity > 24) {
-            await this.removeSession(session.id);
-            removedCount++;
+      await this.updateSession(sessionId, { context: updatedContext });
+      
+      return updatedContext;
+    } catch (error) {
+      logger.error('Context update failed', { sessionId, error: error.message });
+      throw new Error('Failed to update context');
+    }
+  }
+
+  /**
+   * End user session
+   */
+  async endSession(sessionId) {
+    try {
+      const session = await this.getSession(sessionId);
+      if (!session) {
+        return false;
+      }
+
+      session.status = 'ended';
+      session.endedAt = new Date().toISOString();
+
+      await this.redis.setex(sessionId, 86400, JSON.stringify(session)); // 24 hours TTL for ended sessions
+      
+      logger.info('Session ended', { sessionId });
+      return true;
+    } catch (error) {
+      logger.error('Session end failed', { sessionId, error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * Get active sessions for user using non-blocking SCAN
+   */
+  async getUserSessions(userId) {
+    try {
+      const pattern = `session:${userId}:*`;
+      const sessions = [];
+      let cursor = '0';
+      const count = 100; // Process 100 keys per scan iteration
+
+      do {
+        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+        cursor = newCursor;
+
+        // Fetch session data for each key found in this iteration
+        for (const key of keys) {
+          const sessionData = await this.redis.get(key);
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              if (session.status === 'active') {
+                sessions.push(session);
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse session data', { key, error: parseError.message });
+            }
           }
         }
-      }
+      } while (cursor !== '0'); // Continue until scan is complete
 
-      logger.info(`Removed ${removedCount} expired sessions`);
-      return removedCount;
+      return sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     } catch (error) {
-      logger.error('Failed to remove expired sessions:', error);
-      throw new Error('Failed to remove expired sessions');
+      logger.error('User sessions retrieval failed', { userId, error: error.message });
+      return [];
     }
   }
 
   /**
-   * Get all sessions (for admin purposes)
-   * @returns {array} Array of all session objects
+   * Get session statistics using non-blocking SCAN
    */
-  async getAllSessions() {
+  async getSessionStats() {
     try {
-      const pattern = `${this.sessionPrefix}*`;
-      const keys = await this.redis.keys(pattern);
-      const sessions = [];
-
-      for (const key of keys) {
-        const sessionData = await this.redis.get(key);
-        if (sessionData) {
-          sessions.push(JSON.parse(sessionData));
-        }
-      }
-
-      return sessions;
-    } catch (error) {
-      logger.error('Failed to get all sessions:', error);
-      throw new Error('Failed to retrieve all sessions');
-    }
-  }
-
-  /**
-   * Get sessions by platform
-   * @param {string} platform - Platform name
-   * @returns {array} Array of session objects
-   */
-  async getSessionsByPlatform(platform) {
-    try {
-      const allSessions = await this.getAllSessions();
-      return allSessions.filter(session => session.platform === platform);
-    } catch (error) {
-      logger.error('Failed to get sessions by platform:', error);
-      throw new Error('Failed to retrieve sessions by platform');
-    }
-  }
-
-  /**
-   * Get total session count
-   * @returns {number} Total number of sessions
-   */
-  async getTotalSessions() {
-    try {
-      const pattern = `${this.sessionPrefix}*`;
-      const keys = await this.redis.keys(pattern);
-      return keys.length;
-    } catch (error) {
-      logger.error('Failed to get total sessions:', error);
-      throw new Error('Failed to get total sessions');
-    }
-  }
-
-  /**
-   * Get active sessions count (sessions with activity in last hour)
-   * @returns {number} Number of active sessions
-   */
-  async getActiveSessions() {
-    try {
-      const allSessions = await this.getAllSessions();
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
-      return allSessions.filter(session => {
-        const lastActivity = new Date(session.lastActivity);
-        return lastActivity > oneHourAgo;
-      }).length;
-    } catch (error) {
-      logger.error('Failed to get active sessions:', error);
-      throw new Error('Failed to get active sessions');
-    }
-  }
-
-  /**
-   * Clear all sessions (for testing)
-   */
-  async clearAllSessions() {
-    try {
-      const pattern = `${this.sessionPrefix}*`;
-      const keys = await this.redis.keys(pattern);
-      
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-      }
-
-      // Also clear user session lists
-      const userPattern = `${this.userPrefix}*`;
-      const userKeys = await this.redis.keys(userPattern);
-      
-      if (userKeys.length > 0) {
-        await this.redis.del(...userKeys);
-      }
-
-      logger.info('All sessions cleared');
-    } catch (error) {
-      logger.error('Failed to clear all sessions:', error);
-      throw new Error('Failed to clear all sessions');
-    }
-  }
-
-  /**
-   * Get session statistics
-   * @returns {object} Statistics object
-   */
-  async getSessionStatistics() {
-    try {
-      const totalSessions = await this.getTotalSessions();
-      const activeSessions = await this.getActiveSessions();
-      const allSessions = await this.getAllSessions();
-
-      const platformStats = {};
-      allSessions.forEach(session => {
-        platformStats[session.platform] = (platformStats[session.platform] || 0) + 1;
-      });
-
-      return {
-        total: totalSessions,
-        active: activeSessions,
-        platforms: platformStats,
-        averageMessagesPerSession: allSessions.length > 0 
-          ? allSessions.reduce((sum, session) => sum + session.messages.length, 0) / allSessions.length 
-          : 0
+      const pattern = 'session:*';
+      const stats = {
+        total: 0,
+        active: 0,
+        ended: 0,
+        recent: 0
       };
+
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      let cursor = '0';
+      const count = 100; // Process 100 keys per scan iteration
+
+      do {
+        // Use SCAN with MATCH pattern and COUNT for non-blocking iteration
+        const [newCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+        cursor = newCursor;
+
+        // Process each key found in this iteration
+        for (const key of keys) {
+          const sessionData = await this.redis.get(key);
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              stats.total++;
+              
+              if (session.status === 'active') {
+                stats.active++;
+              } else if (session.status === 'ended') {
+                stats.ended++;
+              }
+
+              if (new Date(session.updatedAt).getTime() > oneHourAgo) {
+                stats.recent++;
+              }
+            } catch (parseError) {
+              logger.warn('Failed to parse session data during stats collection', { key, error: parseError.message });
+            }
+          }
+        }
+      } while (cursor !== '0'); // Continue until scan is complete
+
+      return stats;
     } catch (error) {
-      logger.error('Failed to get session statistics:', error);
-      throw new Error('Failed to get session statistics');
+      logger.error('Session stats retrieval failed', { error: error.message });
+      return { total: 0, active: 0, ended: 0, recent: 0 };
     }
   }
 
   /**
-   * Close Redis connection
+   * Close Redis connection gracefully
    */
   async close() {
     try {
       await this.redis.quit();
-      logger.info('Redis connection closed');
+      logger.info('Session service Redis connection closed gracefully');
     } catch (error) {
-      logger.error('Failed to close Redis connection:', error);
+      logger.error('Session service close failed', { error: error.message });
     }
   }
 }
