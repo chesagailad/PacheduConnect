@@ -9,6 +9,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
   children: React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   fullWidth = false,
   disabled = false,
+  type = 'button',
   children,
   className = '',
   ...props
@@ -54,10 +56,18 @@ const Button: React.FC<ButtonProps> = ({
 
   const isDisabled = disabled || loading;
 
+  // ARIA attributes for loading state
+  const ariaAttributes = loading ? {
+    'aria-busy': 'true' as const,
+    'aria-label': 'Loading' as const,
+  } : {};
+
   return (
     <button
+      type={type}
       className={classes}
       disabled={isDisabled}
+      {...ariaAttributes}
       {...props}
     >
       {loading && (
