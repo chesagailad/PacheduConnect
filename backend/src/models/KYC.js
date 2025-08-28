@@ -20,6 +20,11 @@ const createKYCModel = (sequelize) => {
     throw new Error('Sequelize instance is required');
   }
 
+  // Check if KYC model is already defined and return it immediately
+  if (sequelize.models.KYC) {
+    return sequelize.models.KYC;
+  }
+
   const KYC = sequelize.define('KYC', {
     id: {
       type: DataTypes.UUID,
@@ -127,13 +132,19 @@ const createKYCModel = (sequelize) => {
       const now = new Date();
       const resetDate = new Date(this.resetDate);
       
+      // Coerce values to numbers with fallback to 0
+      const currentMonthSent = Number(this.currentMonthSent) || 0;
+      const monthlySendLimit = Number(this.monthlySendLimit) || 0;
+      const amountNum = Number(amount) || 0;
+      
       // Check if we need to reset the monthly counter
       if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
         this.currentMonthSent = 0;
         this.resetDate = now;
+        return amountNum <= monthlySendLimit;
       }
       
-      return (this.currentMonthSent + amount) <= this.monthlySendLimit;
+      return (currentMonthSent + amountNum) <= monthlySendLimit;
     };
 
     // Instance method to add to monthly sent amount
@@ -141,13 +152,18 @@ const createKYCModel = (sequelize) => {
       const now = new Date();
       const resetDate = new Date(this.resetDate);
       
+      // Coerce values to numbers with fallback to 0
+      const currentMonthSent = Number(this.currentMonthSent) || 0;
+      const amountNum = Number(amount) || 0;
+      
       // Reset if it's a new month
       if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
         this.currentMonthSent = 0;
         this.resetDate = now;
+      } else {
+        // Update with coerced numeric values
+        this.currentMonthSent = currentMonthSent + amountNum;
       }
-      
-      this.currentMonthSent += amount;
     };
 
     KYC.associate = (models) => {
