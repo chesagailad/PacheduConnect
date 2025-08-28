@@ -60,10 +60,25 @@ const SendMoney: React.FC = () => {
   };
 
   const isFormValid = (): boolean => {
-    return form.recipientEmail.trim() !== '' && 
-           form.amount.trim() !== '' && 
-           parseFloat(form.amount) >= 10 && 
-           parseFloat(form.amount) <= 50000;
+    const trimmedEmail = form.recipientEmail.trim();
+    const trimmedAmount = form.amount.trim();
+    
+    // Validate email format
+    if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
+      return false;
+    }
+    
+    // Validate amount
+    if (!trimmedAmount) {
+      return false;
+    }
+    
+    const amountNum = parseFloat(trimmedAmount);
+    if (isNaN(amountNum) || amountNum < 10 || amountNum > 50000) {
+      return false;
+    }
+    
+    return true;
   };
 
   const isValidEmail = (email: string): boolean => {
