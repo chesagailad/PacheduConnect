@@ -118,6 +118,9 @@ export const EnhancedFeeTransparency: React.FC<EnhancedFeeTransparencyProps> = (
   };
 
   const formatPercentage = (value: number, total: number) => {
+    if (!Number.isFinite(total) || total <= 0) {
+      return "0.0";
+    }
     return ((value / total) * 100).toFixed(1);
   };
 
