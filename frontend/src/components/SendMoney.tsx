@@ -117,6 +117,8 @@ const SendMoney: React.FC = () => {
 
     if (!form.recipientEmail.trim()) {
       newErrors.recipientEmail = 'Recipient email is required';
+    } else if (!isValidEmail(form.recipientEmail)) {
+      newErrors.recipientEmail = 'Enter a valid email address';
     }
 
     if (!form.amount.trim()) {
