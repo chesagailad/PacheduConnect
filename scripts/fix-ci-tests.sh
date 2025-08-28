@@ -71,12 +71,19 @@ async function setupTestDatabase() {
   testSequelize = new Sequelize({
     dialect: 'sqlite',
     storage: ':memory:',
-    logging: false,
-    sync: { force: true }
+    logging: false
   });
 
   await testSequelize.authenticate();
   return testSequelize;
+}
+
+async function syncTestDatabase(force = true) {
+  if (!testSequelize) {
+    throw new Error('Test database not initialized. Call setupTestDatabase() first.');
+  }
+  
+  await testSequelize.sync({ force });
 }
 
 async function teardownTestDatabase() {
@@ -88,6 +95,7 @@ async function teardownTestDatabase() {
 
 module.exports = {
   setupTestDatabase,
+  syncTestDatabase,
   teardownTestDatabase,
   getTestSequelize: () => testSequelize
 };
