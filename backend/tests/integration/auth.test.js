@@ -10,13 +10,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 
-// Mock bcryptjs for integration tests
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn().mockResolvedValue('$2b$10$hashedpasswordfor.testing'),
-  compare: jest.fn().mockResolvedValue(true),
-  genSalt: jest.fn().mockResolvedValue('$2b$10$salt')
-}));
-
 // Mock external services
 jest.mock('../../src/services/smsService', () => ({
   sendSMS: jest.fn().mockResolvedValue(true)
@@ -111,6 +104,9 @@ describe('Authentication API', () => {
       expect(hash).toBe('$2b$10$hashedpasswordfor.testing');
       expect(hash).not.toBe(password);
       
+      // Set up explicit mock return value for this test
+      bcrypt.compare.mockResolvedValueOnce(true);
+      
       const isValid = await bcrypt.compare(password, hash);
       expect(isValid).toBe(true);
     });
@@ -118,6 +114,10 @@ describe('Authentication API', () => {
     test('should verify passwords correctly', async () => {
       const password = 'SecurePassword123!';
       const hash = await bcrypt.hash(password, 10);
+
+      // Set up explicit mock return values for this test
+      bcrypt.compare.mockResolvedValueOnce(true);  // For correct password
+      bcrypt.compare.mockResolvedValueOnce(false); // For wrong password
 
       const isValid = await bcrypt.compare(password, hash);
       const isInvalid = await bcrypt.compare('WrongPassword', hash);
